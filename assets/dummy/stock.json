@@ -1,0 +1,17 @@
+[
+  { "productId": "1", "assignedQuantity": 100, "deliveredQuantity": 0 },
+  { "productId": "2", "assignedQuantity": 150, "deliveredQuantity": 0 },
+  { "productId": "3", "assignedQuantity": 80, "deliveredQuantity": 0 },
+  { "productId": "4", "assignedQuantity": 50, "deliveredQuantity": 0 },
+  { "productId": "5", "assignedQuantity": 30, "deliveredQuantity": 0 },
+  { "productId": "6", "assignedQuantity": 200, "deliveredQuantity": 0 },
+  { "productId": "7", "assignedQuantity": 120, "deliveredQuantity": 0 },
+  { "productId": "8", "assignedQuantity": 40, "deliveredQuantity": 0 },
+  { "productId": "9", "assignedQuantity": 300, "deliveredQuantity": 0 },
+  { "productId": "10", "assignedQuantity": 60, "deliveredQuantity": 0 },
+  { "productId": "11", "assignedQuantity": 100, "deliveredQuantity": 0 },
+  { "productId": "12", "assignedQuantity": 100, "deliveredQuantity": 0 },
+  { "productId": "13", "assignedQuantity": 80, "deliveredQuantity": 0 },
+  { "productId": "14", "assignedQuantity": 200, "deliveredQuantity": 0 },
+  { "productId": "15", "assignedQuantity": 60, "deliveredQuantity": 0 }
+]

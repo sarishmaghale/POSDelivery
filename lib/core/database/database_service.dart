@@ -1,0 +1,197 @@
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
+import 'package:flutter/foundation.dart';
+
+import 'null_database.dart';
+
+class DatabaseService {
+  static Database? _database;
+
+  Database get db => _database!;
+
+  Future<void> initialize() async {
+    if (_database != null) return;
+
+    if (kIsWeb) {
+      _database = NullDatabase();
+      return;
+    }
+
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final path = p.join(dir.path, 'sarishma_delivery.db');
+
+      _database = await openDatabase(
+        path,
+        version: 6,
+        onCreate: _createTables,
+        onUpgrade: _onUpgrade,
+      );
+    } catch (_) {
+      _database = NullDatabase();
+    }
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 5) {
+      await db.execute('DROP TABLE IF EXISTS sync_queue');
+      await db.execute('DROP TABLE IF EXISTS estimate_item');
+      await db.execute('DROP TABLE IF EXISTS estimate');
+      await db.execute('DROP TABLE IF EXISTS delivery_item');
+      await db.execute('DROP TABLE IF EXISTS delivery');
+      await db.execute('DROP TABLE IF EXISTS product');
+      await db.execute('DROP TABLE IF EXISTS category');
+      await db.execute('DROP TABLE IF EXISTS customer');
+      await db.execute('DROP TABLE IF EXISTS driver');
+      await db.execute('DROP TABLE IF EXISTS driver_stock');
+      await db.execute('DROP TABLE IF EXISTS sales_return');
+      await _createTables(db, newVersion);
+    } else if (oldVersion == 5) {
+      await db.execute(
+          'ALTER TABLE product ADD COLUMN sold_quantity REAL DEFAULT 0');
+    }
+  }
+
+  Future<void> _createTables(Database db, int version) async {
+    await db.execute('''
+      CREATE TABLE driver (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        server_id TEXT NOT NULL UNIQUE,
+        name TEXT NOT NULL,
+        phone TEXT,
+        email TEXT,
+        assigned_category_ids TEXT DEFAULT '[]',
+        assigned_product_ids TEXT DEFAULT '[]'
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE customer (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        server_id TEXT NOT NULL UNIQUE,
+        name TEXT NOT NULL,
+        phone TEXT,
+        address TEXT
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE category (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        server_id TEXT NOT NULL UNIQUE,
+        name TEXT NOT NULL,
+        japanese_name TEXT,
+        description TEXT,
+        icon TEXT,
+        image_url TEXT,
+        image_list TEXT
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE product (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        server_id TEXT NOT NULL UNIQUE,
+        category_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        japanese_name TEXT,
+        unit_price REAL NOT NULL,
+        stock REAL DEFAULT 0,
+        sold_quantity REAL DEFAULT 0,
+        unit_id TEXT,
+        unit TEXT,
+        image_url TEXT,
+        product_images TEXT,
+        description TEXT
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE driver_stock (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        product_id TEXT NOT NULL UNIQUE,
+        assigned_quantity REAL NOT NULL,
+        delivered_quantity REAL DEFAULT 0
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE delivery (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        server_id TEXT,
+        customer_id TEXT NOT NULL,
+        created_date TEXT NOT NULL,
+        is_synced INTEGER DEFAULT 0
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE delivery_item (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        delivery_id INTEGER NOT NULL,
+        product_id TEXT NOT NULL,
+        quantity REAL NOT NULL,
+        unit_price REAL NOT NULL DEFAULT 0
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE estimate (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        server_id TEXT,
+        delivery_id INTEGER NOT NULL,
+        gross_total REAL NOT NULL DEFAULT 0,
+        estimated_total REAL NOT NULL,
+        discount_type TEXT,
+        discount_value REAL DEFAULT 0,
+        discount_amount REAL DEFAULT 0,
+        payment_mode TEXT,
+        paid_amount REAL DEFAULT 0,
+        remarks TEXT,
+        created_date TEXT NOT NULL,
+        is_synced INTEGER DEFAULT 0
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE estimate_item (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        estimate_id INTEGER NOT NULL,
+        product_id TEXT NOT NULL,
+        quantity REAL NOT NULL,
+        unit_price REAL NOT NULL,
+        line_total REAL NOT NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE sales_return (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        server_id TEXT,
+        customer_id TEXT NOT NULL,
+        product_id TEXT NOT NULL,
+        quantity REAL NOT NULL,
+        reason TEXT,
+        remarks TEXT,
+        created_date TEXT NOT NULL,
+        is_synced INTEGER DEFAULT 0
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE sync_queue (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        entity_type TEXT NOT NULL,
+        entity_id INTEGER NOT NULL,
+        status TEXT NOT NULL,
+        created_date TEXT NOT NULL
+      )
+    ''');
+  }
+
+  Future<void> close() async {
+    await _database?.close();
+    _database = null;
+  }
+}

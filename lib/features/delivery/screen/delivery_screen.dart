@@ -1,0 +1,451 @@
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../models/cart_item.dart';
+import '../provider/delivery_provider.dart';
+import '../widgets/cart_view.dart';
+import '../widgets/customer_dropdown.dart';
+
+class DeliveryScreen extends ConsumerStatefulWidget {
+  final int? deliveryId;
+
+  const DeliveryScreen({super.key, this.deliveryId});
+
+  @override
+  ConsumerState<DeliveryScreen> createState() => _DeliveryScreenState();
+}
+
+class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.deliveryId != null) {
+        ref.read(deliveryFormProvider.notifier).loadExistingDelivery(widget.deliveryId!);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(deliveryFormProvider);
+    final theme = Theme.of(context);
+
+    final cartItems = state.cart.entries.map((e) {
+      final product = state.products.where((p) => p.serverId == e.key).firstOrNull;
+      return CartItem(
+        productId: e.key,
+        productName: product?.name ?? 'Unknown',
+        quantity: e.value,
+        unitPrice: state.getUnitPrice(e.key),
+      );
+    }).toList();
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('New Delivery'),
+      ),
+      body: state.isLoadingCustomers
+          ? const Center(child: CircularProgressIndicator())
+          : ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                Text(
+                  'Customer',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                CustomerDropdown(
+                  customers: state.customers,
+                  selectedCustomer: state.selectedCustomer,
+                  onChanged: (customer) {
+                    ref
+                        .read(deliveryFormProvider.notifier)
+                        .selectCustomer(customer);
+                  },
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Text(
+                      'Products',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const Spacer(),
+                    if (state.selectedCategory != null)
+                      TextButton.icon(
+                        onPressed: () {
+                          ref
+                              .read(deliveryFormProvider.notifier)
+                              .selectCategory(null);
+                        },
+                        icon: const Icon(Icons.clear, size: 16),
+                        label: const Text('Clear filter'),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  height: 50,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: state.categories.length + 1,
+                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    itemBuilder: (context, index) {
+                      if (index == 0) {
+                        final isSelected = state.selectedCategory == null;
+                        return FilterChip(
+                          label: const Text('All'),
+                          selected: isSelected,
+                          onSelected: (_) {
+                            ref
+                                .read(deliveryFormProvider.notifier)
+                                .selectCategory(null);
+                          },
+                        );
+                      }
+                      final cat = state.categories[index - 1];
+                      final isSelected = state.selectedCategory?.serverId == cat.serverId;
+                      return FilterChip(
+                        label: Text(cat.name),
+                        selected: isSelected,
+                        onSelected: (_) {
+                          ref
+                              .read(deliveryFormProvider.notifier)
+                              .selectCategory(isSelected ? null : cat);
+                        },
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  decoration: InputDecoration(
+                    hintText: 'Search products...',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: state.productSearchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              ref
+                                  .read(deliveryFormProvider.notifier)
+                                  .setProductSearchQuery('');
+                            },
+                          )
+                        : null,
+                    border: const OutlineInputBorder(),
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                  ),
+                  onChanged: (value) {
+                    ref
+                        .read(deliveryFormProvider.notifier)
+                        .setProductSearchQuery(value);
+                  },
+                ),
+                const SizedBox(height: 12),
+                if (state.isLoadingProducts)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(24),
+                      child: CircularProgressIndicator(),
+                    ),
+                  )
+                else
+                  _buildProductGrid(context, ref, state, theme),
+                if (state.stockError != null) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.errorContainer,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.warning, color: theme.colorScheme.error, size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            state.stockError!,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onErrorContainer,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, size: 16),
+                          onPressed: () {
+                            ref.read(deliveryFormProvider.notifier).clearStockError();
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 16),
+                CartView(
+                  items: cartItems,
+                  onUpdateQuantity: (productId, qty) {
+                    ref
+                        .read(deliveryFormProvider.notifier)
+                        .updateCartQuantity(productId, qty);
+                  },
+                  onUpdateUnitPrice: (productId, price) {
+                    ref
+                        .read(deliveryFormProvider.notifier)
+                        .setCustomPrice(productId, price);
+                  },
+                  onRemove: (productId) {
+                    ref
+                        .read(deliveryFormProvider.notifier)
+                        .removeFromCart(productId);
+                  },
+                  onClear: cartItems.isNotEmpty
+                      ? () {
+                          ref
+                              .read(deliveryFormProvider.notifier)
+                              .clearCart();
+                        }
+                      : null,
+                ),
+                if (cartItems.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Card(
+                    color: theme.colorScheme.primaryContainer,
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Estimated Total',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.onPrimaryContainer,
+                            ),
+                          ),
+                          Text(
+                            'Rs. ${state.estimatedTotal.toStringAsFixed(2)}',
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.onPrimaryContainer,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  FilledButton.icon(
+                    onPressed: state.isSaving
+                        ? null
+                        : () => _saveDelivery(context, ref),
+                    icon: state.isSaving
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Icon(Icons.save),
+                    label: Text(
+                        state.isSaving ? 'Saving...' : 'Save Delivery'),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 52),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+    );
+  }
+
+  Widget _buildProductGrid(BuildContext context, WidgetRef ref, DeliveryFormState state, ThemeData theme) {
+    final products = state.filteredProducts;
+    if (products.isEmpty) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Center(
+            child: Text(
+              state.selectedCategory != null
+                  ? 'No products in this category'
+                  : 'Select a category to browse products',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+        childAspectRatio: 0.75,
+      ),
+      itemCount: products.length,
+      itemBuilder: (context, index) {
+        final product = products[index];
+        final inCart = state.cart[product.serverId] ?? 0;
+        final remaining = state.getRemainingQuantity(product.serverId);
+
+        return Card(
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: Container(
+                  color: theme.colorScheme.surfaceContainerHighest,
+                  child: product.firstImageUrl != null && product.firstImageUrl!.isNotEmpty
+                      ? CachedNetworkImage(
+                          imageUrl: product.firstImageUrl!,
+                          fit: BoxFit.cover,
+                          placeholder: (_, __) => _buildShimmerPlaceholder(theme),
+                          errorWidget: (_, __, ___) => _buildPlaceholderIcon(theme),
+                        )
+                      : _buildPlaceholderIcon(theme),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      product.name,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Rs. ${product.unitPrice.toStringAsFixed(0)}/${product.unit ?? 'unit'}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Available: ${remaining.toStringAsFixed(0)}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: remaining > 0
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.error,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    if (inCart > 0)
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.remove_circle_outline, size: 20),
+                            onPressed: () {
+                              ref.read(deliveryFormProvider.notifier)
+                                  .updateCartQuantity(product.serverId, inCart - 1);
+                            },
+                            visualDensity: VisualDensity.compact,
+                          ),
+                          Text(
+                            inCart.toStringAsFixed(0),
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.add_circle_outline, size: 20),
+                            onPressed: inCart < remaining
+                                ? () {
+                                    ref.read(deliveryFormProvider.notifier)
+                                        .addToCart(product.serverId, 1);
+                                  }
+                                : null,
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        ],
+                      )
+                    else
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.tonalIcon(
+                          onPressed: remaining > 0
+                              ? () {
+                                  ref.read(deliveryFormProvider.notifier)
+                                      .addToCart(product.serverId, 1);
+                                }
+                              : null,
+                          icon: const Icon(Icons.add_shopping_cart, size: 16),
+                          label: const Text('Add'),
+                          style: FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPlaceholderIcon(ThemeData theme) {
+    return Center(
+      child: Icon(
+        Icons.inventory_2_outlined,
+        size: 40,
+        color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+      ),
+    );
+  }
+
+  Widget _buildShimmerPlaceholder(ThemeData theme) {
+    return Center(
+      child: CircularProgressIndicator(
+        strokeWidth: 2,
+        color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+      ),
+    );
+  }
+
+  Future<void> _saveDelivery(BuildContext context, WidgetRef ref) async {
+    final notifier = ref.read(deliveryFormProvider.notifier);
+    final router = GoRouter.of(context);
+    final result = await notifier.saveDelivery();
+
+    if (!context.mounted) return;
+
+    if (result.success) {
+      router.go('/estimate?deliveryId=${result.deliveryId}');
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to save: ${result.error}'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+    }
+  }
+}

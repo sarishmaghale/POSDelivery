@@ -1,0 +1,6 @@
+[
+  { "id": "1", "name": "ABC Store", "phone": "+977-98XXXXXXXX", "address": "Kathmandu" },
+  { "id": "2", "name": "XYZ Mart", "phone": "+977-98XXXXXXXX", "address": "Lalitpur" },
+  { "id": "3", "name": "Everest Suppliers", "phone": "+977-98XXXXXXXX", "address": "Bhaktapur" },
+  { "id": "4", "name": "New Nepal Traders", "phone": "+977-98XXXXXXXX", "address": "Pokhara" }
+]
