@@ -116,6 +116,7 @@ class SyncRepository {
 
     final request = DeliveryRequest(
       customerId: delivery.customerId,
+      paymentMode: delivery.paymentMode,
       items: items
           .map((e) => DeliveryItemRequest(
                 productId: e.productId,

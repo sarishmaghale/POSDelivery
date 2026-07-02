@@ -3,6 +3,7 @@ class Delivery {
   String? serverId;
   late String customerId;
   late DateTime createdDate;
+  String? paymentMode;
   bool isSynced = false;
 
   Delivery();
@@ -13,6 +14,7 @@ class Delivery {
       'server_id': serverId,
       'customer_id': customerId,
       'created_date': createdDate.toIso8601String(),
+      'payment_mode': paymentMode,
       'is_synced': isSynced ? 1 : 0,
     };
   }
@@ -23,6 +25,7 @@ class Delivery {
     delivery.serverId = map['server_id'] as String?;
     delivery.customerId = map['customer_id'] as String;
     delivery.createdDate = DateTime.parse(map['created_date'] as String);
+    delivery.paymentMode = map['payment_mode'] as String?;
     delivery.isSynced = (map['is_synced'] as int) == 1;
     return delivery;
   }

@@ -30,13 +30,70 @@ class DeliveryRepository {
         _db = db,
         _networkChecker = networkChecker;
 
+  Future<Delivery> updateDelivery(
+    int deliveryId, {
+    required String customerId,
+    required List<DeliveryItem> items,
+    String? paymentMode,
+  }) async {
+    final delivery = Delivery()
+      ..id = deliveryId
+      ..customerId = customerId
+      ..createdDate = DateTime.now()
+      ..paymentMode = paymentMode
+      ..isSynced = false;
+
+    await _db.update(
+      'delivery',
+      delivery.toMap(),
+      where: 'id = ?',
+      whereArgs: [deliveryId],
+    );
+
+    await _db.delete('delivery_item',
+        where: 'delivery_id = ?', whereArgs: [deliveryId]);
+
+    for (final item in items) {
+      item.deliveryId = deliveryId;
+      await _db.insert('delivery_item', item.toMap());
+    }
+
+    final existingSync = await _db.query('sync_queue',
+        where: 'entity_type = ? AND entity_id = ?',
+        whereArgs: ['Delivery', deliveryId]);
+    if (existingSync.isEmpty) {
+      final syncEntry = SyncQueue()
+        ..entityType = 'Delivery'
+        ..entityId = deliveryId
+        ..status = 'Pending'
+        ..createdDate = DateTime.now();
+      await _db.insert('sync_queue', syncEntry.toMap());
+    } else {
+      await _db.update(
+        'sync_queue',
+        {'status': 'Pending'},
+        where: 'entity_type = ? AND entity_id = ?',
+        whereArgs: ['Delivery', deliveryId],
+      );
+    }
+
+    final isOnline = await _networkChecker.isConnected;
+    if (isOnline) {
+      await _syncDelivery(delivery);
+    }
+
+    return delivery;
+  }
+
   Future<Delivery> saveDelivery({
     required String customerId,
     required List<DeliveryItem> items,
+    String? paymentMode,
   }) async {
     final delivery = Delivery()
       ..customerId = customerId
       ..createdDate = DateTime.now()
+      ..paymentMode = paymentMode
       ..isSynced = false;
 
     final id = await _db.insert('delivery', delivery.toMap());
@@ -77,6 +134,7 @@ class DeliveryRepository {
 
       final request = DeliveryRequest(
         customerId: delivery.customerId,
+        paymentMode: delivery.paymentMode,
         items: items
             .map((e) => DeliveryItemRequest(
                   productId: e.productId,

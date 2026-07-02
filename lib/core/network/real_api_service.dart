@@ -82,6 +82,10 @@ class RealApiService implements ApiService {
   Future<List<Map<String, dynamic>>> fetchStock() => _fallback.fetchStock();
 
   @override
+  Future<List<Map<String, dynamic>>> fetchPaymentModes() =>
+      _fallback.fetchPaymentModes();
+
+  @override
   Future<DeliveryResponse> createDelivery(DeliveryRequest request) =>
       _fallback.createDelivery(request);
 

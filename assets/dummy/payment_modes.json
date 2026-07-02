@@ -1,0 +1,10 @@
+[
+  { "Name": "RFCard", "TempId": 9, "Id": "b0718dfb-d93b-432f-b337-d3195a0211de" },
+  { "Name": "PrePaid", "TempId": 8, "Id": "2526d549-df55-47d9-9fe9-697b4c3c849e" },
+  { "Name": "Credit", "TempId": 4, "Id": "42eb9bf9-dad3-44ba-b5c0-a838041e3aeb" },
+  { "Name": "CreditCard", "TempId": 3, "Id": "da2f2b54-9ca5-4f3b-83eb-8c151e5db72f" },
+  { "Name": "esewa", "TempId": 6, "Id": "1cef15e5-836e-4b7f-bfb6-334f921382e8" },
+  { "Name": "phonepay", "TempId": 5, "Id": "9b2a75e4-f23d-4168-9d8e-cfd351f1adb4" },
+  { "Name": "Cash", "TempId": 1, "Id": "9132fb42-6969-4b9e-a4c7-6280dc47cb6e" },
+  { "Name": "Wallet", "TempId": 7, "Id": "4c562798-79ea-4045-ba5d-251d846d37f8" }
+]

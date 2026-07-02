@@ -28,8 +28,9 @@ class Product {
       'unit_id': unitId,
       'unit': unit,
       'image_url': imageUrl,
-      'product_images':
-          productImages.isNotEmpty ? jsonEncode(productImages) : null,
+      'product_images': productImages.isNotEmpty
+          ? jsonEncode(productImages)
+          : null,
       'description': description,
     };
   }
@@ -42,7 +43,8 @@ class Product {
     product.name = map['name'] as String;
     product.japaneseName = map['japanese_name'] as String?;
     product.unitPrice = (map['unit_price'] as num).toDouble();
-    product.stock = (map['stock'] as num?)?.toDouble() ?? 0;
+    product.stock = (map['stock'] as num?)?.toDouble() ?? 20;
+    if (product.stock <= 0) product.stock = 20;
     product.unitId = map['unit_id'] as String?;
     product.unit = map['unit'] as String?;
     product.imageUrl = map['image_url'] as String?;

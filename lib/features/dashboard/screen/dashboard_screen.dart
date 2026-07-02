@@ -116,50 +116,33 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Widget _buildStatsRow(DashboardState state, ThemeData theme) {
-    return Column(
+    return Row(
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: StatCard(
-                title: "Today's Deliveries",
-                value: state.todaysDeliveries.toString(),
-                icon: Icons.local_shipping,
-                onTap: () => context.push('/delivery-history'),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: StatCard(
-                title: 'Estimates',
-                value: state.estimatedBills.toString(),
-                onTap: () => context.push('/estimate-history'),
-                icon: Icons.receipt_long,
-              ),
-            ),
-          ],
+        Expanded(
+          child: StatCard(
+            title: "Today's Deliveries",
+            value: state.todaysDeliveries.toString(),
+            icon: Icons.local_shipping,
+            onTap: () => context.push('/delivery-history'),
+          ),
         ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: StatCard(
-                title: 'Sales Returns',
-                value: state.todaysSalesReturns.toString(),
-                icon: Icons.assignment_return,
-                onTap: () {},
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: StatCard(
-                title: 'Customers',
-                value: state.assignedCustomersCount.toString(),
-                icon: Icons.people,
-                onTap: () {},
-              ),
-            ),
-          ],
+        const SizedBox(width: 12),
+        Expanded(
+          child: StatCard(
+            title: 'Sales Returns',
+            value: state.todaysSalesReturns.toString(),
+            icon: Icons.assignment_return,
+            onTap: () {},
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: StatCard(
+            title: 'Customers',
+            value: state.assignedCustomersCount.toString(),
+            icon: Icons.people,
+            onTap: () {},
+          ),
         ),
       ],
     );

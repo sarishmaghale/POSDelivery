@@ -4,10 +4,13 @@ import '../../../core/services/image_prefetch_service.dart';
 import '../../../models/category.dart';
 import '../../../models/customer.dart';
 import '../../../models/delivery.dart';
+import '../../../models/payment_mode.dart';
 import '../../../models/product.dart';
 import '../../../repositories/category_repository.dart';
 import '../../../repositories/customer_repository.dart';
 import '../../../repositories/delivery_repository.dart';
+import '../../../repositories/estimate_repository.dart';
+import '../../../repositories/payment_mode_repository.dart';
 import '../../../repositories/product_repository.dart';
 
 class DeliveryFormState {
@@ -16,10 +19,15 @@ class DeliveryFormState {
   final List<Customer> customers;
   final List<Category> categories;
   final List<Product> products;
+  final List<PaymentMode> paymentModes;
+  final PaymentMode? selectedPaymentMode;
   final Map<String, double> cart;
   final Map<String, double> customPrices;
   final Map<String, double> stockMap;
   final String productSearchQuery;
+  final String customerSearchQuery;
+  final int? editingDeliveryId;
+  final bool isReadOnly;
   final bool isLoadingCustomers;
   final bool isLoadingProducts;
   final bool isSaving;
@@ -31,10 +39,15 @@ class DeliveryFormState {
     this.customers = const [],
     this.categories = const [],
     this.products = const [],
+    this.paymentModes = const [],
+    this.selectedPaymentMode,
     this.cart = const {},
     this.customPrices = const {},
     this.stockMap = const {},
     this.productSearchQuery = '',
+    this.customerSearchQuery = '',
+    this.editingDeliveryId,
+    this.isReadOnly = false,
     this.isLoadingCustomers = false,
     this.isLoadingProducts = false,
     this.isSaving = false,
@@ -78,6 +91,17 @@ class DeliveryFormState {
   double getRemainingQuantity(String productId) {
     return stockMap[productId] ?? 0;
   }
+
+  List<Customer> get filteredCustomers {
+    if (customerSearchQuery.isEmpty) return [];
+    final query = customerSearchQuery.toLowerCase();
+    return customers
+        .where((c) =>
+            c.name.toLowerCase().contains(query) ||
+            (c.phone?.toLowerCase().contains(query) ?? false))
+        .take(5)
+        .toList();
+  }
 }
 
 final deliveryFormProvider =
@@ -86,7 +110,9 @@ final deliveryFormProvider =
     customerRepo: ref.read(customerRepositoryProvider),
     categoryRepo: ref.read(categoryRepositoryProvider),
     productRepo: ref.read(productRepositoryProvider),
+    paymentModeRepo: ref.read(paymentModeRepositoryProvider),
     deliveryRepo: ref.read(deliveryRepositoryProvider),
+    estimateRepo: ref.read(estimateRepositoryProvider),
   );
 });
 
@@ -94,17 +120,23 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
   final CustomerRepository _customerRepo;
   final CategoryRepository _categoryRepo;
   final ProductRepository _productRepo;
+  final PaymentModeRepository _paymentModeRepo;
   final DeliveryRepository _deliveryRepo;
+  final EstimateRepository _estimateRepo;
 
   DeliveryFormNotifier({
     required CustomerRepository customerRepo,
     required CategoryRepository categoryRepo,
     required ProductRepository productRepo,
+    required PaymentModeRepository paymentModeRepo,
     required DeliveryRepository deliveryRepo,
+    required EstimateRepository estimateRepo,
   })  : _customerRepo = customerRepo,
         _categoryRepo = categoryRepo,
         _productRepo = productRepo,
+        _paymentModeRepo = paymentModeRepo,
         _deliveryRepo = deliveryRepo,
+        _estimateRepo = estimateRepo,
         super(DeliveryFormState()) {
     _loadInitialData();
   }
@@ -116,10 +148,18 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
       final customers = await _customerRepo.getCustomers();
       var categories = await _categoryRepo.getCachedCategories();
       var products = await _loadAllProducts();
+      var paymentModes = await _loadAllPaymentModes();
 
       if (categories.isEmpty) {
         try {
           categories = await _categoryRepo.getCategories();
+        } catch (_) {}
+      }
+
+      if (paymentModes.isEmpty) {
+        try {
+          await _paymentModeRepo.refreshPaymentModes();
+          paymentModes = await _paymentModeRepo.getPaymentModes();
         } catch (_) {}
       }
 
@@ -136,6 +176,7 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
         customers: customers,
         categories: categories,
         products: products,
+        paymentModes: paymentModes,
         stockMap: _buildStockMapFromProducts(products),
         isLoadingCustomers: false,
         isLoadingProducts: false,
@@ -145,6 +186,7 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
         customers: await _customerRepo.getCachedCustomers(),
         categories: await _categoryRepo.getCachedCategories(),
         products: await _loadAllProducts(),
+        paymentModes: await _loadAllPaymentModes(),
         stockMap: await _loadStockMap(),
         isLoadingCustomers: false,
         isLoadingProducts: false,
@@ -155,6 +197,14 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
   Future<List<Product>> _loadAllProducts() async {
     try {
       return await _productRepo.getCachedProducts();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<List<PaymentMode>> _loadAllPaymentModes() async {
+    try {
+      return await _paymentModeRepo.getPaymentModes();
     } catch (_) {
       return [];
     }
@@ -192,11 +242,17 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
       final customers = await _customerRepo.getCustomers();
       final categories = await _categoryRepo.getCachedCategories();
       final products = await _loadAllProducts();
+      final paymentModes = await _loadAllPaymentModes();
       final stockMap = _buildStockMapFromProducts(products);
       final items = await _deliveryRepo.getDeliveryItems(deliveryId);
 
       final selectedCustomer = customers.cast<Customer?>().firstWhere(
             (c) => c?.serverId == delivery.customerId,
+            orElse: () => null,
+          );
+
+      final selectedPaymentMode = paymentModes.cast<PaymentMode?>().firstWhere(
+            (m) => m?.serverId == delivery.paymentMode,
             orElse: () => null,
           );
 
@@ -209,11 +265,17 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
         }
       }
 
+      final existingEstimates = await _estimateRepo.getEstimatesByDelivery(deliveryId);
+      final isReadOnly = existingEstimates.isNotEmpty;
+
       state = DeliveryFormState(
         selectedCustomer: selectedCustomer,
+        isReadOnly: isReadOnly,
         customers: customers,
         categories: categories,
         products: products,
+        paymentModes: paymentModes,
+        selectedPaymentMode: selectedPaymentMode,
         stockMap: stockMap,
         customPrices: customPrices,
         cart: cart,
@@ -235,11 +297,17 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
   void selectCustomer(Customer? customer) {
     state = DeliveryFormState(
       selectedCustomer: customer,
+      editingDeliveryId: state.editingDeliveryId,
       customers: state.customers,
       categories: state.categories,
       products: state.products,
+      paymentModes: state.paymentModes,
+      selectedPaymentMode: state.selectedPaymentMode,
+      cart: state.cart,
+      customPrices: state.customPrices,
       stockMap: state.stockMap,
       productSearchQuery: state.productSearchQuery,
+      customerSearchQuery: state.customerSearchQuery,
     );
   }
 
@@ -247,9 +315,11 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
     state = DeliveryFormState(
       selectedCustomer: state.selectedCustomer,
       selectedCategory: category,
+      editingDeliveryId: state.editingDeliveryId,
       customers: state.customers,
       categories: state.categories,
       products: state.products,
+      paymentModes: state.paymentModes,
       cart: state.cart,
       stockMap: state.stockMap,
       productSearchQuery: '',
@@ -260,13 +330,51 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
     state = DeliveryFormState(
       selectedCustomer: state.selectedCustomer,
       selectedCategory: state.selectedCategory,
+      editingDeliveryId: state.editingDeliveryId,
       customers: state.customers,
       categories: state.categories,
       products: state.products,
+      paymentModes: state.paymentModes,
+      selectedPaymentMode: state.selectedPaymentMode,
       cart: state.cart,
       stockMap: state.stockMap,
       customPrices: state.customPrices,
       productSearchQuery: query,
+    );
+  }
+
+  void setCustomerSearchQuery(String query) {
+    state = DeliveryFormState(
+      selectedCustomer: state.selectedCustomer,
+      selectedCategory: state.selectedCategory,
+      editingDeliveryId: state.editingDeliveryId,
+      customers: state.customers,
+      categories: state.categories,
+      products: state.products,
+      paymentModes: state.paymentModes,
+      selectedPaymentMode: state.selectedPaymentMode,
+      cart: state.cart,
+      stockMap: state.stockMap,
+      customPrices: state.customPrices,
+      productSearchQuery: state.productSearchQuery,
+      customerSearchQuery: query,
+    );
+  }
+
+  void selectPaymentMode(PaymentMode? mode) {
+    state = DeliveryFormState(
+      selectedCustomer: state.selectedCustomer,
+      selectedCategory: state.selectedCategory,
+      editingDeliveryId: state.editingDeliveryId,
+      customers: state.customers,
+      categories: state.categories,
+      products: state.products,
+      paymentModes: state.paymentModes,
+      selectedPaymentMode: mode,
+      cart: state.cart,
+      stockMap: state.stockMap,
+      customPrices: state.customPrices,
+      productSearchQuery: state.productSearchQuery,
     );
   }
 
@@ -280,9 +388,12 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
     state = DeliveryFormState(
       selectedCustomer: state.selectedCustomer,
       selectedCategory: state.selectedCategory,
+      editingDeliveryId: state.editingDeliveryId,
       customers: state.customers,
       categories: state.categories,
       products: state.products,
+      paymentModes: state.paymentModes,
+      selectedPaymentMode: state.selectedPaymentMode,
       cart: state.cart,
       stockMap: state.stockMap,
       customPrices: updated,
@@ -299,9 +410,12 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
       state = DeliveryFormState(
         selectedCustomer: state.selectedCustomer,
         selectedCategory: state.selectedCategory,
+        editingDeliveryId: state.editingDeliveryId,
         customers: state.customers,
         categories: state.categories,
         products: state.products,
+        paymentModes: state.paymentModes,
+        selectedPaymentMode: state.selectedPaymentMode,
         cart: state.cart,
         stockMap: state.stockMap,
         customPrices: state.customPrices,
@@ -315,9 +429,12 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
     state = DeliveryFormState(
       selectedCustomer: state.selectedCustomer,
       selectedCategory: state.selectedCategory,
+      editingDeliveryId: state.editingDeliveryId,
       customers: state.customers,
       categories: state.categories,
       products: state.products,
+      paymentModes: state.paymentModes,
+      selectedPaymentMode: state.selectedPaymentMode,
       cart: updated,
       stockMap: state.stockMap,
       productSearchQuery: state.productSearchQuery,
@@ -330,9 +447,12 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
       state = DeliveryFormState(
         selectedCustomer: state.selectedCustomer,
         selectedCategory: state.selectedCategory,
+        editingDeliveryId: state.editingDeliveryId,
         customers: state.customers,
         categories: state.categories,
         products: state.products,
+        paymentModes: state.paymentModes,
+        selectedPaymentMode: state.selectedPaymentMode,
         cart: state.cart,
         stockMap: state.stockMap,
         customPrices: state.customPrices,
@@ -350,9 +470,12 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
     state = DeliveryFormState(
       selectedCustomer: state.selectedCustomer,
       selectedCategory: state.selectedCategory,
+      editingDeliveryId: state.editingDeliveryId,
       customers: state.customers,
       categories: state.categories,
       products: state.products,
+      paymentModes: state.paymentModes,
+      selectedPaymentMode: state.selectedPaymentMode,
       cart: updated,
       stockMap: state.stockMap,
       productSearchQuery: state.productSearchQuery,
@@ -364,9 +487,12 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
     state = DeliveryFormState(
       selectedCustomer: state.selectedCustomer,
       selectedCategory: state.selectedCategory,
+      editingDeliveryId: state.editingDeliveryId,
       customers: state.customers,
       categories: state.categories,
       products: state.products,
+      paymentModes: state.paymentModes,
+      selectedPaymentMode: state.selectedPaymentMode,
       cart: updated,
       stockMap: state.stockMap,
       productSearchQuery: state.productSearchQuery,
@@ -377,9 +503,11 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
     state = DeliveryFormState(
       selectedCustomer: state.selectedCustomer,
       selectedCategory: state.selectedCategory,
+      editingDeliveryId: state.editingDeliveryId,
       customers: state.customers,
       categories: state.categories,
       products: state.products,
+      paymentModes: state.paymentModes,
       stockMap: state.stockMap,
       productSearchQuery: state.productSearchQuery,
     );
@@ -389,12 +517,25 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
     state = DeliveryFormState(
       selectedCustomer: state.selectedCustomer,
       selectedCategory: state.selectedCategory,
+      editingDeliveryId: state.editingDeliveryId,
       customers: state.customers,
       categories: state.categories,
       products: state.products,
+      paymentModes: state.paymentModes,
+      selectedPaymentMode: state.selectedPaymentMode,
       cart: state.cart,
       stockMap: state.stockMap,
       productSearchQuery: state.productSearchQuery,
+    );
+  }
+
+  void resetForm() {
+    state = DeliveryFormState(
+      customers: state.customers,
+      categories: state.categories,
+      products: state.products,
+      paymentModes: state.paymentModes,
+      stockMap: state.stockMap,
     );
   }
 
@@ -404,9 +545,12 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
     state = DeliveryFormState(
       selectedCustomer: state.selectedCustomer,
       selectedCategory: state.selectedCategory,
+      editingDeliveryId: state.editingDeliveryId,
       customers: state.customers,
       categories: state.categories,
       products: state.products,
+      paymentModes: state.paymentModes,
+      selectedPaymentMode: state.selectedPaymentMode,
       cart: state.cart,
       stockMap: state.stockMap,
       customPrices: state.customPrices,
@@ -422,10 +566,27 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
         return item;
       }).toList();
 
-      final delivery = await _deliveryRepo.saveDelivery(
-        customerId: state.selectedCustomer!.serverId,
-        items: items,
-      );
+      Delivery delivery;
+
+      if (state.editingDeliveryId != null) {
+        final oldItems = await _deliveryRepo.getDeliveryItems(state.editingDeliveryId!);
+        for (final oldItem in oldItems) {
+          await _productRepo.restoreStock(oldItem.productId, oldItem.quantity);
+        }
+
+        delivery = await _deliveryRepo.updateDelivery(
+          state.editingDeliveryId!,
+          customerId: state.selectedCustomer!.serverId,
+          items: items,
+          paymentMode: state.selectedPaymentMode?.serverId,
+        );
+      } else {
+        delivery = await _deliveryRepo.saveDelivery(
+          customerId: state.selectedCustomer!.serverId,
+          items: items,
+          paymentMode: state.selectedPaymentMode?.serverId,
+        );
+      }
 
       for (final entry in state.cart.entries) {
         await _productRepo.deductStock(entry.key, entry.value);
@@ -437,17 +598,21 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
         customers: state.customers,
         categories: state.categories,
         products: state.products,
+        paymentModes: state.paymentModes,
         stockMap: stockMap,
       );
 
-      return DeliveryResult(success: true, deliveryId: delivery.id);
+      return DeliveryResult(success: true, deliveryId: delivery.id!);
     } catch (e) {
       state = DeliveryFormState(
         selectedCustomer: state.selectedCustomer,
         selectedCategory: state.selectedCategory,
+        editingDeliveryId: state.editingDeliveryId,
         customers: state.customers,
         categories: state.categories,
         products: state.products,
+        paymentModes: state.paymentModes,
+        selectedPaymentMode: state.selectedPaymentMode,
         cart: state.cart,
         stockMap: state.stockMap,
         customPrices: state.customPrices,

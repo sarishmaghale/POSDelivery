@@ -5,6 +5,7 @@ import '../../../core/network/providers.dart';
 import '../../../models/sync_queue.dart';
 import '../../../repositories/category_repository.dart';
 import '../../../repositories/customer_repository.dart';
+import '../../../repositories/payment_mode_repository.dart';
 import '../../../repositories/product_repository.dart';
 import '../../../repositories/stock_repository.dart';
 import '../../../repositories/sync_repository.dart';
@@ -47,6 +48,7 @@ final syncProvider = StateNotifierProvider<SyncNotifier, SyncState>((ref) {
     productRepo: ref.read(productRepositoryProvider),
     customerRepo: ref.read(customerRepositoryProvider),
     stockRepo: ref.read(stockRepositoryProvider),
+    paymentModeRepo: ref.read(paymentModeRepositoryProvider),
     networkChecker: ref.read(networkCheckerProvider),
   );
 });
@@ -57,6 +59,7 @@ class SyncNotifier extends StateNotifier<SyncState> {
   final ProductRepository _productRepo;
   final CustomerRepository _customerRepo;
   final StockRepository _stockRepo;
+  final PaymentModeRepository _paymentModeRepo;
   final NetworkChecker _networkChecker;
 
   SyncNotifier({
@@ -65,12 +68,14 @@ class SyncNotifier extends StateNotifier<SyncState> {
     required ProductRepository productRepo,
     required CustomerRepository customerRepo,
     required StockRepository stockRepo,
+    required PaymentModeRepository paymentModeRepo,
     required NetworkChecker networkChecker,
   })  : _syncRepo = syncRepo,
         _categoryRepo = categoryRepo,
         _productRepo = productRepo,
         _customerRepo = customerRepo,
         _stockRepo = stockRepo,
+        _paymentModeRepo = paymentModeRepo,
         _networkChecker = networkChecker,
         super(SyncState()) {
     refresh();
@@ -108,6 +113,7 @@ class SyncNotifier extends StateNotifier<SyncState> {
         'products': const SyncStatus(label: 'Products', success: null),
         'customers': const SyncStatus(label: 'Customers', success: null),
         'stock': const SyncStatus(label: 'Stock', success: null),
+        'paymentModes': const SyncStatus(label: 'Payment Modes', success: null),
       },
     );
 
@@ -121,6 +127,7 @@ class SyncNotifier extends StateNotifier<SyncState> {
           'products': SyncStatus(label: 'Products', success: results['products']),
           'customers': SyncStatus(label: 'Customers', success: results['customers']),
           'stock': SyncStatus(label: 'Stock', success: results['stock']),
+          'paymentModes': SyncStatus(label: 'Payment Modes', success: results['paymentModes']),
         },
         isSyncing: true,
       );
@@ -146,6 +153,7 @@ class SyncNotifier extends StateNotifier<SyncState> {
         'products': SyncStatus(label: 'Products', success: results['products']),
         'customers': SyncStatus(label: 'Customers', success: results['customers']),
         'stock': SyncStatus(label: 'Stock', success: results['stock']),
+        'paymentModes': SyncStatus(label: 'Payment Modes', success: results['paymentModes']),
       },
     );
 
@@ -181,6 +189,13 @@ class SyncNotifier extends StateNotifier<SyncState> {
       results['stock'] = true;
     } catch (_) {
       results['stock'] = false;
+    }
+
+    try {
+      await _paymentModeRepo.refreshPaymentModes();
+      results['paymentModes'] = true;
+    } catch (_) {
+      results['paymentModes'] = false;
     }
 
     return results;

@@ -1,16 +1,19 @@
 class DeliveryRequest {
   final String customerId;
   final List<DeliveryItemRequest> items;
+  final String? paymentMode;
 
   DeliveryRequest({
     required this.customerId,
     required this.items,
+    this.paymentMode,
   });
 
   Map<String, dynamic> toJson() {
     return {
       'customerId': customerId,
       'items': items.map((e) => e.toJson()).toList(),
+      if (paymentMode != null) 'paymentMode': paymentMode,
     };
   }
 }

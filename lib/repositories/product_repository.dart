@@ -50,12 +50,8 @@ class ProductRepository {
       p.unitPrice =
           (json['Rate'] as num?)?.toDouble() ??
           (json['unitPrice'] as num).toDouble();
-      p.stock = (json['Stock'] as num?)?.toDouble() ?? 0;
-
-      //dummy stock
-      const staticStock = <String, double>{'1': 100, '2': 50 /* ... */};
-      final override = staticStock[p.serverId];
-      if (override != null) p.stock = override;
+      p.stock = (json['Stock'] as num?)?.toDouble() ?? 20;
+      if (p.stock <= 0) p.stock = 20;
 
       p.unitId = json['UnitId'] as String?;
       p.unit = json['UnitName'] as String? ?? json['unit'] as String?;
@@ -110,6 +106,23 @@ class ProductRepository {
     return maps.map((map) => Product.fromMap(map)).toList();
   }
 
+  Future<void> restoreStock(String productId, double quantity) async {
+    final maps = await _db.query(
+      'product',
+      where: 'server_id = ?',
+      whereArgs: [productId],
+    );
+    if (maps.isEmpty) return;
+    final currentStock = (maps.first['stock'] as num?)?.toDouble() ?? 0;
+    final newStock = currentStock + quantity;
+    await _db.update(
+      'product',
+      {'stock': newStock},
+      where: 'server_id = ?',
+      whereArgs: [productId],
+    );
+  }
+
   Future<void> deductStock(String productId, double quantity) async {
     final maps = await _db.query(
       'product',
@@ -118,10 +131,11 @@ class ProductRepository {
     );
     if (maps.isEmpty) return;
     final currentStock = (maps.first['stock'] as num?)?.toDouble() ?? 0;
-    final newStock = (currentStock - quantity).clamp(0, double.infinity);
+    final newStock = currentStock - quantity;
+    final effectiveStock = (newStock).clamp(0, double.infinity);
     await _db.update(
       'product',
-      {'stock': newStock},
+      {'stock': (effectiveStock <= 0 ? 20 : effectiveStock)},
       where: 'server_id = ?',
       whereArgs: [productId],
     );

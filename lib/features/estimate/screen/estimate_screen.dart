@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/utils/extensions.dart';
+import '../../delivery/provider/delivery_provider.dart';
 import '../provider/estimate_provider.dart';
 
 class EstimateScreen extends ConsumerStatefulWidget {
@@ -28,8 +29,35 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
         ref
             .read(estimateProvider.notifier)
             .loadDelivery(widget.deliveryId!);
+      } else {
+        _initFromDeliveryForm(ref);
       }
     });
+  }
+
+  void _initFromDeliveryForm(WidgetRef ref) {
+    final deliveryForm = ref.read(deliveryFormProvider);
+    if (deliveryForm.selectedCustomer == null || deliveryForm.cart.isEmpty) {
+      context.go('/delivery');
+      return;
+    }
+
+    final products = deliveryForm.products;
+    final items = deliveryForm.cart.entries.map((e) {
+      final product = products.where((p) => p.serverId == e.key).firstOrNull;
+      return EstimateItemView(
+        productId: e.key,
+        productName: product?.name ?? 'Unknown',
+        quantity: e.value,
+        unitPrice: deliveryForm.getUnitPrice(e.key),
+      );
+    }).toList();
+
+    ref.read(estimateProvider.notifier).initializeFromDeliveryForm(
+      customer: deliveryForm.selectedCustomer!,
+      items: items,
+      paymentModes: deliveryForm.paymentModes,
+    );
   }
 
   @override
@@ -61,7 +89,7 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Estimated Billing'),
+        title: const Text('Billing'),
       ),
       body: _buildBody(state, theme),
     );
@@ -84,7 +112,7 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Estimate Saved Successfully',
+              'Invoice Saved Successfully',
               style: theme.textTheme.titleLarge,
             ),
             const SizedBox(height: 24),
@@ -100,12 +128,6 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
       );
     }
 
-    if (state.delivery == null) {
-      return const Center(
-        child: Text('No delivery data found'),
-      );
-    }
-
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -116,7 +138,7 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Delivery #${state.delivery!.id}',
+                  'Delivery #${state.delivery!.id ?? 'New'}',
                   style: theme.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
@@ -330,18 +352,17 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
             child: Column(
               children: [
                 DropdownButtonFormField<String>(
-                  initialValue: state.paymentMode,
+                  initialValue: state.paymentMode?.isNotEmpty == true ? state.paymentMode : null,
                   decoration: const InputDecoration(
                     labelText: 'Payment Mode',
                     border: OutlineInputBorder(),
                   ),
-                  items: const [
-                    DropdownMenuItem(value: 'Cash', child: Text('Cash')),
-                    DropdownMenuItem(value: 'Credit', child: Text('Credit')),
-                    DropdownMenuItem(value: 'Bank Transfer', child: Text('Bank Transfer')),
-                    DropdownMenuItem(value: 'Cheque', child: Text('Cheque')),
-                    DropdownMenuItem(value: 'QR Payment', child: Text('QR Payment')),
-                  ],
+                  items: state.paymentModes.map((mode) {
+                    return DropdownMenuItem(
+                      value: mode.serverId,
+                      child: Text(mode.name),
+                    );
+                  }).toList(),
                   onChanged: (value) {
                     ref.read(estimateProvider.notifier).setPaymentMode(value);
                   },
@@ -385,7 +406,7 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
         FilledButton.icon(
           onPressed: state.isSaving
               ? null
-              : () => _saveEstimate(context),
+              : () => _saveInvoice(context),
           icon: state.isSaving
               ? const SizedBox(
                   width: 18,
@@ -394,7 +415,7 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
                 )
               : const Icon(Icons.save),
           label:
-              Text(state.isSaving ? 'Saving...' : 'Save Estimate'),
+              Text(state.isSaving ? 'Saving...' : 'Save Invoice'),
           style: FilledButton.styleFrom(
             minimumSize: const Size(double.infinity, 52),
           ),
@@ -403,23 +424,25 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
     );
   }
 
-  Future<void> _saveEstimate(BuildContext context) async {
+  Future<void> _saveInvoice(BuildContext context) async {
+    final deliveryForm = ref.read(deliveryFormProvider);
     final success =
-        await ref.read(estimateProvider.notifier).saveEstimate();
+        await ref.read(estimateProvider.notifier).saveInvoice(deliveryForm);
 
     if (!context.mounted) return;
 
     if (success) {
+      ref.read(deliveryFormProvider.notifier).resetForm();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Estimate Saved Successfully'),
+          content: const Text('Invoice Saved Successfully'),
           backgroundColor: Theme.of(context).colorScheme.primary,
         ),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Failed to save estimate'),
+          content: const Text('Failed to save invoice'),
           backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );

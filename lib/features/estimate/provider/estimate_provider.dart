@@ -3,10 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../models/customer.dart';
 import '../../../models/delivery.dart';
 import '../../../models/estimate.dart';
+import '../../../models/payment_mode.dart';
 import '../../../repositories/customer_repository.dart';
 import '../../../repositories/delivery_repository.dart';
 import '../../../repositories/estimate_repository.dart';
+import '../../../repositories/payment_mode_repository.dart';
 import '../../../repositories/product_repository.dart';
+import '../../delivery/provider/delivery_provider.dart';
 
 class EstimateItemView {
   final String productId;
@@ -28,6 +31,7 @@ class EstimateState {
   final Customer? customer;
   final List<EstimateItemView> items;
   final List<Delivery> pendingDeliveries;
+  final List<PaymentMode> paymentModes;
   final String? paymentMode;
   final double paidAmount;
   final String? remarks;
@@ -43,6 +47,7 @@ class EstimateState {
     this.customer,
     this.items = const [],
     this.pendingDeliveries = const [],
+    this.paymentModes = const [],
     this.paymentMode,
     this.paidAmount = 0,
     this.remarks,
@@ -66,6 +71,7 @@ final estimateProvider =
     deliveryRepo: ref.read(deliveryRepositoryProvider),
     customerRepo: ref.read(customerRepositoryProvider),
     productRepo: ref.read(productRepositoryProvider),
+    paymentModeRepo: ref.read(paymentModeRepositoryProvider),
     estimateRepo: ref.read(estimateRepositoryProvider),
   );
 });
@@ -74,18 +80,40 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
   final DeliveryRepository _deliveryRepo;
   final CustomerRepository _customerRepo;
   final ProductRepository _productRepo;
+  final PaymentModeRepository _paymentModeRepo;
   final EstimateRepository _estimateRepo;
 
   EstimateNotifier({
     required DeliveryRepository deliveryRepo,
     required CustomerRepository customerRepo,
     required ProductRepository productRepo,
+    required PaymentModeRepository paymentModeRepo,
     required EstimateRepository estimateRepo,
   })  : _deliveryRepo = deliveryRepo,
         _customerRepo = customerRepo,
         _productRepo = productRepo,
+        _paymentModeRepo = paymentModeRepo,
         _estimateRepo = estimateRepo,
-        super(EstimateState());
+        super(EstimateState(isLoadingDelivery: true));
+
+void initializeFromDeliveryForm({
+    required Customer customer,
+    required List<EstimateItemView> items,
+    required List<PaymentMode> paymentModes,
+  }) {
+    final gross = items.fold<double>(0, (sum, i) => sum + i.lineTotal);
+    final draftDelivery = Delivery()
+      ..customerId = customer.serverId
+      ..createdDate = DateTime.now();
+    state = EstimateState(
+      delivery: draftDelivery,
+      customer: customer,
+      items: items,
+      paymentModes: paymentModes,
+      discountAmount: _calcDiscountAmount(null, 0, gross),
+      isLoadingDelivery: false,
+    );
+  }
 
   Future<void> loadPendingDeliveries() async {
     final pending = await _deliveryRepo.getDeliveriesByDate(DateTime.now());
@@ -108,6 +136,7 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
         );
 
     final products = await _productRepo.getCachedProducts();
+    final paymentModes = await _loadAllPaymentModes();
     final items = await _deliveryRepo.getDeliveryItems(deliveryId);
 
     final itemViews = items.map((item) {
@@ -146,7 +175,10 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
       delivery: delivery,
       customer: customer,
       items: itemViews,
-      paymentMode: paymentMode,
+      paymentModes: paymentModes,
+      paymentMode: (paymentMode ?? delivery.paymentMode)?.isNotEmpty == true
+          ? (paymentMode ?? delivery.paymentMode)
+          : null,
       paidAmount: paidAmount,
       remarks: remarks,
       discountType: discountType,
@@ -164,12 +196,21 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
     return value;
   }
 
+  Future<List<PaymentMode>> _loadAllPaymentModes() async {
+    try {
+      return await _paymentModeRepo.getPaymentModes();
+    } catch (_) {
+      return [];
+    }
+  }
+
   void setPaymentMode(String? mode) {
     state = EstimateState(
       delivery: state.delivery,
       customer: state.customer,
       items: state.items,
       pendingDeliveries: state.pendingDeliveries,
+      paymentModes: state.paymentModes,
       paymentMode: mode,
       paidAmount: state.paidAmount,
       remarks: state.remarks,
@@ -186,6 +227,7 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
       customer: state.customer,
       items: state.items,
       pendingDeliveries: state.pendingDeliveries,
+      paymentModes: state.paymentModes,
       paymentMode: state.paymentMode,
       paidAmount: amount,
       remarks: state.remarks,
@@ -202,6 +244,7 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
       customer: state.customer,
       items: state.items,
       pendingDeliveries: state.pendingDeliveries,
+      paymentModes: state.paymentModes,
       paymentMode: state.paymentMode,
       paidAmount: state.paidAmount,
       remarks: remarks,
@@ -220,6 +263,7 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
       customer: state.customer,
       items: state.items,
       pendingDeliveries: state.pendingDeliveries,
+      paymentModes: state.paymentModes,
       paymentMode: state.paymentMode,
       paidAmount: state.paidAmount,
       remarks: state.remarks,
@@ -237,6 +281,7 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
       customer: state.customer,
       items: state.items,
       pendingDeliveries: state.pendingDeliveries,
+      paymentModes: state.paymentModes,
       paymentMode: state.paymentMode,
       paidAmount: state.paidAmount,
       remarks: state.remarks,
@@ -247,14 +292,16 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
     );
   }
 
-  Future<bool> saveEstimate() async {
-    if (state.delivery == null || state.items.isEmpty) return false;
+  Future<bool> saveInvoice(DeliveryFormState deliveryForm) async {
+    if (state.customer == null || state.items.isEmpty) return false;
+    if (deliveryForm.selectedCustomer == null) return false;
 
     state = EstimateState(
       delivery: state.delivery,
       customer: state.customer,
       items: state.items,
       pendingDeliveries: state.pendingDeliveries,
+      paymentModes: state.paymentModes,
       paymentMode: state.paymentMode,
       paidAmount: state.paidAmount,
       remarks: state.remarks,
@@ -266,6 +313,20 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
     );
 
     try {
+      final deliveryItems = deliveryForm.cart.entries.map((e) {
+        final item = DeliveryItem();
+        item.productId = e.key;
+        item.quantity = e.value;
+        item.unitPrice = deliveryForm.getUnitPrice(e.key);
+        return item;
+      }).toList();
+
+      final delivery = await _deliveryRepo.saveDelivery(
+        customerId: deliveryForm.selectedCustomer!.serverId,
+        items: deliveryItems,
+        paymentMode: state.paymentMode,
+      );
+
       final estimateItems = state.items.map((item) {
         final eItem = EstimateItem();
         eItem.productId = item.productId;
@@ -276,7 +337,7 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
       }).toList();
 
       await _estimateRepo.saveEstimate(
-        deliveryId: state.delivery!.id!,
+        deliveryId: delivery.id!,
         items: estimateItems,
         paymentMode: state.paymentMode,
         paidAmount: state.paidAmount,
@@ -286,6 +347,10 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
         discountAmount: state.discountAmount,
       );
 
+      for (final entry in deliveryForm.cart.entries) {
+        await _productRepo.deductStock(entry.key, entry.value);
+      }
+
       state = EstimateState(saved: true);
       return true;
     } catch (_) {
@@ -294,6 +359,7 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
         customer: state.customer,
         items: state.items,
         pendingDeliveries: state.pendingDeliveries,
+        paymentModes: state.paymentModes,
         paymentMode: state.paymentMode,
         paidAmount: state.paidAmount,
         remarks: state.remarks,
@@ -308,6 +374,6 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
   }
 
   void reset() {
-    state = EstimateState();
+    state = EstimateState(isLoadingDelivery: true);
   }
 }

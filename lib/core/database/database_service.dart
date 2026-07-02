@@ -24,7 +24,7 @@ class DatabaseService {
 
       _database = await openDatabase(
         path,
-        version: 6,
+        version: 7,
         onCreate: _createTables,
         onUpgrade: _onUpgrade,
       );
@@ -47,9 +47,29 @@ class DatabaseService {
       await db.execute('DROP TABLE IF EXISTS driver_stock');
       await db.execute('DROP TABLE IF EXISTS sales_return');
       await _createTables(db, newVersion);
-    } else if (oldVersion == 5) {
-      await db.execute(
-          'ALTER TABLE product ADD COLUMN sold_quantity REAL DEFAULT 0');
+      return;
+    }
+
+    if (oldVersion < 6) {
+      try {
+        await db.execute(
+            'ALTER TABLE product ADD COLUMN sold_quantity REAL DEFAULT 0');
+      } catch (_) {}
+    }
+
+    if (oldVersion < 7) {
+      try {
+        await db.execute(
+            'ALTER TABLE delivery ADD COLUMN payment_mode TEXT');
+      } catch (_) {}
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS payment_mode (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          server_id TEXT NOT NULL UNIQUE,
+          name TEXT NOT NULL,
+          temp_id INTEGER NOT NULL
+        )
+      ''');
     }
   }
 
@@ -122,6 +142,7 @@ class DatabaseService {
         server_id TEXT,
         customer_id TEXT NOT NULL,
         created_date TEXT NOT NULL,
+        payment_mode TEXT,
         is_synced INTEGER DEFAULT 0
       )
     ''');
@@ -186,6 +207,15 @@ class DatabaseService {
         entity_id INTEGER NOT NULL,
         status TEXT NOT NULL,
         created_date TEXT NOT NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE payment_mode (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        server_id TEXT NOT NULL UNIQUE,
+        name TEXT NOT NULL,
+        temp_id INTEGER NOT NULL
       )
     ''');
   }
