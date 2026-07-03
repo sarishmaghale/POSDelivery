@@ -32,13 +32,6 @@ class StockRepository {
         for (final s in stockList) {
           txn.insert('driver_stock', s.toMap(),
               conflictAlgorithm: ConflictAlgorithm.replace);
-          
-          await txn.update(
-            'product',
-            {'stock': s.remainingQuantity},
-            where: 'server_id = ?',
-            whereArgs: [s.productId],
-          );
         }
       });
     }

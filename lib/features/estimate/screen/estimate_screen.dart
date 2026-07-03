@@ -101,29 +101,38 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
     }
 
     if (state.saved) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.check_circle,
-              size: 72,
-              color: theme.colorScheme.primary,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Invoice Saved Successfully',
-              style: theme.textTheme.titleLarge,
-            ),
-            const SizedBox(height: 24),
-            FilledButton(
-              onPressed: () {
-                ref.read(estimateProvider.notifier).reset();
-                context.go('/dashboard');
-              },
-              child: const Text('Back to Dashboard'),
-            ),
-          ],
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop && context.mounted) {
+            ref.read(estimateProvider.notifier).reset();
+            context.go('/dashboard');
+          }
+        },
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.check_circle,
+                size: 72,
+                color: theme.colorScheme.primary,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Invoice Saved Successfully',
+                style: theme.textTheme.titleLarge,
+              ),
+              const SizedBox(height: 24),
+              FilledButton(
+                onPressed: () {
+                  ref.read(estimateProvider.notifier).reset();
+                  context.go('/dashboard');
+                },
+                child: const Text('Back to Dashboard'),
+              ),
+            ],
+          ),
         ),
       );
     }

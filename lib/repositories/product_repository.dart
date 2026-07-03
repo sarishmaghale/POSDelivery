@@ -135,7 +135,7 @@ class ProductRepository {
     final effectiveStock = (newStock).clamp(0, double.infinity);
     await _db.update(
       'product',
-      {'stock': (effectiveStock <= 0 ? 20 : effectiveStock)},
+      {'stock': effectiveStock},
       where: 'server_id = ?',
       whereArgs: [productId],
     );

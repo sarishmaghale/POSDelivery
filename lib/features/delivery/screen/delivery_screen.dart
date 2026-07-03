@@ -72,7 +72,15 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
 
   Widget _buildBody(DeliveryFormState state, List<CartItem> cartItems, ThemeData theme) {
     if (state.isReadOnly) {
-      return _buildReadOnlyView(state, cartItems, theme);
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop && context.mounted) {
+            context.go('/delivery-history');
+          }
+        },
+        child: _buildReadOnlyView(state, cartItems, theme),
+      );
     }
     return _buildEditableForm(state, cartItems, theme);
   }

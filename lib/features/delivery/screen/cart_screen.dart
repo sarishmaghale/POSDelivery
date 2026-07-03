@@ -254,25 +254,29 @@ class _CartItemCardState extends State<_CartItemCard> {
                       setState(() => _isFocused = focused);
                     },
                     child: TextField(
-                      controller: _qtyController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,1}')),
-                      ],
-                      textAlign: TextAlign.center,
-                      decoration: InputDecoration(
-                        contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
+                        controller: _qtyController,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,1}')),
+                        ],
+                        textAlign: TextAlign.center,
+                        decoration: InputDecoration(
+                          contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          isDense: true,
+                          labelText: 'Qty',
                         ),
-                        isDense: true,
-                        labelText: 'Qty',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                        onChanged: (value) {
+                          final qty = double.tryParse(value) ?? 0;
+                          widget.onQuantityChanged(qty);
+                        },
+                        onSubmitted: (_) => _applyQty(),
                       ),
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                      onSubmitted: (_) => _applyQty(),
-                    ),
                   ),
                 ),
               ],

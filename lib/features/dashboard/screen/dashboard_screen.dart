@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../provider/dashboard_provider.dart';
-import '../widgets/category_card.dart';
 import '../widgets/quick_action_card.dart';
 import '../widgets/stat_card.dart';
 
@@ -46,15 +45,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             _buildDriverHeader(state, theme),
             const SizedBox(height: 20),
             _buildStatsRow(state, theme),
-            const SizedBox(height: 20),
-            Text(
-              'Assigned Categories',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 12),
-            _buildCategoriesGrid(state, theme),
             const SizedBox(height: 20),
             Text(
               'Quick Actions',
@@ -116,71 +106,52 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Widget _buildStatsRow(DashboardState state, ThemeData theme) {
-    return Row(
+    return Column(
       children: [
-        Expanded(
-          child: StatCard(
-            title: "Today's Deliveries",
-            value: state.todaysDeliveries.toString(),
-            icon: Icons.local_shipping,
-            onTap: () => context.push('/delivery-history'),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: StatCard(
-            title: 'Sales Returns',
-            value: state.todaysSalesReturns.toString(),
-            icon: Icons.assignment_return,
-            onTap: () {},
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: StatCard(
-            title: 'Customers',
-            value: state.assignedCustomersCount.toString(),
-            icon: Icons.people,
-            onTap: () {},
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCategoriesGrid(DashboardState state, ThemeData theme) {
-    if (state.categories.isEmpty) {
-      return Card(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Center(
-            child: Text(
-              'No categories assigned',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+        Row(
+          children: [
+            Expanded(
+              child: StatCard(
+                title: "Today's Deliveries",
+                value: state.todaysDeliveries.toString(),
+                icon: Icons.local_shipping,
+                onTap: () => context.push('/delivery-history'),
               ),
             ),
-          ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: StatCard(
+                title: 'Sales Returns',
+                value: state.todaysSalesReturns.toString(),
+                icon: Icons.assignment_return,
+                onTap: () {},
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: StatCard(
+                title: 'Categories',
+                value: state.categories.length.toString(),
+                icon: Icons.category,
+                onTap: () => context.go('/delivery'),
+              ),
+            ),
+          ],
         ),
-      );
-    }
-
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 1.0,
-      ),
-      itemCount: state.categories.length,
-      itemBuilder: (context, index) {
-        return CategoryCard(
-          category: state.categories[index],
-          onTap: () => context.go('/delivery'),
-        );
-      },
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: StatCard(
+                title: 'Customers',
+                value: state.assignedCustomersCount.toString(),
+                icon: Icons.people,
+                onTap: () {},
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
