@@ -124,12 +124,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Location Tracking',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -149,7 +143,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      locationState.isTracking ? 'Tracking active' : 'Tracking stopped',
+                      locationState.isTracking ? 'Your location is being tracked' : 'Please start duty',
                       style: TextStyle(
                         fontWeight: FontWeight.w500,
                         color: locationState.isTracking ? Colors.green.shade700 : Colors.grey.shade700,
@@ -186,7 +180,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         ? null
                         : () => ref.read(locationStateProvider.notifier).startTracking(),
                     icon: const Icon(Icons.play_arrow, size: 18),
-                    label: const Text('Start Tracking'),
+                    label: const Text('Start Duty'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
                       foregroundColor: Colors.white,
@@ -201,7 +195,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         ? () => ref.read(locationStateProvider.notifier).stopTracking()
                         : null,
                     icon: const Icon(Icons.stop, size: 18),
-                    label: const Text('Stop Tracking'),
+                    label: const Text('Stop Duty'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red,
                       foregroundColor: Colors.white,

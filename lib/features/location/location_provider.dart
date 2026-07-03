@@ -1,6 +1,9 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
+import 'dart:io' show Platform;
+
 import 'models/location_record.dart';
 import 'services/location_service.dart';
 import 'services/location_database_service.dart';
@@ -68,6 +71,7 @@ class LocationStateNotifier extends StateNotifier<LocationState> {
   final LocationSyncService _syncService;
   Timer? _trackingTimer;
   StreamSubscription<Position>? _positionStream;
+  bool _android = false;
 
   LocationStateNotifier(
     this._locationService,
@@ -76,6 +80,7 @@ class LocationStateNotifier extends StateNotifier<LocationState> {
     String? initialDriverId,
   }) : _driverId = initialDriverId,
        super(const LocationState()) {
+    _android = !kIsWeb && Platform.isAndroid;
     _init();
   }
 
@@ -97,8 +102,11 @@ class LocationStateNotifier extends StateNotifier<LocationState> {
 
     state = state.copyWith(isTracking: true, error: null);
 
+     
     _positionStream = _locationService.getPositionStream().listen(
-      (pos) => _handlePosition(pos),
+      (pos) {
+        _handlePosition(pos);
+      },
       onError: (e) => state = state.copyWith(error: e.toString()),
     );
 
@@ -142,9 +150,9 @@ class LocationStateNotifier extends StateNotifier<LocationState> {
     _trackingTimer = null;
     await _positionStream?.cancel();
     _positionStream = null;
+
     state = state.copyWith(isTracking: false);
 
-    // Final sync
     if (await _syncService.isOnline()) {
       await _syncService.sync();
       final pending = await _db.getPendingCount();
