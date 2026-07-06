@@ -154,19 +154,43 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
                   ),
                 ),
                 const SizedBox(height: 4),
-                if (state.customer != null)
+                if (state.customer != null) ...[
                   Text(
                     'Customer: ${state.customer!.name}',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
+                  if (state.customer!.phone != null &&
+                      state.customer!.phone!.isNotEmpty)
+                    Text(
+                      'Phone: ${state.customer!.phone}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                ],
                 Text(
                   'Date: ${state.delivery!.createdDate.formattedDateTime}',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
+                if (state.paymentMode != null &&
+                    state.paymentMode!.isNotEmpty)
+                  Text(
+                    'Payment: ${state.paymentModes.where((m) => m.serverId == state.paymentMode).firstOrNull?.name ?? state.paymentMode}',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                if (state.paidAmount > 0)
+                  Text(
+                    'Paid: Rs. ${state.paidAmount.toStringAsFixed(2)}',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
               ],
             ),
           ),
