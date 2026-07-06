@@ -24,6 +24,8 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (widget.deliveryId != null) {
         ref.read(deliveryFormProvider.notifier).loadExistingDelivery(widget.deliveryId!);
+      } else {
+        ref.read(deliveryFormProvider.notifier).resetForm();
       }
     });
   }

@@ -462,7 +462,7 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
       return;
     }
     final updated = Map<String, double>.from(state.cart);
-    if (quantity <= 0) {
+    if (quantity < 0) {
       updated.remove(productId);
     } else {
       updated[productId] = quantity;
