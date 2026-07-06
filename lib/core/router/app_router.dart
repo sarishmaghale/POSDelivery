@@ -49,6 +49,12 @@ final appRouterProvider = GoRouter(
             child: SyncScreen(),
           ),
         ),
+        GoRoute(
+          path: '/delivery-history',
+          pageBuilder: (context, state) => const NoTransitionPage(
+            child: DeliveryHistoryScreen(),
+          ),
+        ),
       ],
     ),
     GoRoute(
@@ -64,11 +70,6 @@ final appRouterProvider = GoRouter(
       path: '/profile',
       parentNavigatorKey: _rootNavigatorKey,
       builder: (context, state) => const ProfileScreen(),
-    ),
-    GoRoute(
-      path: '/delivery-history',
-      parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const DeliveryHistoryScreen(),
     ),
     GoRoute(
       path: '/estimate-history',
