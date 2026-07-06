@@ -5,6 +5,8 @@ import '../../../dto/delivery_request.dart';
 import '../../../dto/delivery_response.dart';
 import '../../../dto/estimate_request.dart';
 import '../../../dto/estimate_response.dart';
+import '../../../dto/sales_invoice_request.dart';
+import '../../../dto/sales_invoice_response.dart';
 import 'api_config.dart';
 import 'api_service.dart';
 import 'mock_api_service.dart';
@@ -100,4 +102,18 @@ class RealApiService implements ApiService {
   @override
   Future<bool> syncData(Map<String, dynamic> payload) =>
       _fallback.syncData(payload);
+
+  @override
+  Future<SalesInvoiceResponse> createSalesInvoice(SalesInvoiceRequest request) async {
+    try {
+      final response = await _dio.post(
+        ApiConfig.salesInvoiceAddEndpoint,
+        data: request.toJson(),
+      );
+      final body = response.data as Map<String, dynamic>;
+      return SalesInvoiceResponse.fromJson(body);
+    } catch (_) {
+      return _fallback.createSalesInvoice(request);
+    }
+  }
 }

@@ -23,6 +23,7 @@ class DeliveryFormState {
   final PaymentMode? selectedPaymentMode;
   final Map<String, double> cart;
   final Map<String, double> customPrices;
+  final Map<String, double> productDiscounts;
   final Map<String, double> stockMap;
   final String productSearchQuery;
   final String customerSearchQuery;
@@ -43,6 +44,7 @@ class DeliveryFormState {
     this.selectedPaymentMode,
     this.cart = const {},
     this.customPrices = const {},
+    this.productDiscounts = const {},
     this.stockMap = const {},
     this.productSearchQuery = '',
     this.customerSearchQuery = '',
@@ -80,7 +82,9 @@ class DeliveryFormState {
     double total = 0;
     for (final entry in cart.entries) {
       final price = getUnitPrice(entry.key);
-      total += price * entry.value;
+      final gross = price * entry.value;
+      final discount = productDiscounts[entry.key] ?? 0;
+      total += gross - discount;
     }
     return total;
   }
@@ -305,6 +309,7 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
       selectedPaymentMode: state.selectedPaymentMode,
       cart: state.cart,
       customPrices: state.customPrices,
+      productDiscounts: state.productDiscounts,
       stockMap: state.stockMap,
       productSearchQuery: state.productSearchQuery,
       customerSearchQuery: state.customerSearchQuery,
@@ -322,6 +327,7 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
       paymentModes: state.paymentModes,
       cart: state.cart,
       stockMap: state.stockMap,
+      productDiscounts: state.productDiscounts,
       productSearchQuery: '',
     );
   }
@@ -339,6 +345,7 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
       cart: state.cart,
       stockMap: state.stockMap,
       customPrices: state.customPrices,
+      productDiscounts: state.productDiscounts,
       productSearchQuery: query,
     );
   }
@@ -356,6 +363,7 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
       cart: state.cart,
       stockMap: state.stockMap,
       customPrices: state.customPrices,
+      productDiscounts: state.productDiscounts,
       productSearchQuery: state.productSearchQuery,
       customerSearchQuery: query,
     );
@@ -374,6 +382,7 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
       cart: state.cart,
       stockMap: state.stockMap,
       customPrices: state.customPrices,
+      productDiscounts: state.productDiscounts,
       productSearchQuery: state.productSearchQuery,
     );
   }
@@ -397,6 +406,7 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
       cart: state.cart,
       stockMap: state.stockMap,
       customPrices: updated,
+      productDiscounts: state.productDiscounts,
       productSearchQuery: state.productSearchQuery,
     );
   }
@@ -419,6 +429,7 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
         cart: state.cart,
         stockMap: state.stockMap,
         customPrices: state.customPrices,
+        productDiscounts: state.productDiscounts,
         productSearchQuery: state.productSearchQuery,
         stockError: 'Entered quantity exceeds today\'s available stock.',
       );
@@ -456,6 +467,7 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
         cart: state.cart,
         stockMap: state.stockMap,
         customPrices: state.customPrices,
+        productDiscounts: state.productDiscounts,
         productSearchQuery: state.productSearchQuery,
         stockError: 'Entered quantity exceeds today\'s available stock.',
       );
@@ -484,6 +496,8 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
 
   void removeFromCart(String productId) {
     final updated = Map<String, double>.from(state.cart)..remove(productId);
+    final updatedDiscounts = Map<String, double>.from(state.productDiscounts)
+      ..remove(productId);
     state = DeliveryFormState(
       selectedCustomer: state.selectedCustomer,
       selectedCategory: state.selectedCategory,
@@ -495,6 +509,31 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
       selectedPaymentMode: state.selectedPaymentMode,
       cart: updated,
       stockMap: state.stockMap,
+      productDiscounts: updatedDiscounts,
+      productSearchQuery: state.productSearchQuery,
+    );
+  }
+
+  void setProductDiscount(String productId, double amount) {
+    final updated = Map<String, double>.from(state.productDiscounts);
+    if (amount <= 0) {
+      updated.remove(productId);
+    } else {
+      updated[productId] = amount;
+    }
+    state = DeliveryFormState(
+      selectedCustomer: state.selectedCustomer,
+      selectedCategory: state.selectedCategory,
+      editingDeliveryId: state.editingDeliveryId,
+      customers: state.customers,
+      categories: state.categories,
+      products: state.products,
+      paymentModes: state.paymentModes,
+      selectedPaymentMode: state.selectedPaymentMode,
+      cart: state.cart,
+      stockMap: state.stockMap,
+      customPrices: state.customPrices,
+      productDiscounts: updated,
       productSearchQuery: state.productSearchQuery,
     );
   }
@@ -554,6 +593,7 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
       cart: state.cart,
       stockMap: state.stockMap,
       customPrices: state.customPrices,
+      productDiscounts: state.productDiscounts,
       isSaving: true,
     );
 
@@ -616,6 +656,7 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
         cart: state.cart,
         stockMap: state.stockMap,
         customPrices: state.customPrices,
+        productDiscounts: state.productDiscounts,
         isSaving: false,
       );
       return DeliveryResult(success: false, error: e.toString());

@@ -50,6 +50,7 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
         productName: product?.name ?? 'Unknown',
         quantity: e.value,
         unitPrice: deliveryForm.getUnitPrice(e.key),
+        discountAmount: deliveryForm.productDiscounts[e.key] ?? 0,
       );
     }).toList();
 
@@ -201,6 +202,15 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
                         ),
+                        if (item.discountAmount > 0) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            'Discount: -Rs. ${item.discountAmount.toStringAsFixed(2)}',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.error,
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -303,13 +313,34 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
                     ],
                   ],
                 ),
+                if (state.totalProductDiscount > 0) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Product Discount',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.error,
+                        ),
+                      ),
+                      Text(
+                        '- Rs. ${state.totalProductDiscount.toStringAsFixed(2)}',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: theme.colorScheme.error,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
                 if (state.discountAmount > 0) ...[
                   const SizedBox(height: 8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Discount',
+                        'Global Discount',
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: theme.colorScheme.error,
                         ),

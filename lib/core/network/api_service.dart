@@ -3,6 +3,8 @@ import '../../dto/delivery_request.dart';
 import '../../dto/delivery_response.dart';
 import '../../dto/estimate_request.dart';
 import '../../dto/estimate_response.dart';
+import '../../dto/sales_invoice_request.dart';
+import '../../dto/sales_invoice_response.dart';
 
 abstract class ApiService {
   Future<DashboardResponse> fetchDashboard();
@@ -19,4 +21,6 @@ abstract class ApiService {
   Future<bool> createSalesReturn(Map<String, dynamic> data);
 
   Future<bool> syncData(Map<String, dynamic> payload);
+
+  Future<SalesInvoiceResponse> createSalesInvoice(SalesInvoiceRequest request);
 }

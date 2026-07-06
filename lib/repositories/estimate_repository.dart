@@ -5,7 +5,7 @@ import '../core/database/providers.dart';
 import '../core/network/api_service.dart';
 import '../core/network/network_checker.dart';
 import '../core/network/providers.dart';
-import '../dto/estimate_request.dart';
+import '../dto/sales_invoice_request.dart';
 import '../models/estimate.dart';
 import '../models/sync_queue.dart';
 
@@ -39,6 +39,7 @@ class EstimateRepository {
     String? discountType,
     double? discountValue,
     double? discountAmount,
+    SalesInvoiceRequest? salesInvoiceRequest,
   }) async {
     final grossTotal = items.fold<double>(
       0,
@@ -75,59 +76,36 @@ class EstimateRepository {
     await _db.insert('sync_queue', syncEntry.toMap());
 
     final isOnline = await _networkChecker.isConnected;
-    if (isOnline) {
-      await _syncEstimate(estimate);
+    if (isOnline && salesInvoiceRequest != null) {
+      await _syncSalesInvoice(salesInvoiceRequest, id);
     }
 
     return estimate;
   }
 
-  Future<void> _syncEstimate(Estimate estimate) async {
+  Future<void> _syncSalesInvoice(SalesInvoiceRequest request, int estimateId) async {
     await _db.update(
       'sync_queue',
       {'status': 'Syncing'},
       where: 'entity_type = ? AND entity_id = ?',
-      whereArgs: ['Estimate', estimate.id],
+      whereArgs: ['Estimate', estimateId],
     );
 
     try {
-      final itemMaps = await _db.query('estimate_item',
-          where: 'estimate_id = ?', whereArgs: [estimate.id]);
-      final items = itemMaps.map((m) => EstimateItem.fromMap(m)).toList();
-
-      final request = EstimateRequest(
-        deliveryId: estimate.deliveryId.toString(),
-        items: items
-            .map((e) => EstimateItemRequest(
-                  productId: e.productId,
-                  quantity: e.quantity,
-                  unitPrice: e.unitPrice,
-                  lineTotal: e.lineTotal,
-                ))
-            .toList(),
-        estimatedTotal: estimate.estimatedTotal,
-        paymentMode: estimate.paymentMode,
-        paidAmount: estimate.paidAmount,
-        remarks: estimate.remarks,
-        discountType: estimate.discountType,
-        discountValue: estimate.discountValue,
-        discountAmount: estimate.discountAmount,
-      );
-
-      final response = await _apiService.createEstimate(request);
+      final response = await _apiService.createSalesInvoice(request);
 
       if (response.success) {
         await _db.update(
           'estimate',
-          {'server_id': response.estimateId, 'is_synced': 1},
+          {'server_id': response.invoiceId, 'is_synced': 1},
           where: 'id = ?',
-          whereArgs: [estimate.id],
+          whereArgs: [estimateId],
         );
         await _db.update(
           'sync_queue',
           {'status': 'Synced'},
           where: 'entity_type = ? AND entity_id = ?',
-          whereArgs: ['Estimate', estimate.id],
+          whereArgs: ['Estimate', estimateId],
         );
       }
     } catch (_) {
@@ -135,7 +113,7 @@ class EstimateRepository {
         'sync_queue',
         {'status': 'Failed'},
         where: 'entity_type = ? AND entity_id = ?',
-        whereArgs: ['Estimate', estimate.id],
+        whereArgs: ['Estimate', estimateId],
       );
     }
   }

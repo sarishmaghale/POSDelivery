@@ -2,11 +2,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite/sqflite.dart';
 
 import '../core/database/providers.dart';
+import '../core/network/api_config.dart';
 import '../core/network/api_service.dart';
 import '../core/network/network_checker.dart';
 import '../core/network/providers.dart';
 import '../dto/delivery_request.dart';
-import '../dto/estimate_request.dart';
+import '../dto/sales_invoice_request.dart';
 import '../models/delivery.dart';
 import '../models/estimate.dart';
 import '../models/sales_return.dart';
@@ -149,32 +150,102 @@ class SyncRepository {
     if (maps.isEmpty) return;
     final estimate = Estimate.fromMap(maps.first);
 
+    final deliveryMaps = await _db.query('delivery',
+        where: 'id = ?', whereArgs: [estimate.deliveryId]);
+    final customerId = deliveryMaps.isNotEmpty
+        ? deliveryMaps.first['customer_id'] as String?
+        : null;
+
     final itemMaps = await _db.query('estimate_item',
         where: 'estimate_id = ?', whereArgs: [estimate.id]);
     final items = itemMaps.map((m) => EstimateItem.fromMap(m)).toList();
 
-    final request = EstimateRequest(
-      deliveryId: estimate.deliveryId.toString(),
-      items: items
-          .map((e) => EstimateItemRequest(
-                productId: e.productId,
-                quantity: e.quantity,
-                unitPrice: e.unitPrice,
-                lineTotal: e.lineTotal,
-              ))
-          .toList(),
-      estimatedTotal: estimate.estimatedTotal,
-      paymentMode: estimate.paymentMode,
-      paidAmount: estimate.paidAmount,
-      remarks: estimate.remarks,
+    final productMaps = await _db.query('product');
+    final productsMap = <String, Map<String, dynamic>>{
+      for (final p in productMaps) (p['server_id'] as String): p,
+    };
+
+    final paymentModeMaps = await _db.query('payment_mode');
+    final payModeName = estimate.paymentMode != null
+        ? (paymentModeMaps.cast<Map<String, dynamic>?>().firstWhere(
+              (m) => m?['server_id'] == estimate.paymentMode,
+              orElse: () => null,
+            )?['name'] as String? ?? 'Cash')
+        : 'Cash';
+
+    final now = estimate.createdDate;
+    final transactionDate =
+        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')} '
+        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
+
+    final totalQty = items.fold<double>(0, (sum, i) => sum + i.quantity);
+    final grossAmount = estimate.grossTotal;
+    final discountAmount = estimate.discountAmount;
+    final totalProductDiscount = items.fold<double>(
+        0, (sum, i) => sum + i.discountAmount);
+    final totalDiscount = totalProductDiscount + discountAmount;
+    final totalNet = grossAmount - totalDiscount;
+
+    final salesInvoiceItems = items.map((item) {
+      final product = productsMap[item.productId];
+      final itemGross = item.unitPrice * item.quantity;
+      return SalesInvoiceItemRequest(
+        refNo: item.productId,
+        productId: item.productId,
+        name: product?['name'] as String? ?? '',
+        quantity: item.quantity,
+        unitId: product?['unit_id'] as String? ?? '',
+        unitName: product?['unit'] as String? ?? '',
+        categoryId: product?['category_id'] as String? ?? '',
+        rate: item.unitPrice,
+        rateIncludingTax: item.unitPrice,
+        grossAmount: itemGross,
+        grossAmountIncludingTax: itemGross,
+        discount: item.discountAmount,
+        nonTaxable: item.lineTotal,
+        netAmount: item.lineTotal,
+        salesInvoiceItemTax: [
+          SalesInvoiceItemTaxRequest(),
+        ],
+      );
+    }).toList();
+
+    final request = SalesInvoiceRequest(
+      transactionDate: transactionDate,
+      customerId: customerId,
+      outletId: ApiConfig.emptyGuid,
+      totalQuantity: totalQty,
+      totalGrossAmount: grossAmount,
+      totalGrossAmountIncludingTax: grossAmount,
+      totalDiscount: totalDiscount,
+      totalDiscountIncludingTax: totalDiscount,
+      totalTaxableAmount: 0,
+      totalNonTaxableAmount: totalNet,
+      totalTax: 0,
+      totalNetAmount: totalNet,
+      totalPayableAmount: totalNet,
+      payMode: payModeName,
+      tenderAmount: totalNet,
+      salesInvoiceTax: [
+        SalesInvoiceTaxRequest(taxAmount: 0),
+      ],
+      salesInvoiceItem: salesInvoiceItems,
+      salesInvoicePayment: [
+        SalesInvoicePaymentRequest(
+          payMode: payModeName,
+          paymentId: estimate.paymentMode ?? ApiConfig.emptyGuid,
+          amount: totalNet,
+        ),
+      ],
+      currencyId: ApiConfig.defaultCurrencyId,
     );
 
-    final response = await _apiService.createEstimate(request);
+    final response = await _apiService.createSalesInvoice(request);
 
     if (response.success) {
       await _db.update(
         'estimate',
-        {'server_id': response.estimateId, 'is_synced': 1},
+        {'server_id': response.invoiceId, 'is_synced': 1},
         where: 'id = ?',
         whereArgs: [estimate.id],
       );

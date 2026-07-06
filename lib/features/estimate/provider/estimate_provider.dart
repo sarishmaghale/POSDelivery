@@ -1,9 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/network/api_config.dart';
+import '../../../dto/sales_invoice_request.dart';
 import '../../../models/customer.dart';
 import '../../../models/delivery.dart';
 import '../../../models/estimate.dart';
 import '../../../models/payment_mode.dart';
+import '../../../models/product.dart';
 import '../../../repositories/customer_repository.dart';
 import '../../../repositories/delivery_repository.dart';
 import '../../../repositories/estimate_repository.dart';
@@ -16,13 +19,16 @@ class EstimateItemView {
   final String productName;
   final double quantity;
   final double unitPrice;
-  double get lineTotal => quantity * unitPrice;
+  final double discountAmount;
+  double get grossAmount => quantity * unitPrice;
+  double get lineTotal => grossAmount - discountAmount;
 
   EstimateItemView({
     required this.productId,
     required this.productName,
     required this.quantity,
     required this.unitPrice,
+    this.discountAmount = 0,
   });
 }
 
@@ -62,6 +68,12 @@ class EstimateState {
   double get grossTotal =>
       items.fold<double>(0, (sum, item) => sum + item.lineTotal);
 
+  double get totalGrossAmount =>
+      items.fold<double>(0, (sum, item) => sum + item.grossAmount);
+
+  double get totalProductDiscount =>
+      items.fold<double>(0, (sum, item) => sum + item.discountAmount);
+
   double get netTotal => grossTotal - discountAmount;
 }
 
@@ -96,12 +108,12 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
         _estimateRepo = estimateRepo,
         super(EstimateState(isLoadingDelivery: true));
 
-void initializeFromDeliveryForm({
+  void initializeFromDeliveryForm({
     required Customer customer,
     required List<EstimateItemView> items,
     required List<PaymentMode> paymentModes,
   }) {
-    final gross = items.fold<double>(0, (sum, i) => sum + i.lineTotal);
+    final netAfterProductDiscount = items.fold<double>(0, (sum, i) => sum + i.lineTotal);
     final draftDelivery = Delivery()
       ..customerId = customer.serverId
       ..createdDate = DateTime.now();
@@ -110,7 +122,7 @@ void initializeFromDeliveryForm({
       customer: customer,
       items: items,
       paymentModes: paymentModes,
-      discountAmount: _calcDiscountAmount(null, 0, gross),
+      discountAmount: _calcDiscountAmount(null, 0, netAfterProductDiscount),
       isLoadingDelivery: false,
     );
   }
@@ -333,8 +345,90 @@ void initializeFromDeliveryForm({
         eItem.quantity = item.quantity;
         eItem.unitPrice = item.unitPrice;
         eItem.lineTotal = item.lineTotal;
+        eItem.discountAmount = item.discountAmount;
         return eItem;
       }).toList();
+
+      final productsMap = <String, Product>{
+        for (final p in deliveryForm.products) p.serverId: p,
+      };
+
+      final payModeName = state.paymentMode != null
+          ? (deliveryForm.paymentModes.cast<PaymentMode?>().firstWhere(
+                (m) => m?.serverId == state.paymentMode,
+                orElse: () => null,
+              )?.name ?? 'Cash')
+          : 'Cash';
+
+      final payModeId = state.paymentMode ?? ApiConfig.emptyGuid;
+
+      final now = DateTime.now();
+      final transactionDate =
+          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')} '
+          '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
+
+      final totalQty = state.items.fold<double>(
+          0, (sum, item) => sum + item.quantity);
+      final invoiceGrossAmount = state.totalGrossAmount;
+      final totalProductDiscount = state.totalProductDiscount;
+      final globalDiscount = state.discountAmount;
+      final totalDiscount = totalProductDiscount + globalDiscount;
+      final netAmount = invoiceGrossAmount - totalDiscount;
+      final totalTax = 0.0;
+
+      final salesInvoiceItems = state.items.map((item) {
+        final product = productsMap[item.productId];
+        return SalesInvoiceItemRequest(
+          refNo: item.productId,
+          productId: item.productId,
+          name: item.productName,
+          quantity: item.quantity,
+          unitId: product?.unitId ?? '',
+          unitName: product?.unit ?? '',
+          categoryId: product?.categoryId ?? '',
+          rate: item.unitPrice,
+          rateIncludingTax: item.unitPrice,
+          grossAmount: item.grossAmount,
+          grossAmountIncludingTax: item.grossAmount,
+          discount: item.discountAmount,
+          nonTaxable: item.lineTotal,
+          netAmount: item.lineTotal,
+          salesInvoiceItemTax: [
+            SalesInvoiceItemTaxRequest(),
+          ],
+        );
+      }).toList();
+
+      final salesInvoiceRequest = SalesInvoiceRequest(
+        transactionDate: transactionDate,
+        customerId: deliveryForm.selectedCustomer!.serverId,
+        customerName: deliveryForm.selectedCustomer!.name,
+        outletId: ApiConfig.emptyGuid,
+        totalQuantity: totalQty,
+        totalGrossAmount: invoiceGrossAmount,
+        totalGrossAmountIncludingTax: invoiceGrossAmount,
+        totalDiscount: totalDiscount,
+        totalDiscountIncludingTax: totalDiscount,
+        totalTaxableAmount: 0,
+        totalNonTaxableAmount: netAmount,
+        totalTax: totalTax,
+        totalNetAmount: netAmount,
+        totalPayableAmount: netAmount,
+        payMode: payModeName,
+        tenderAmount: netAmount,
+        salesInvoiceTax: [
+          SalesInvoiceTaxRequest(taxAmount: totalTax),
+        ],
+        salesInvoiceItem: salesInvoiceItems,
+        salesInvoicePayment: [
+          SalesInvoicePaymentRequest(
+            payMode: payModeName,
+            paymentId: payModeId,
+            amount: netAmount,
+          ),
+        ],
+        currencyId: ApiConfig.defaultCurrencyId,
+      );
 
       await _estimateRepo.saveEstimate(
         deliveryId: delivery.id!,
@@ -345,6 +439,7 @@ void initializeFromDeliveryForm({
         discountType: state.discountType,
         discountValue: state.discountValue,
         discountAmount: state.discountAmount,
+        salesInvoiceRequest: salesInvoiceRequest,
       );
 
       for (final entry in deliveryForm.cart.entries) {

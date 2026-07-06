@@ -59,6 +59,7 @@ class EstimateItem {
   late double quantity;
   late double unitPrice;
   late double lineTotal;
+  double discountAmount = 0;
 
   EstimateItem();
 
@@ -70,6 +71,7 @@ class EstimateItem {
       'quantity': quantity,
       'unit_price': unitPrice,
       'line_total': lineTotal,
+      'discount_amount': discountAmount,
     };
   }
 
@@ -81,6 +83,7 @@ class EstimateItem {
     item.quantity = (map['quantity'] as num).toDouble();
     item.unitPrice = (map['unit_price'] as num).toDouble();
     item.lineTotal = (map['line_total'] as num).toDouble();
+    item.discountAmount = (map['discount_amount'] as num?)?.toDouble() ?? 0;
     return item;
   }
 }

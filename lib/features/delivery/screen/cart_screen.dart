@@ -20,6 +20,7 @@ class CartScreen extends ConsumerWidget {
         productName: product?.name ?? 'Unknown',
         quantity: e.value,
         unitPrice: state.getUnitPrice(e.key),
+        discountAmount: state.productDiscounts[e.key] ?? 0,
       );
     }).toList();
 
@@ -61,6 +62,10 @@ class CartScreen extends ConsumerWidget {
                         onUnitPriceChanged: (price) {
                           ref.read(deliveryFormProvider.notifier)
                               .setCustomPrice(item.productId, price);
+                        },
+                        onDiscountChanged: (discount) {
+                          ref.read(deliveryFormProvider.notifier)
+                              .setProductDiscount(item.productId, discount);
                         },
                         onRemove: () {
                           ref.read(deliveryFormProvider.notifier)
@@ -140,12 +145,14 @@ class _CartItemCard extends StatefulWidget {
   final CartItem item;
   final ValueChanged<double> onQuantityChanged;
   final ValueChanged<double> onUnitPriceChanged;
+  final ValueChanged<double> onDiscountChanged;
   final VoidCallback onRemove;
 
   const _CartItemCard({
     required this.item,
     required this.onQuantityChanged,
     required this.onUnitPriceChanged,
+    required this.onDiscountChanged,
     required this.onRemove,
   });
 
@@ -155,6 +162,7 @@ class _CartItemCard extends StatefulWidget {
 
 class _CartItemCardState extends State<_CartItemCard> {
   late TextEditingController _qtyController;
+  late TextEditingController _discountController;
   bool _isFocused = false;
 
   @override
@@ -162,6 +170,11 @@ class _CartItemCardState extends State<_CartItemCard> {
     super.initState();
     _qtyController = TextEditingController(
       text: widget.item.quantity.toStringAsFixed(0),
+    );
+    _discountController = TextEditingController(
+      text: widget.item.discountAmount > 0
+          ? widget.item.discountAmount.toStringAsFixed(2)
+          : '',
     );
   }
 
@@ -171,11 +184,17 @@ class _CartItemCardState extends State<_CartItemCard> {
     if (!_isFocused) {
       _qtyController.text = widget.item.quantity.toStringAsFixed(0);
     }
+    if (widget.item.discountAmount != oldWidget.item.discountAmount) {
+      _discountController.text = widget.item.discountAmount > 0
+          ? widget.item.discountAmount.toStringAsFixed(2)
+          : '';
+    }
   }
 
   @override
   void dispose() {
     _qtyController.dispose();
+    _discountController.dispose();
     super.dispose();
   }
 
@@ -281,16 +300,44 @@ class _CartItemCardState extends State<_CartItemCard> {
                 ),
               ],
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 8),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                SizedBox(
+                  width: 120,
+                  child: TextField(
+                    controller: _discountController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
+                    ],
+                    decoration: InputDecoration(
+                      contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      isDense: true,
+                      labelText: 'Discount',
+                      prefixText: 'Rs. ',
+                    ),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: theme.colorScheme.error,
+                    ),
+                    onChanged: (value) {
+                      final discount = double.tryParse(value) ?? 0;
+                      widget.onDiscountChanged(discount);
+                    },
+                  ),
+                ),
+                const Spacer(),
                 Text(
                   'Line Total',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
+                const SizedBox(width: 8),
                 Text(
                   'Rs. ${widget.item.lineTotal.toStringAsFixed(2)}',
                   style: theme.textTheme.titleMedium?.copyWith(
