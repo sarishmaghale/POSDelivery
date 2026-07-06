@@ -1,8 +1,7 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:geolocator/geolocator.dart';
-import 'dart:io' show Platform;
 
 import 'models/location_record.dart';
 import 'services/location_service.dart';
@@ -10,6 +9,7 @@ import 'services/location_database_service.dart';
 import 'services/location_sync_service.dart';
 import 'services/location_api_service.dart';
 import '../../core/network/providers.dart';
+import 'location_foreground_handler.dart';
 
 final locationServiceProvider = Provider((_) => LocationService());
 final locationDatabaseServiceProvider = Provider((_) => LocationDatabaseService());
@@ -69,9 +69,7 @@ class LocationStateNotifier extends StateNotifier<LocationState> {
   final LocationDatabaseService _db;
   final String? _driverId;
   final LocationSyncService _syncService;
-  Timer? _trackingTimer;
-  StreamSubscription<Position>? _positionStream;
-  bool _android = false;
+  Timer? _uiRefreshTimer;
 
   LocationStateNotifier(
     this._locationService,
@@ -80,76 +78,83 @@ class LocationStateNotifier extends StateNotifier<LocationState> {
     String? initialDriverId,
   }) : _driverId = initialDriverId,
        super(const LocationState()) {
-    _android = !kIsWeb && Platform.isAndroid;
     _init();
   }
 
   Future<void> _init() async {
-    _syncService.startPeriodicSync();
     final online = await _syncService.isOnline();
     final pending = await _db.getPendingCount();
     final existingLocations = await _db.getAllLocations();
-
     state = state.copyWith(isOnline: online, pendingSyncCount: pending, recentLocations: existingLocations);
+
+    _syncService.startPeriodicSync();
+    _startUiRefresh();
+  }
+
+  void _startUiRefresh() {
+    _uiRefreshTimer?.cancel();
+    _uiRefreshTimer = Timer.periodic(const Duration(seconds: 10), (_) async {
+      if (!state.isTracking) return;
+      final pending = await _db.getPendingCount();
+      final online = await _syncService.isOnline();
+      if (mounted) {
+        state = state.copyWith(pendingSyncCount: pending, isOnline: online);
+      }
+    });
+  }
+
+  void _stopUiRefresh() {
+    _uiRefreshTimer?.cancel();
+    _uiRefreshTimer = null;
   }
 
   Future<void> startTracking() async {
-    final permission = await _locationService.requestPermission();
-    if (!permission) {
+    state = state.copyWith(error: null);
+
+    final locationPermission = await _locationService.requestPermission();
+    if (!locationPermission) {
       state = state.copyWith(error: 'Location permission denied');
       return;
     }
 
-    state = state.copyWith(isTracking: true, error: null);
+    final notificationPermission = await FlutterForegroundTask.requestNotificationPermission();
+    if (notificationPermission != NotificationPermission.granted) {
+      state = state.copyWith(error: 'Notification permission denied. Please enable it in Settings.');
+      return;
+    }
 
-     
-    _positionStream = _locationService.getPositionStream().listen(
-      (pos) {
-        _handlePosition(pos);
-      },
-      onError: (e) => state = state.copyWith(error: e.toString()),
+    try {
+      final serviceRunning = await FlutterForegroundTask.isRunningService;
+      if (serviceRunning) {
+        await FlutterForegroundTask.stopService();
+      }
+    } catch (_) {}
+
+    final startResult = await FlutterForegroundTask.startService(
+      notificationTitle: 'Location Tracking',
+      notificationText: 'Tracking your location during duty',
+      callback: startLocationTrackingCallback,
     );
 
-    _trackingTimer = Timer.periodic(
-      const Duration(seconds: 30),
-      (_) async {
-        final pos = await _locationService.getCurrentPosition();
-        if (pos != null) _handlePosition(pos);
-      },
-    );
-  }
-
-  Future<void> _handlePosition(Position pos) async {
-    state = state.copyWith(currentPosition: pos);
-    final record = LocationRecord(
-      latitude: pos.latitude,
-      longitude: pos.longitude,
-      timestamp: DateTime.now(),
-      accuracy: pos.accuracy,
-      speed: pos.speed,
-      driverId: _driverId,
-    );
-
-    await _db.insertLocation(record);
-
-    final recent = await _db.getAllLocations();
-    final pending = await _db.getPendingCount();
-    state = state.copyWith(recentLocations: recent, pendingSyncCount: pending);
-
-    final online = await _syncService.isOnline();
-    if (online) {
-      state = state.copyWith(isOnline: true);
-      await _syncService.sync();
-      final pendingAfter = await _db.getPendingCount();
-      state = state.copyWith(pendingSyncCount: pendingAfter);
+    if (startResult is ServiceRequestSuccess) {
+      await FlutterForegroundTask.saveData(
+        key: 'driverId',
+        value: _driverId ?? '',
+      );
+      state = state.copyWith(isTracking: true, error: null);
+      _startUiRefresh();
+    } else {
+      final errorMsg = (startResult is ServiceRequestFailure)
+          ? 'Failed to start: ${startResult.error}'
+          : 'Failed to start background tracking';
+      state = state.copyWith(error: errorMsg);
     }
   }
 
   Future<void> stopTracking() async {
-    _trackingTimer?.cancel();
-    _trackingTimer = null;
-    await _positionStream?.cancel();
-    _positionStream = null;
+    _stopUiRefresh();
+
+    await FlutterForegroundTask.stopService();
 
     state = state.copyWith(isTracking: false);
 
@@ -175,8 +180,7 @@ class LocationStateNotifier extends StateNotifier<LocationState> {
 
   @override
   void dispose() {
-    _trackingTimer?.cancel();
-    _positionStream?.cancel();
+    _stopUiRefresh();
     _syncService.dispose();
     super.dispose();
   }
