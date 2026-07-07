@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/utils/extensions.dart';
+import '../../../l10n/app_localizations.dart';
 import '../provider/sync_provider.dart';
 import '../widgets/sync_status_tile.dart';
 
@@ -12,35 +13,36 @@ class SyncScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(syncProvider);
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Sync'),
+        title: Text(l10n.sync),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           Text(
-            'Sync Status',
+            l10n.syncStatus,
             style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 16),
           SyncStatusTile(
-            label: 'Pending',
+            label: l10n.pending,
             value: state.pendingCount.toString(),
             icon: Icons.hourglass_empty,
             color: theme.colorScheme.tertiaryContainer,
           ),
           SyncStatusTile(
-            label: 'Failed',
+            label: l10n.failed,
             value: state.failedCount.toString(),
             icon: Icons.error_outline,
             color: theme.colorScheme.errorContainer,
           ),
           SyncStatusTile(
-            label: 'Synced',
+            label: l10n.synced,
             value: state.syncedCount.toString(),
             icon: Icons.check_circle_outline,
             color: theme.colorScheme.primaryContainer,
@@ -49,9 +51,9 @@ class SyncScreen extends ConsumerWidget {
           Card(
             child: ListTile(
               leading: const Icon(Icons.schedule),
-              title: const Text('Last Sync'),
+              title: Text(l10n.lastSync),
               subtitle: Text(
-                state.lastSyncTime?.formattedDateTime ?? 'Never',
+                state.lastSyncTime?.formattedDateTime ?? l10n.never,
               ),
             ),
           ),
@@ -70,7 +72,7 @@ class SyncScreen extends ConsumerWidget {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         ),
                         const SizedBox(width: 12),
-                        Text('Syncing...',
+                        Text(l10n.syncing,
                           style: theme.textTheme.titleSmall?.copyWith(
                             fontWeight: FontWeight.w600,
                           )),
@@ -104,7 +106,7 @@ class SyncScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Server Data',
+                    Text(l10n.serverData,
                       style: theme.textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.w600,
                       )),
@@ -131,7 +133,7 @@ class SyncScreen extends ConsumerWidget {
             FilledButton.icon(
               onPressed: () => ref.read(syncProvider.notifier).syncAll(),
               icon: const Icon(Icons.sync),
-              label: const Text('Sync All'),
+              label: Text(l10n.syncAll),
               style: FilledButton.styleFrom(
                 minimumSize: const Size(double.infinity, 52),
               ),
@@ -140,7 +142,7 @@ class SyncScreen extends ConsumerWidget {
               const SizedBox(height: 12),
               Center(
                 child: Text(
-                  'Sync completed successfully!',
+                  l10n.syncCompletedSuccessfully,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.primary,
                   ),
@@ -166,7 +168,7 @@ class SyncScreen extends ConsumerWidget {
             if (state.pendingQueue.isNotEmpty) ...[
               const SizedBox(height: 20),
               Text(
-                'Pending Items',
+                l10n.pendingItems,
                 style: theme.textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.w600,
                 ),
@@ -182,7 +184,7 @@ class SyncScreen extends ConsumerWidget {
                     ),
                     title: Text('${entry.entityType} #${entry.entityId}'),
                     subtitle: Text(
-                      'Status: ${entry.status}',
+                      l10n.statusLabel(entry.status),
                       style: TextStyle(
                         color: entry.status == 'Failed'
                             ? theme.colorScheme.error

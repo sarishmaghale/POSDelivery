@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../provider/sales_return_provider.dart';
 import '../../delivery/widgets/customer_dropdown.dart';
 
@@ -26,20 +27,21 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(salesReturnProvider);
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Sales Return'),
+        title: Text(l10n.salesReturn),
       ),
       body: state.isLoading
           ? const Center(child: CircularProgressIndicator())
           : state.saved
-              ? _buildSuccessState(theme)
-              : _buildForm(state, theme),
+              ? _buildSuccessState(theme, l10n)
+              : _buildForm(state, theme, l10n),
     );
   }
 
-  Widget _buildSuccessState(ThemeData theme) {
+  Widget _buildSuccessState(ThemeData theme, AppLocalizations l10n) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -51,12 +53,12 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            'Sales Return Saved',
+            l10n.salesReturnSaved,
             style: theme.textTheme.titleLarge,
           ),
           const SizedBox(height: 8),
           Text(
-            'Successfully recorded',
+            l10n.successfullyRecorded,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -67,24 +69,24 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
               ref.read(salesReturnProvider.notifier).reset();
               _quantityController.text = '1';
             },
-            child: const Text('New Sales Return'),
+            child: Text(l10n.newSalesReturn),
           ),
           const SizedBox(height: 12),
           OutlinedButton(
             onPressed: () => context.go('/dashboard'),
-            child: const Text('Back to Dashboard'),
+            child: Text(l10n.backToDashboard),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildForm(SalesReturnState state, ThemeData theme) {
+  Widget _buildForm(SalesReturnState state, ThemeData theme, AppLocalizations l10n) {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
         Text(
-          'Customer',
+          l10n.customer,
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w600,
           ),
@@ -99,16 +101,16 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
         ),
         const SizedBox(height: 24),
         Text(
-          'Product',
+          l10n.product,
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w600,
           ),
         ),
         const SizedBox(height: 12),
-        _buildProductDropdown(state, theme),
+        _buildProductDropdown(state, theme, l10n),
         const SizedBox(height: 24),
         Text(
-          'Quantity',
+          l10n.quantity,
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w600,
           ),
@@ -120,9 +122,9 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
           inputFormatters: [
             FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
           ],
-          decoration: const InputDecoration(
-            labelText: 'Quantity',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: l10n.quantity,
+            border: const OutlineInputBorder(),
           ),
           onChanged: (value) {
             final qty = double.tryParse(value) ?? 1;
@@ -131,7 +133,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
         ),
         const SizedBox(height: 24),
         Text(
-          'Additional Details',
+          l10n.additionalDetails,
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w600,
           ),
@@ -143,9 +145,9 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
             child: Column(
               children: [
                 TextField(
-                  decoration: const InputDecoration(
-                    labelText: 'Reason (Optional)',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l10n.reasonOptional,
+                    border: const OutlineInputBorder(),
                   ),
                   onChanged: (value) {
                     ref.read(salesReturnProvider.notifier).setReason(
@@ -156,9 +158,9 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
                 const SizedBox(height: 16),
                 TextField(
                   maxLines: 2,
-                  decoration: const InputDecoration(
-                    labelText: 'Remarks (Optional)',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l10n.remarksOptional,
+                    border: const OutlineInputBorder(),
                   ),
                   onChanged: (value) {
                     ref.read(salesReturnProvider.notifier).setRemarks(
@@ -185,7 +187,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
                   ),
                 )
               : const Icon(Icons.save),
-          label: Text(state.isSaving ? 'Saving...' : 'Save Sales Return'),
+          label: Text(state.isSaving ? l10n.saving : l10n.saveSalesReturn),
           style: FilledButton.styleFrom(
             minimumSize: const Size(double.infinity, 52),
           ),
@@ -194,12 +196,12 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
     );
   }
 
-  Widget _buildProductDropdown(SalesReturnState state, ThemeData theme) {
+  Widget _buildProductDropdown(SalesReturnState state, ThemeData theme, AppLocalizations l10n) {
     return DropdownButtonFormField<String>(
       initialValue: state.selectedProduct?.serverId,
-      decoration: const InputDecoration(
-        labelText: 'Select Product',
-        border: OutlineInputBorder(),
+      decoration: InputDecoration(
+        labelText: l10n.selectProduct,
+        border: const OutlineInputBorder(),
       ),
       items: state.products.map((product) {
         return DropdownMenuItem(
@@ -226,7 +228,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
     if (!success) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Failed to save sales return'),
+          content: Text(AppLocalizations.of(context)!.failedToSaveSalesReturn),
           backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../models/cart_item.dart';
 import '../provider/delivery_provider.dart';
 import '../widgets/customer_dropdown.dart';
@@ -34,22 +35,23 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(deliveryFormProvider);
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     final cartItems = state.cart.entries.map((e) {
       final product = state.products.where((p) => p.serverId == e.key).firstOrNull;
       return CartItem(
         productId: e.key,
-        productName: product?.name ?? 'Unknown',
+        productName: product?.name ?? l10n.unknown,
         quantity: e.value,
         unitPrice: state.getUnitPrice(e.key),
       );
     }).toList();
 
     final title = state.isReadOnly
-        ? 'Invoice #${widget.deliveryId}'
+        ? l10n.deliveryNumber(widget.deliveryId.toString())
         : state.editingDeliveryId != null
-            ? 'Edit Delivery'
-            : 'Add Products';
+            ? l10n.editDelivery
+            : l10n.addProducts;
 
     return Scaffold(
       appBar: AppBar(
@@ -68,11 +70,11 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
       ),
       body: state.isLoadingCustomers
           ? const Center(child: CircularProgressIndicator())
-          : _buildBody(state, cartItems, theme),
+          : _buildBody(state, cartItems, theme, l10n),
     );
   }
 
-  Widget _buildBody(DeliveryFormState state, List<CartItem> cartItems, ThemeData theme) {
+  Widget _buildBody(DeliveryFormState state, List<CartItem> cartItems, ThemeData theme, AppLocalizations l10n) {
     if (state.isReadOnly) {
       return PopScope(
         canPop: false,
@@ -81,13 +83,13 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
             context.go('/delivery-history');
           }
         },
-        child: _buildReadOnlyView(state, cartItems, theme),
+        child: _buildReadOnlyView(state, cartItems, theme, l10n),
       );
     }
-    return _buildEditableForm(state, cartItems, theme);
+    return _buildEditableForm(state, cartItems, theme, l10n);
   }
 
-  Widget _buildReadOnlyView(DeliveryFormState state, List<CartItem> cartItems, ThemeData theme) {
+  Widget _buildReadOnlyView(DeliveryFormState state, List<CartItem> cartItems, ThemeData theme, AppLocalizations l10n) {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -102,7 +104,7 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
               Icon(Icons.visibility, color: theme.colorScheme.onTertiaryContainer, size: 20),
               const SizedBox(width: 8),
               Text(
-                'Viewing completed invoice',
+                l10n.viewingCompletedInvoice,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onTertiaryContainer,
                 ),
@@ -117,16 +119,16 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Customer', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
+                Text(l10n.customer, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
                 const SizedBox(height: 4),
-                Text(state.selectedCustomer?.name ?? 'Unknown',
+                Text(state.selectedCustomer?.name ?? l10n.unknown,
                     style: theme.textTheme.bodyMedium),
               ],
             ),
           ),
         ),
         const SizedBox(height: 20),
-        Text('Items', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+        Text(l10n.items, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
         const SizedBox(height: 12),
         ...cartItems.map((item) => Card(
           child: Padding(
@@ -140,9 +142,10 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
                       Text(item.productName,
                           style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
                       const SizedBox(height: 4),
-                      Text('Qty: ${item.quantity.toStringAsFixed(0)} × Rs. ${item.unitPrice.toStringAsFixed(2)}',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant)),
+                      Text(
+                        l10n.qtyWithPrice(item.quantity.toStringAsFixed(0), item.unitPrice.toStringAsFixed(2)),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant)),
                     ],
                   ),
                 ),
@@ -160,7 +163,7 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Total', style: theme.textTheme.titleMedium?.copyWith(
+                Text(l10n.total, style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: theme.colorScheme.onPrimaryContainer)),
                 Text('Rs. ${state.estimatedTotal.toStringAsFixed(2)}',
@@ -175,11 +178,11 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
     );
   }
 
-  Widget _buildEditableForm(DeliveryFormState state, List<CartItem> cartItems, ThemeData theme) {
+  Widget _buildEditableForm(DeliveryFormState state, List<CartItem> cartItems, ThemeData theme, AppLocalizations l10n) {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Text('Customer', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+        Text(l10n.customer, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
         const SizedBox(height: 12),
         CustomerDropdown(
           customers: state.customers,
@@ -191,13 +194,13 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
         const SizedBox(height: 20),
         Row(
           children: [
-            Text('Products', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+            Text(l10n.products, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
             const Spacer(),
             if (state.selectedCategory != null)
               TextButton.icon(
                 onPressed: () => ref.read(deliveryFormProvider.notifier).selectCategory(null),
                 icon: const Icon(Icons.clear, size: 16),
-                label: const Text('Clear filter'),
+                label: Text(l10n.clearFilter),
               ),
           ],
         ),
@@ -212,7 +215,7 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
               if (index == 0) {
                 final isSelected = state.selectedCategory == null;
                 return FilterChip(
-                  label: const Text('All'),
+                  label: Text(l10n.all),
                   selected: isSelected,
                   onSelected: (_) => ref.read(deliveryFormProvider.notifier).selectCategory(null),
                 );
@@ -231,7 +234,7 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
         const SizedBox(height: 12),
         TextField(
           decoration: InputDecoration(
-            hintText: 'Search products...',
+            hintText: l10n.searchProducts,
             prefixIcon: const Icon(Icons.search),
             suffixIcon: state.productSearchQuery.isNotEmpty
                 ? IconButton(
@@ -249,7 +252,7 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
         if (state.isLoadingProducts)
           const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator()))
         else
-          _buildProductGrid(context, ref, state, theme),
+          _buildProductGrid(context, ref, state, theme, l10n),
         if (state.stockError != null) ...[
           const SizedBox(height: 8),
           Container(
@@ -279,7 +282,7 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
     );
   }
 
-  Widget _buildProductGrid(BuildContext context, WidgetRef ref, DeliveryFormState state, ThemeData theme) {
+  Widget _buildProductGrid(BuildContext context, WidgetRef ref, DeliveryFormState state, ThemeData theme, AppLocalizations l10n) {
     final products = state.filteredProducts;
     if (products.isEmpty) {
       return Card(
@@ -288,8 +291,8 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
           child: Center(
             child: Text(
               state.selectedCategory != null
-                  ? 'No products in this category'
-                  : 'Select a category to browse products',
+                  ? l10n.noProductsInCategory
+                  : l10n.selectCategoryToBrowse,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -352,7 +355,7 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Available: ${remaining.toStringAsFixed(0)}',
+                      '${l10n.available} ${remaining.toStringAsFixed(0)}',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: remaining > 0 ? theme.colorScheme.primary : theme.colorScheme.error,
                         fontWeight: FontWeight.w500,
@@ -372,7 +375,7 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
                           inCart > 0 ? Icons.check_circle : Icons.add_shopping_cart,
                           size: 16,
                         ),
-                        label: Text(inCart > 0 ? 'Add more' : 'Add'),
+                        label: Text(inCart > 0 ? l10n.addMore : l10n.add),
                         style: FilledButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 4),
                           backgroundColor: inCart > 0
@@ -385,7 +388,7 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
                       Padding(
                         padding: const EdgeInsets.only(top: 4),
                         child: Text(
-                          'In cart: ${inCart.toStringAsFixed(0)}',
+                          '${l10n.inCart} ${inCart.toStringAsFixed(0)}',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.primary,
                             fontWeight: FontWeight.w600,
@@ -436,7 +439,7 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
   Future<void> _continueToBilling(BuildContext context) async {
     if (!ref.read(deliveryFormProvider).isValid) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a customer and add items')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.pleaseSelectCustomerAndItems)),
       );
       return;
     }

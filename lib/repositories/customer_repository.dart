@@ -23,6 +23,14 @@ class CustomerRepository {
   })  : _apiService = apiService,
         _db = db;
 
+  static String _getField(Map<String, dynamic> json, List<String> keys) {
+    for (final key in keys) {
+      final value = json[key];
+      if (value != null) return value.toString();
+    }
+    return '';
+  }
+
   Future<List<Customer>> getCustomers() async {
     final cached = await _db.query('customer');
     if (cached.isNotEmpty) {
@@ -43,10 +51,10 @@ class CustomerRepository {
   Future<List<Customer>> _fetchAndCacheCustomers() async {
     final data = await _apiService.fetchCustomers();
     final customers = data.map((json) => Customer()
-      ..serverId = json['id'] as String
-      ..name = json['name'] as String
-      ..phone = json['phone'] as String?
-      ..address = json['address'] as String?).toList();
+      ..serverId = _getField(json, ['Id', 'id', 'server_id'])
+      ..name = _getField(json, ['Name', 'name'])
+      ..phone = _getField(json, ['Mobile', 'phone'])
+      ..address = _getField(json, ['Address', 'address'])).toList();
 
     if (customers.isNotEmpty) {
       await _db.transaction((txn) async {
