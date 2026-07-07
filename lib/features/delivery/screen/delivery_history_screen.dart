@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/utils/extensions.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../models/customer.dart';
 import '../../../models/delivery.dart';
 import '../../../repositories/customer_repository.dart';
@@ -48,12 +49,13 @@ class _DeliveryHistoryScreenState
   }
 
   String _customerName(String customerId) {
+    final l10n = AppLocalizations.of(context)!;
     return _customers
             .cast<Customer?>()
             .firstWhere((c) => c?.serverId == customerId,
                 orElse: () => null)
             ?.name ??
-        'Customer #$customerId';
+        l10n.customerId(customerId);
   }
 
   Future<int> _itemCount(int deliveryId) async {
@@ -62,12 +64,16 @@ class _DeliveryHistoryScreenState
   }
 
   Widget _subtitle(Delivery d) {
+    final l10n = AppLocalizations.of(context)!;
     return FutureBuilder<int>(
       future: _itemCount(d.id ?? 0),
       builder: (context, snapshot) {
         final count = snapshot.data ?? 0;
+        final itemText = count == 1
+            ? l10n.itemCount(count.toString())
+            : l10n.itemCountPlural(count.toString());
         return Text(
-          '${_customerName(d.customerId)} · $count item${count == 1 ? '' : 's'}\n${d.createdDate.formattedDateTime}',
+          '${_customerName(d.customerId)} · $itemText\n${d.createdDate.formattedDateTime}',
         );
       },
     );
@@ -76,15 +82,16 @@ class _DeliveryHistoryScreenState
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Today's Deliveries")),
+      appBar: AppBar(title: Text(l10n.todaysDeliveries)),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _deliveries.isEmpty
               ? Center(
                   child: Text(
-                    'No deliveries for today',
+                    l10n.noDeliveriesForToday,
                     style: theme.textTheme.bodyLarge?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -111,7 +118,7 @@ class _DeliveryHistoryScreenState
                                     color: theme
                                         .colorScheme.onPrimaryContainer),
                           ),
-                          title: Text('Delivery #${d.id}'),
+                          title: Text(l10n.deliveryNumber(d.id.toString())),
                           subtitle: _subtitle(d),
                           onTap: () {
                             context.push('/delivery-detail/${d.id}');

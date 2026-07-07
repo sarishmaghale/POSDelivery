@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/utils/extensions.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../models/estimate.dart';
 import '../../../repositories/estimate_repository.dart';
 
@@ -44,15 +45,16 @@ class _EstimateHistoryScreenState
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Today's Estimates")),
+      appBar: AppBar(title: Text(l10n.todaysEstimates)),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _estimates.isEmpty
               ? Center(
                   child: Text(
-                    'No estimates for today',
+                    l10n.noEstimatesForToday,
                     style: theme.textTheme.bodyLarge?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -80,9 +82,9 @@ class _EstimateHistoryScreenState
                               ),
                             ),
                           ),
-                          title: Text('Estimate #${e.id}'),
+                          title: Text(l10n.estimateNumber(e.id.toString())),
                           subtitle: Text(
-                            'Delivery #${e.deliveryId} · Rs. ${e.estimatedTotal.toStringAsFixed(2)}\n${e.createdDate.formattedDateTime}',
+                            '${l10n.deliveryNumber(e.deliveryId.toString())} · Rs. ${e.estimatedTotal.toStringAsFixed(2)}\n${e.createdDate.formattedDateTime}',
                           ),
                           trailing: e.isSynced
                               ? Icon(Icons.cloud_done,

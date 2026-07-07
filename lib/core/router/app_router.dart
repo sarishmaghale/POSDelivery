@@ -9,6 +9,7 @@ import '../../features/estimate/screen/estimate_screen.dart';
 import '../../features/profile/screen/profile_screen.dart';
 import '../../features/sales_return/screen/sales_return_screen.dart';
 import '../../features/sync/screen/sync_screen.dart';
+import '../../l10n/app_localizations.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
@@ -115,6 +116,7 @@ class AppShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
       body: child,
@@ -123,26 +125,26 @@ class AppShell extends StatelessWidget {
         onDestinationSelected: (index) => _onTap(context, index),
         backgroundColor: colorScheme.surface,
         indicatorColor: colorScheme.primaryContainer,
-        destinations: const [
+        destinations: [
           NavigationDestination(
             icon: Icon(Icons.dashboard_outlined),
             selectedIcon: Icon(Icons.dashboard),
-            label: 'Dashboard',
+            label: l10n.dashboard,
           ),
           NavigationDestination(
             icon: Icon(Icons.local_shipping_outlined),
             selectedIcon: Icon(Icons.local_shipping),
-            label: 'Delivery',
+            label: l10n.delivery,
           ),
           NavigationDestination(
             icon: Icon(Icons.assignment_return_outlined),
             selectedIcon: Icon(Icons.assignment_return),
-            label: 'Sales Return',
+            label: l10n.salesReturn,
           ),
           NavigationDestination(
             icon: Icon(Icons.sync_outlined),
             selectedIcon: Icon(Icons.sync),
-            label: 'Sync',
+            label: l10n.sync,
           ),
         ],
       ),

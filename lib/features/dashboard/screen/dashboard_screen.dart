@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../provider/dashboard_provider.dart';
 import '../widgets/quick_action_card.dart';
 import '../widgets/stat_card.dart';
@@ -28,17 +29,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final state = ref.watch(dashboardProvider);
     final locationState = ref.watch(locationStateProvider);
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Dashboard'),
+        title: Text(l10n.dashboard),
         actions: [
           IconButton(
             icon: Icon(
               locationState.isOnline ? Icons.cloud_done : Icons.cloud_off,
               color: locationState.isOnline ? Colors.green : Colors.red,
             ),
-            tooltip: locationState.isOnline ? 'Online' : 'Offline',
+            tooltip: locationState.isOnline ? l10n.online : l10n.offline,
             onPressed: () => ref.read(locationStateProvider.notifier).manualSync(),
           ),
           IconButton(
@@ -52,27 +54,27 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            _buildDriverHeader(state, theme),
+            _buildDriverHeader(state, theme, l10n),
             const SizedBox(height: 16),
-            _buildLocationTrackingSection(locationState, theme),
+            _buildLocationTrackingSection(locationState, theme, l10n),
             const SizedBox(height: 20),
-            _buildStatsRow(state, theme),
+            _buildStatsRow(state, theme, l10n),
             const SizedBox(height: 20),
             Text(
-              'Quick Actions',
+              l10n.quickActions,
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 12),
-            _buildQuickActions(context),
+            _buildQuickActions(context, l10n),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildDriverHeader(DashboardState state, ThemeData theme) {
+  Widget _buildDriverHeader(DashboardState state, ThemeData theme, AppLocalizations l10n) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -97,7 +99,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Welcome back,',
+                    l10n.welcomeBack,
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -117,7 +119,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildLocationTrackingSection(LocationState locationState, ThemeData theme) {
+  Widget _buildLocationTrackingSection(LocationState locationState, ThemeData theme, AppLocalizations l10n) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -143,7 +145,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      locationState.isTracking ? 'Your location is being tracked' : 'Please start duty',
+                      locationState.isTracking ? l10n.yourLocationIsBeingTracked : l10n.pleaseStartDuty,
                       style: TextStyle(
                         fontWeight: FontWeight.w500,
                         color: locationState.isTracking ? Colors.green.shade700 : Colors.grey.shade700,
@@ -159,7 +161,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        '${locationState.pendingSyncCount} pending',
+                        l10n.countPending(locationState.pendingSyncCount.toString()),
                         style: TextStyle(
                           color: Colors.orange.shade700,
                           fontSize: 12,
@@ -180,7 +182,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         ? null
                         : () => ref.read(locationStateProvider.notifier).startTracking(),
                     icon: const Icon(Icons.play_arrow, size: 18),
-                    label: const Text('Start Duty'),
+                    label: Text(l10n.startDuty),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
                       foregroundColor: Colors.white,
@@ -195,7 +197,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         ? () => ref.read(locationStateProvider.notifier).stopTracking()
                         : null,
                     icon: const Icon(Icons.stop, size: 18),
-                    label: const Text('Stop Duty'),
+                    label: Text(l10n.stopDuty),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red,
                       foregroundColor: Colors.white,
@@ -215,8 +217,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 icon: const Icon(Icons.sync, size: 18),
                 label: Text(
                   locationState.pendingSyncCount > 0
-                      ? 'Sync Now (${locationState.pendingSyncCount} pending)'
-                      : 'No pending data to sync',
+                      ? l10n.syncNowPending(locationState.pendingSyncCount.toString())
+                      : l10n.noPendingDataToSync,
                 ),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 12),
@@ -245,14 +247,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildStatsRow(DashboardState state, ThemeData theme) {
+  Widget _buildStatsRow(DashboardState state, ThemeData theme, AppLocalizations l10n) {
     return Column(
       children: [
         Row(
           children: [
             Expanded(
               child: StatCard(
-                title: "Today's Deliveries",
+                title: l10n.todaysDeliveries,
                 value: state.todaysDeliveries.toString(),
                 icon: Icons.local_shipping,
                 onTap: () => context.push('/delivery-history'),
@@ -261,7 +263,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             const SizedBox(width: 12),
             Expanded(
               child: StatCard(
-                title: 'Sales Returns',
+                title: l10n.salesReturns,
                 value: state.todaysSalesReturns.toString(),
                 icon: Icons.assignment_return,
                 onTap: () {},
@@ -270,7 +272,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             const SizedBox(width: 12),
             Expanded(
               child: StatCard(
-                title: 'Categories',
+                title: l10n.categories,
                 value: state.categories.length.toString(),
                 icon: Icons.category,
                 onTap: () => context.go('/delivery'),
@@ -283,7 +285,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           children: [
             Expanded(
               child: StatCard(
-                title: 'Customers',
+                title: l10n.customers,
                 value: state.assignedCustomersCount.toString(),
                 icon: Icons.people,
                 onTap: () {},
@@ -304,28 +306,28 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildQuickActions(BuildContext context) {
+  Widget _buildQuickActions(BuildContext context, AppLocalizations l10n) {
     return Column(
       children: [
         QuickActionCard(
-          title: 'New Delivery',
-          subtitle: 'Create a new delivery',
+          title: l10n.newDelivery,
+          subtitle: l10n.createNewDelivery,
           icon: Icons.add_circle_outline,
           color: Theme.of(context).colorScheme.tertiaryContainer,
           onTap: () => context.go('/delivery'),
         ),
         const SizedBox(height: 8),
         QuickActionCard(
-          title: 'Sales Return',
-          subtitle: 'Record a sales return',
+          title: l10n.salesReturn,
+          subtitle: l10n.recordSalesReturn,
           icon: Icons.assignment_return,
           color: Theme.of(context).colorScheme.secondaryContainer,
           onTap: () => context.go('/sales-return'),
         ),
         const SizedBox(height: 8),
         QuickActionCard(
-          title: 'Sync',
-          subtitle: 'Sync pending data',
+          title: l10n.sync,
+          subtitle: l10n.syncPendingData,
           icon: Icons.sync,
           color: Theme.of(context).colorScheme.tertiaryContainer,
           onTap: () => context.go('/sync'),
