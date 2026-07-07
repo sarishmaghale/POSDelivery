@@ -1,0 +1,125 @@
+import 'dart:async';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_foreground_task/flutter_foreground_task.dart';
+import 'package:geolocator/geolocator.dart';
+
+import 'models/location_record.dart';
+import 'services/location_database_service.dart';
+import 'services/location_sync_service.dart';
+import 'services/location_api_service.dart';
+import 'package:dio/dio.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import '../../core/network/api_config.dart';
+
+@pragma('vm:entry-point')
+void startLocationTrackingCallback() {
+  FlutterForegroundTask.setTaskHandler(LocationTrackingTaskHandler());
+}
+
+class LocationTrackingTaskHandler extends TaskHandler {
+  Timer? _periodicTimer;
+  StreamSubscription<Position>? _positionStream;
+  final LocationDatabaseService _db = LocationDatabaseService();
+  LocationSyncService? _syncService;
+  String _driverId = '';
+
+  @override
+  Future<void> onStart(DateTime timestamp, TaskStarter starter) async {
+    _initAsync();
+  }
+
+  Future<void> _initAsync() async {
+    try {
+      final data = await FlutterForegroundTask.getData<String>(key: 'driverId');
+      _driverId = data ?? '0271B366-CDA5-48C2-9308-29AD5153081F';
+
+      final dio = Dio(BaseOptions(
+        baseUrl: ApiConfig.baseUrl,
+        connectTimeout: const Duration(seconds: 60),
+        receiveTimeout: const Duration(seconds: 60),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${ApiConfig.staticBearerToken}',
+        },
+      ));
+      final apiService = LocationApiService(dio);
+      _syncService = LocationSyncService(apiService);
+
+      _syncService!.startPeriodicSync();
+
+      _positionStream = Geolocator.getPositionStream(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          distanceFilter: 10,
+          timeLimit: Duration(seconds: 30),
+        ),
+      ).listen(
+        (pos) => _handlePosition(pos),
+        onError: (e) {
+          if (kDebugMode) print('Foreground position error: $e');
+        },
+      );
+
+      _periodicTimer = Timer.periodic(
+        const Duration(seconds: 30),
+        (_) async {
+          try {
+            final pos = await Geolocator.getCurrentPosition(
+              desiredAccuracy: LocationAccuracy.high,
+            );
+            _handlePosition(pos);
+          } catch (e) {
+            if (kDebugMode) print('Foreground periodic position error: $e');
+          }
+        },
+      );
+
+      if (kDebugMode) print('Foreground: tracking initialized');
+    } catch (e) {
+      if (kDebugMode) print('Foreground init error: $e');
+    }
+  }
+
+  Future<void> _handlePosition(Position pos) async {
+    final record = LocationRecord(
+      latitude: pos.latitude,
+      longitude: pos.longitude,
+      timestamp: DateTime.now(),
+      accuracy: pos.accuracy,
+      speed: pos.speed,
+      driverId: _driverId,
+    );
+
+    await _db.insertLocation(record);
+
+    if (kDebugMode) {
+      print('Foreground: saved location (${pos.latitude}, ${pos.longitude})');
+    }
+
+    try {
+      final connectivity = Connectivity();
+      final result = await connectivity.checkConnectivity();
+      final online = !result.contains(ConnectivityResult.none);
+      if (online) {
+        await _syncService?.sync();
+        if (kDebugMode) print('Foreground: synced locations');
+      }
+    } catch (e) {
+      if (kDebugMode) print('Foreground sync error: $e');
+    }
+  }
+
+  @override
+  Future<void> onDestroy(DateTime timestamp) async {
+    _periodicTimer?.cancel();
+    await _positionStream?.cancel();
+    _syncService?.stopPeriodicSync();
+    _syncService?.dispose();
+  }
+
+  @override
+  void onReceiveData(Object data) {}
+
+  @override
+  void onRepeatEvent(DateTime timestamp) {}
+}
