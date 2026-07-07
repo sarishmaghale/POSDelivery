@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../models/cart_item.dart';
 import '../provider/delivery_provider.dart';
 
@@ -12,12 +13,13 @@ class CartScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(deliveryFormProvider);
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     final cartItems = state.cart.entries.map((e) {
       final product = state.products.where((p) => p.serverId == e.key).firstOrNull;
       return CartItem(
         productId: e.key,
-        productName: product?.name ?? 'Unknown',
+        productName: product?.name ?? l10n.unknown,
         quantity: e.value,
         unitPrice: state.getUnitPrice(e.key),
       );
@@ -25,20 +27,20 @@ class CartScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Cart (${cartItems.length})'),
+        title: Text('${l10n.cart} (${cartItems.length})'),
         actions: [
           if (cartItems.isNotEmpty)
             TextButton.icon(
               onPressed: () => ref.read(deliveryFormProvider.notifier).clearCart(),
               icon: const Icon(Icons.delete_sweep, size: 18),
-              label: const Text('Clear'),
+              label: Text(l10n.clear),
             ),
         ],
       ),
       body: cartItems.isEmpty
           ? Center(
               child: Text(
-                'Cart is empty',
+                l10n.cartIsEmpty,
                 style: theme.textTheme.bodyLarge?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -92,7 +94,7 @@ class CartScreen extends ConsumerWidget {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                'Total',
+                                l10n.total,
                                 style: theme.textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -109,7 +111,7 @@ class CartScreen extends ConsumerWidget {
                           const SizedBox(height: 12),
                           if (state.selectedCustomer != null)
                             Text(
-                              'Customer: ${state.selectedCustomer!.name}',
+                              '${l10n.customerLabel} ${state.selectedCustomer!.name}',
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: theme.colorScheme.onSurfaceVariant,
                               ),
@@ -120,7 +122,7 @@ class CartScreen extends ConsumerWidget {
                                 ? () => Navigator.pop(context, true)
                                 : null,
                             icon: const Icon(Icons.arrow_forward),
-                            label: const Text('Continue'),
+                            label: Text(l10n.continueLabel),
                             style: FilledButton.styleFrom(
                               minimumSize: const Size(double.infinity, 52),
                             ),
@@ -190,6 +192,7 @@ class _CartItemCardState extends State<_CartItemCard> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
@@ -266,7 +269,7 @@ class _CartItemCardState extends State<_CartItemCard> {
                             borderRadius: BorderRadius.circular(8),
                           ),
                           isDense: true,
-                          labelText: 'Qty',
+                          labelText: l10n.qty,
                         ),
                         style: theme.textTheme.bodyMedium?.copyWith(
                           fontWeight: FontWeight.w600,
@@ -286,7 +289,7 @@ class _CartItemCardState extends State<_CartItemCard> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Line Total',
+                  l10n.lineTotal,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -310,28 +313,29 @@ class _CartItemCardState extends State<_CartItemCard> {
     final controller = TextEditingController(
       text: widget.item.unitPrice.toStringAsFixed(2),
     );
+    final l10n = AppLocalizations.of(context)!;
 
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Edit Price: ${widget.item.productName}'),
+        title: Text('${l10n.editPrice}: ${widget.item.productName}'),
         content: TextField(
           controller: controller,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           inputFormatters: [
             FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
           ],
-          decoration: const InputDecoration(
-            labelText: 'Unit Price',
+          decoration: InputDecoration(
+            labelText: l10n.unitPrice,
             prefixText: 'Rs. ',
-            border: OutlineInputBorder(),
+            border: const OutlineInputBorder(),
           ),
           autofocus: true,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () {
@@ -341,7 +345,7 @@ class _CartItemCardState extends State<_CartItemCard> {
               }
               Navigator.pop(ctx);
             },
-            child: const Text('Save'),
+            child: Text(l10n.save),
           ),
         ],
       ),
