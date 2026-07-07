@@ -47,8 +47,33 @@ class RealApiService implements ApiService {
   Future<DashboardResponse> fetchDashboard() => _fallback.fetchDashboard();
 
   @override
-  Future<List<Map<String, dynamic>>> fetchCustomers() =>
-      _fallback.fetchCustomers();
+  Future<List<Map<String, dynamic>>> fetchCustomers() async {
+    try {
+      final url = '${_dio.options.baseUrl}${ApiConfig.customerEndpoint}';
+      print('[API] Calling: $url?customernamesearch=');
+      final response = await _dio.get(
+        ApiConfig.customerEndpoint,
+        queryParameters: {'customernamesearch': ''},
+      );
+      print('[API] Response status: ${response.statusCode}');
+      print('[API] Response body: ${response.data}');
+      final body = response.data as Map<String, dynamic>;
+      final status = body['Status'] ?? body['status'] ?? false;
+      if (status != true) {
+        throw Exception(body['Message'] ?? body['message'] ?? 'API returned status false');
+      }
+      final data = body['Data'] ?? body['data'] ?? [];
+      if (data is List) {
+        print('[API] Got ${data.length} customers');
+        return data.cast<Map<String, dynamic>>();
+      }
+      return [];
+    } catch (e) {
+      print('[API] ERROR: $e');
+      print('[API] Falling back to mock');
+      return _fallback.fetchCustomers();
+    }
+  }
 
   @override
   Future<List<Map<String, dynamic>>> fetchProducts() async {
