@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/utils/extensions.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../delivery/provider/delivery_provider.dart';
 import '../provider/estimate_provider.dart';
@@ -111,7 +110,7 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
         onPopInvokedWithResult: (didPop, _) {
           if (!didPop && context.mounted) {
             ref.read(estimateProvider.notifier).reset();
-            context.go('/dashboard');
+            context.pop();
           }
         },
         child: Center(
@@ -132,7 +131,7 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
               FilledButton(
                 onPressed: () {
                   ref.read(estimateProvider.notifier).reset();
-                  context.go('/dashboard');
+                  context.pop();
                 },
                 child: Text(l10n.backToDashboard),
               ),
@@ -279,60 +278,7 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
           ),
           const SizedBox(height: 16),
         ],
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  l10n.deliveryNumber(state.delivery!.id?.toString() ?? 'New'),
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                if (state.customer != null) ...[
-                  Text(
-                    '${l10n.customerLabel} ${state.customer!.name}',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  if (state.customer!.phone != null &&
-                      state.customer!.phone!.isNotEmpty)
-                    Text(
-                      '${l10n.phone} ${state.customer!.phone}',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                ],
-                Text(
-                  '${l10n.date} ${state.delivery!.createdDate.formattedDateTime}',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                if (state.paymentMode != null && state.paymentMode!.isNotEmpty)
-                  Text(
-                    '${l10n.payment} ${state.paymentModes.where((m) => m.serverId == state.paymentMode).firstOrNull?.name ?? state.paymentMode}',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                if (state.paidAmount > 0)
-                  Text(
-                    '${l10n.paid} Rs. ${state.paidAmount.toStringAsFixed(2)}',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
         Text(
           l10n.items,
           style: theme.textTheme.titleMedium?.copyWith(
@@ -341,11 +287,6 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
         ),
         const SizedBox(height: 12),
         ...state.items.map((item) {
-          final totalGross = state.totalGrossAmount;
-          final proportion = totalGross > 0
-              ? item.grossAmount / totalGross
-              : 1.0 / state.items.length;
-          final itemGlobalDiscount = state.discountAmount * proportion;
           return Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -380,20 +321,11 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
                             ),
                           ),
                         ],
-                        if (itemGlobalDiscount > 0) ...[
-                          const SizedBox(height: 2),
-                          Text(
-                            'Global Discount: -Rs. ${itemGlobalDiscount.toStringAsFixed(2)}',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.error,
-                            ),
-                          ),
-                        ],
                       ],
                     ),
                   ),
                   Text(
-                    'Rs. ${(item.lineTotal - itemGlobalDiscount).toStringAsFixed(2)}',
+                    'Rs. ${item.lineTotal.toStringAsFixed(2)}',
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),

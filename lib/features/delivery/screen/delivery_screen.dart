@@ -606,6 +606,6 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
       );
       return;
     }
-    GoRouter.of(context).go('/estimate');
+    GoRouter.of(context).push('/estimate');
   }
 }
