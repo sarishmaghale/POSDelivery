@@ -37,7 +37,7 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
 
   void _initFromDeliveryForm(WidgetRef ref) {
     final deliveryForm = ref.read(deliveryFormProvider);
-    if (deliveryForm.selectedCustomer == null || deliveryForm.cart.isEmpty) {
+    if (deliveryForm.cart.isEmpty) {
       context.go('/delivery');
       return;
     }
@@ -55,10 +55,10 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
     }).toList();
 
     ref.read(estimateProvider.notifier).initializeFromDeliveryForm(
-      customer: deliveryForm.selectedCustomer!,
       items: items,
       paymentModes: deliveryForm.paymentModes,
     );
+    ref.read(estimateProvider.notifier).loadCustomers();
   }
 
   @override
@@ -141,6 +141,130 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        if (state.customer != null) ...[
+          Card(
+            color: theme.colorScheme.primaryContainer,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 28,
+                    backgroundColor: theme.colorScheme.primary,
+                    child: Text(
+                      state.customer!.name.isNotEmpty
+                          ? state.customer!.name[0].toUpperCase()
+                          : '?',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        color: theme.colorScheme.onPrimary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          state.customer!.name,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        if (state.customer!.phone != null &&
+                            state.customer!.phone!.isNotEmpty)
+                          Text(
+                            state.customer!.phone!,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onPrimaryContainer,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => ref.read(estimateProvider.notifier).selectCustomer(null),
+                    child: const Text('Change'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+        ] else ...[
+          Card(
+            color: theme.colorScheme.surfaceContainerHighest,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.person, color: theme.colorScheme.primary),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Select Customer',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    decoration: InputDecoration(
+                      hintText: 'Search customer...',
+                      prefixIcon: const Icon(Icons.search),
+                      suffixIcon: state.customerSearchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear),
+                              onPressed: () => ref.read(estimateProvider.notifier).setCustomerSearchQuery(''),
+                            )
+                          : null,
+                      border: const OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                    onChanged: (value) => ref.read(estimateProvider.notifier).setCustomerSearchQuery(value),
+                  ),
+                  if (state.customerSearchQuery.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    ...state.filteredCustomers.map((c) => ListTile(
+                          dense: true,
+                          leading: CircleAvatar(
+                            radius: 16,
+                            backgroundColor: theme.colorScheme.primaryContainer,
+                            child: Text(
+                              c.name.isNotEmpty ? c.name[0].toUpperCase() : '?',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          title: Text(c.name, style: theme.textTheme.bodyMedium),
+                          subtitle: c.phone != null && c.phone!.isNotEmpty
+                              ? Text(c.phone!, style: theme.textTheme.bodySmall)
+                              : null,
+                          onTap: () => ref.read(estimateProvider.notifier).selectCustomer(c),
+                        )),
+                    if (state.filteredCustomers.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(
+                          'No customers found',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
         Card(
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -204,6 +328,11 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
         ),
         const SizedBox(height: 12),
         ...state.items.map((item) {
+          final totalGross = state.totalGrossAmount;
+          final proportion = totalGross > 0
+              ? item.grossAmount / totalGross
+              : 1.0 / state.items.length;
+          final itemGlobalDiscount = state.discountAmount * proportion;
           return Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -235,11 +364,20 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
                             ),
                           ),
                         ],
+                        if (itemGlobalDiscount > 0) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            'Global Discount: -Rs. ${itemGlobalDiscount.toStringAsFixed(2)}',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.error,
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
                   Text(
-                    'Rs. ${item.lineTotal.toStringAsFixed(2)}',
+                    'Rs. ${(item.lineTotal - itemGlobalDiscount).toStringAsFixed(2)}',
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -277,14 +415,16 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
                 Row(
                   children: [
                     Expanded(
+                      flex: 3,
                       child: DropdownButtonFormField<String>(
+                        isExpanded: true,
                         initialValue: state.discountType,
                         decoration: const InputDecoration(
                           labelText: 'Discount Type',
                           border: OutlineInputBorder(),
                           isDense: true,
                           contentPadding: EdgeInsets.symmetric(
-                            horizontal: 12,
+                            horizontal: 8,
                             vertical: 10,
                           ),
                         ),
@@ -303,9 +443,9 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
                       ),
                     ),
                     if (state.discountType != null) ...[
-                      const SizedBox(width: 12),
-                      SizedBox(
-                        width: 120,
+                      const SizedBox(width: 8),
+                      Expanded(
+                        flex: 2,
                         child: TextField(
                           keyboardType: const TextInputType.numberWithOptions(
                               decimal: true),
@@ -320,7 +460,7 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
                             border: const OutlineInputBorder(),
                             isDense: true,
                             contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 12,
+                              horizontal: 8,
                               vertical: 10,
                             ),
                             suffixText:
@@ -489,9 +629,8 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
   }
 
   Future<void> _saveInvoice(BuildContext context) async {
-    final deliveryForm = ref.read(deliveryFormProvider);
     final success =
-        await ref.read(estimateProvider.notifier).saveInvoice(deliveryForm);
+        await ref.read(estimateProvider.notifier).saveInvoice();
 
     if (!context.mounted) return;
 

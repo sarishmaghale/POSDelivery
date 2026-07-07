@@ -114,7 +114,7 @@ class _DeliveryHistoryScreenState
                           title: Text('Delivery #${d.id}'),
                           subtitle: _subtitle(d),
                           onTap: () {
-                            context.go('/delivery?deliveryId=${d.id}');
+                            context.push('/delivery-detail/${d.id}');
                           },
                         ),
                       );

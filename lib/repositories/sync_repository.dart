@@ -141,6 +141,13 @@ class SyncRepository {
         where: 'id = ?',
         whereArgs: [entry.id],
       );
+    } else {
+      await _db.update(
+        'sync_queue',
+        {'status': 'Failed'},
+        where: 'id = ?',
+        whereArgs: [entry.id],
+      );
     }
   }
 
@@ -255,6 +262,13 @@ class SyncRepository {
         where: 'id = ?',
         whereArgs: [entry.id],
       );
+    } else {
+      await _db.update(
+        'sync_queue',
+        {'status': 'Failed'},
+        where: 'id = ?',
+        whereArgs: [entry.id],
+      );
     }
   }
 
@@ -276,6 +290,13 @@ class SyncRepository {
       await _db.update(
         'sync_queue',
         {'status': 'Synced'},
+        where: 'id = ?',
+        whereArgs: [entry.id],
+      );
+    } else {
+      await _db.update(
+        'sync_queue',
+        {'status': 'Failed'},
         where: 'id = ?',
         whereArgs: [entry.id],
       );

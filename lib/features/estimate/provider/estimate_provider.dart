@@ -12,7 +12,6 @@ import '../../../repositories/delivery_repository.dart';
 import '../../../repositories/estimate_repository.dart';
 import '../../../repositories/payment_mode_repository.dart';
 import '../../../repositories/product_repository.dart';
-import '../../delivery/provider/delivery_provider.dart';
 
 class EstimateItemView {
   final String productId;
@@ -36,6 +35,8 @@ class EstimateState {
   final Delivery? delivery;
   final Customer? customer;
   final List<EstimateItemView> items;
+  final List<Customer> customers;
+  final String customerSearchQuery;
   final List<Delivery> pendingDeliveries;
   final List<PaymentMode> paymentModes;
   final String? paymentMode;
@@ -45,6 +46,7 @@ class EstimateState {
   final double discountValue;
   final double discountAmount;
   final bool isLoadingDelivery;
+  final bool isLoadingCustomers;
   final bool isSaving;
   final bool saved;
 
@@ -52,6 +54,8 @@ class EstimateState {
     this.delivery,
     this.customer,
     this.items = const [],
+    this.customers = const [],
+    this.customerSearchQuery = '',
     this.pendingDeliveries = const [],
     this.paymentModes = const [],
     this.paymentMode,
@@ -61,6 +65,7 @@ class EstimateState {
     this.discountValue = 0,
     this.discountAmount = 0,
     this.isLoadingDelivery = false,
+    this.isLoadingCustomers = false,
     this.isSaving = false,
     this.saved = false,
   });
@@ -75,6 +80,17 @@ class EstimateState {
       items.fold<double>(0, (sum, item) => sum + item.discountAmount);
 
   double get netTotal => grossTotal - discountAmount;
+
+  List<Customer> get filteredCustomers {
+    if (customerSearchQuery.isEmpty) return [];
+    final query = customerSearchQuery.toLowerCase();
+    return customers
+        .where((c) =>
+            c.name.toLowerCase().contains(query) ||
+            (c.phone?.toLowerCase().contains(query) ?? false))
+        .take(5)
+        .toList();
+  }
 }
 
 final estimateProvider =
@@ -109,20 +125,93 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
         super(EstimateState(isLoadingDelivery: true));
 
   void initializeFromDeliveryForm({
-    required Customer customer,
     required List<EstimateItemView> items,
     required List<PaymentMode> paymentModes,
   }) {
     final netAfterProductDiscount = items.fold<double>(0, (sum, i) => sum + i.lineTotal);
     final draftDelivery = Delivery()
-      ..customerId = customer.serverId
+      ..customerId = ''
       ..createdDate = DateTime.now();
     state = EstimateState(
       delivery: draftDelivery,
-      customer: customer,
       items: items,
       paymentModes: paymentModes,
       discountAmount: _calcDiscountAmount(null, 0, netAfterProductDiscount),
+      isLoadingDelivery: false,
+    );
+  }
+
+  Future<void> loadCustomers() async {
+    try {
+      final customers = await _customerRepo.getCustomers();
+      state = EstimateState(
+        delivery: state.delivery,
+        customer: state.customer,
+        items: state.items,
+        customers: customers,
+        pendingDeliveries: state.pendingDeliveries,
+        paymentModes: state.paymentModes,
+        paymentMode: state.paymentMode,
+        paidAmount: state.paidAmount,
+        remarks: state.remarks,
+        discountType: state.discountType,
+        discountValue: state.discountValue,
+        discountAmount: state.discountAmount,
+        isLoadingDelivery: false,
+      );
+    } catch (_) {
+      final customers = await _customerRepo.getCachedCustomers();
+      state = EstimateState(
+        delivery: state.delivery,
+        customer: state.customer,
+        items: state.items,
+        customers: customers,
+        pendingDeliveries: state.pendingDeliveries,
+        paymentModes: state.paymentModes,
+        paymentMode: state.paymentMode,
+        paidAmount: state.paidAmount,
+        remarks: state.remarks,
+        discountType: state.discountType,
+        discountValue: state.discountValue,
+        discountAmount: state.discountAmount,
+        isLoadingDelivery: false,
+      );
+    }
+  }
+
+  void selectCustomer(Customer? customer) {
+    state = EstimateState(
+      delivery: state.delivery,
+      customer: customer,
+      items: state.items,
+      customers: state.customers,
+      pendingDeliveries: state.pendingDeliveries,
+      paymentModes: state.paymentModes,
+      paymentMode: state.paymentMode,
+      paidAmount: state.paidAmount,
+      remarks: state.remarks,
+      discountType: state.discountType,
+      discountValue: state.discountValue,
+      discountAmount: state.discountAmount,
+      isLoadingDelivery: false,
+    );
+  }
+
+  void setCustomerSearchQuery(String query) {
+    state = EstimateState(
+      delivery: state.delivery,
+      customer: state.customer,
+      items: state.items,
+      customers: state.customers,
+      customerSearchQuery: query,
+      pendingDeliveries: state.pendingDeliveries,
+      paymentModes: state.paymentModes,
+      paymentMode: state.paymentMode,
+      paidAmount: state.paidAmount,
+      remarks: state.remarks,
+      discountType: state.discountType,
+      discountValue: state.discountValue,
+      discountAmount: state.discountAmount,
       isLoadingDelivery: false,
     );
   }
@@ -187,6 +276,7 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
       delivery: delivery,
       customer: customer,
       items: itemViews,
+      customers: customers,
       paymentModes: paymentModes,
       paymentMode: (paymentMode ?? delivery.paymentMode)?.isNotEmpty == true
           ? (paymentMode ?? delivery.paymentMode)
@@ -221,6 +311,8 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
       delivery: state.delivery,
       customer: state.customer,
       items: state.items,
+      customers: state.customers,
+      customerSearchQuery: state.customerSearchQuery,
       pendingDeliveries: state.pendingDeliveries,
       paymentModes: state.paymentModes,
       paymentMode: mode,
@@ -238,6 +330,8 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
       delivery: state.delivery,
       customer: state.customer,
       items: state.items,
+      customers: state.customers,
+      customerSearchQuery: state.customerSearchQuery,
       pendingDeliveries: state.pendingDeliveries,
       paymentModes: state.paymentModes,
       paymentMode: state.paymentMode,
@@ -255,6 +349,8 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
       delivery: state.delivery,
       customer: state.customer,
       items: state.items,
+      customers: state.customers,
+      customerSearchQuery: state.customerSearchQuery,
       pendingDeliveries: state.pendingDeliveries,
       paymentModes: state.paymentModes,
       paymentMode: state.paymentMode,
@@ -274,6 +370,8 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
       delivery: state.delivery,
       customer: state.customer,
       items: state.items,
+      customers: state.customers,
+      customerSearchQuery: state.customerSearchQuery,
       pendingDeliveries: state.pendingDeliveries,
       paymentModes: state.paymentModes,
       paymentMode: state.paymentMode,
@@ -292,6 +390,8 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
       delivery: state.delivery,
       customer: state.customer,
       items: state.items,
+      customers: state.customers,
+      customerSearchQuery: state.customerSearchQuery,
       pendingDeliveries: state.pendingDeliveries,
       paymentModes: state.paymentModes,
       paymentMode: state.paymentMode,
@@ -304,14 +404,14 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
     );
   }
 
-  Future<bool> saveInvoice(DeliveryFormState deliveryForm) async {
+  Future<bool> saveInvoice() async {
     if (state.customer == null || state.items.isEmpty) return false;
-    if (deliveryForm.selectedCustomer == null) return false;
 
     state = EstimateState(
       delivery: state.delivery,
       customer: state.customer,
       items: state.items,
+      customers: state.customers,
       pendingDeliveries: state.pendingDeliveries,
       paymentModes: state.paymentModes,
       paymentMode: state.paymentMode,
@@ -325,16 +425,16 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
     );
 
     try {
-      final deliveryItems = deliveryForm.cart.entries.map((e) {
-        final item = DeliveryItem();
-        item.productId = e.key;
-        item.quantity = e.value;
-        item.unitPrice = deliveryForm.getUnitPrice(e.key);
-        return item;
+      final deliveryItems = state.items.map((item) {
+        final di = DeliveryItem();
+        di.productId = item.productId;
+        di.quantity = item.quantity;
+        di.unitPrice = item.unitPrice;
+        return di;
       }).toList();
 
       final delivery = await _deliveryRepo.saveDelivery(
-        customerId: deliveryForm.selectedCustomer!.serverId,
+        customerId: state.customer!.serverId,
         items: deliveryItems,
         paymentMode: state.paymentMode,
       );
@@ -349,12 +449,8 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
         return eItem;
       }).toList();
 
-      final productsMap = <String, Product>{
-        for (final p in deliveryForm.products) p.serverId: p,
-      };
-
       final payModeName = state.paymentMode != null
-          ? (deliveryForm.paymentModes.cast<PaymentMode?>().firstWhere(
+          ? (state.paymentModes.cast<PaymentMode?>().firstWhere(
                 (m) => m?.serverId == state.paymentMode,
                 orElse: () => null,
               )?.name ?? 'Cash')
@@ -376,8 +472,17 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
       final netAmount = invoiceGrossAmount - totalDiscount;
       final totalTax = 0.0;
 
+      final totalGross = state.totalGrossAmount;
+      final productsMap = <String, Product>{
+        for (final p in await _productRepo.getCachedProducts()) p.serverId: p,
+      };
       final salesInvoiceItems = state.items.map((item) {
         final product = productsMap[item.productId];
+        final proportion = totalGross > 0
+            ? item.grossAmount / totalGross
+            : 1.0 / state.items.length;
+        final itemGlobalDiscount = globalDiscount * proportion;
+        final itemNetAfterAll = item.lineTotal - itemGlobalDiscount;
         return SalesInvoiceItemRequest(
           refNo: item.productId,
           productId: item.productId,
@@ -391,8 +496,8 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
           grossAmount: item.grossAmount,
           grossAmountIncludingTax: item.grossAmount,
           discount: item.discountAmount,
-          nonTaxable: item.lineTotal,
-          netAmount: item.lineTotal,
+          nonTaxable: itemNetAfterAll,
+          netAmount: itemNetAfterAll,
           salesInvoiceItemTax: [
             SalesInvoiceItemTaxRequest(),
           ],
@@ -401,8 +506,8 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
 
       final salesInvoiceRequest = SalesInvoiceRequest(
         transactionDate: transactionDate,
-        customerId: deliveryForm.selectedCustomer!.serverId,
-        customerName: deliveryForm.selectedCustomer!.name,
+        customerId: state.customer!.serverId,
+        customerName: state.customer!.name,
         outletId: ApiConfig.emptyGuid,
         totalQuantity: totalQty,
         totalGrossAmount: invoiceGrossAmount,
@@ -424,7 +529,7 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
           SalesInvoicePaymentRequest(
             payMode: payModeName,
             paymentId: payModeId,
-            amount: netAmount,
+            amount: state.paidAmount > 0 ? state.paidAmount : netAmount,
           ),
         ],
         currencyId: ApiConfig.defaultCurrencyId,
@@ -442,8 +547,8 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
         salesInvoiceRequest: salesInvoiceRequest,
       );
 
-      for (final entry in deliveryForm.cart.entries) {
-        await _productRepo.deductStock(entry.key, entry.value);
+      for (final item in state.items) {
+        await _productRepo.deductStock(item.productId, item.quantity);
       }
 
       state = EstimateState(saved: true);
@@ -453,6 +558,7 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
         delivery: state.delivery,
         customer: state.customer,
         items: state.items,
+        customers: state.customers,
         pendingDeliveries: state.pendingDeliveries,
         paymentModes: state.paymentModes,
         paymentMode: state.paymentMode,

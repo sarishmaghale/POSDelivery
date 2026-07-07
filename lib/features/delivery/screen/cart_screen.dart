@@ -112,13 +112,6 @@ class CartScreen extends ConsumerWidget {
                             ],
                           ),
                           const SizedBox(height: 12),
-                          if (state.selectedCustomer != null)
-                            Text(
-                              'Customer: ${state.selectedCustomer!.name}',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                            ),
                           const SizedBox(height: 16),
                           FilledButton.icon(
                             onPressed: state.isValid

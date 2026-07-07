@@ -289,6 +289,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 onTap: () {},
               ),
             ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: StatCard(
+                title: 'Products',
+                value: state.assignedProductsCount.toString(),
+                icon: Icons.inventory_2,
+                onTap: () {},
+              ),
+            ),
           ],
         ),
       ],

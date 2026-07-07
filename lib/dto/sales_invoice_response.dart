@@ -14,7 +14,7 @@ class SalesInvoiceResponse {
     final data = json['Data'];
     String? id;
     if (data is Map<String, dynamic>) {
-      id = data['Id'] as String?;
+      id = (data['TransactionId'] ?? data['Id']) as String?;
     }
     return SalesInvoiceResponse(
       success: status,

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -26,9 +27,9 @@ class EstimateRepository {
     required ApiService apiService,
     required Database db,
     required NetworkChecker networkChecker,
-  })  : _apiService = apiService,
-        _db = db,
-        _networkChecker = networkChecker;
+  }) : _apiService = apiService,
+       _db = db,
+       _networkChecker = networkChecker;
 
   Future<Estimate> saveEstimate({
     required int deliveryId,
@@ -83,7 +84,10 @@ class EstimateRepository {
     return estimate;
   }
 
-  Future<void> _syncSalesInvoice(SalesInvoiceRequest request, int estimateId) async {
+  Future<void> _syncSalesInvoice(
+    SalesInvoiceRequest request,
+    int estimateId,
+  ) async {
     await _db.update(
       'sync_queue',
       {'status': 'Syncing'},
@@ -93,7 +97,7 @@ class EstimateRepository {
 
     try {
       final response = await _apiService.createSalesInvoice(request);
-
+      debugPrint(request.toJson().toString());
       if (response.success) {
         await _db.update(
           'estimate',
@@ -104,6 +108,13 @@ class EstimateRepository {
         await _db.update(
           'sync_queue',
           {'status': 'Synced'},
+          where: 'entity_type = ? AND entity_id = ?',
+          whereArgs: ['Estimate', estimateId],
+        );
+      } else {
+        await _db.update(
+          'sync_queue',
+          {'status': 'Failed'},
           where: 'entity_type = ? AND entity_id = ?',
           whereArgs: ['Estimate', estimateId],
         );
@@ -121,20 +132,30 @@ class EstimateRepository {
   Future<List<Estimate>> getEstimatesByDate(DateTime date) async {
     final startOfDay = DateTime(date.year, date.month, date.day);
     final endOfDay = startOfDay.add(const Duration(days: 1));
-    final maps = await _db.query('estimate',
-        where: 'created_date >= ? AND created_date < ?',
-        whereArgs: [
-          startOfDay.toIso8601String(),
-          endOfDay.toIso8601String()
-        ],
-        orderBy: 'created_date DESC');
+    final maps = await _db.query(
+      'estimate',
+      where: 'created_date >= ? AND created_date < ?',
+      whereArgs: [startOfDay.toIso8601String(), endOfDay.toIso8601String()],
+      orderBy: 'created_date DESC',
+    );
     return maps.map((m) => Estimate.fromMap(m)).toList();
   }
 
   Future<List<Estimate>> getEstimatesByDelivery(int deliveryId) async {
-    final maps = await _db.query('estimate',
-        where: 'delivery_id = ?', whereArgs: [deliveryId]);
+    final maps = await _db.query(
+      'estimate',
+      where: 'delivery_id = ?',
+      whereArgs: [deliveryId],
+    );
     return maps.map((m) => Estimate.fromMap(m)).toList();
   }
-}
 
+  Future<List<EstimateItem>> getEstimateItems(int estimateId) async {
+    final maps = await _db.query(
+      'estimate_item',
+      where: 'estimate_id = ?',
+      whereArgs: [estimateId],
+    );
+    return maps.map((m) => EstimateItem.fromMap(m)).toList();
+  }
+}

@@ -126,6 +126,37 @@ class SyncScreen extends ConsumerWidget {
               ),
             ),
           ],
+          if (state.pendingQueue.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            Text(
+              'Pending Items',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            ...state.pendingQueue.map((entry) {
+              return Card(
+                child: ListTile(
+                  leading: Icon(
+                    entry.entityType == 'Delivery'
+                        ? Icons.local_shipping
+                        : Icons.receipt_long,
+                  ),
+                  title: Text('${entry.entityType} #${entry.entityId}'),
+                  subtitle: Text(
+                    'Status: ${entry.status}',
+                    style: TextStyle(
+                      color: entry.status == 'Failed'
+                          ? theme.colorScheme.error
+                          : theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  trailing: _statusIcon(entry.status),
+                ),
+              );
+            }),
+          ],
           if (!state.isSyncing) ...[
             const SizedBox(height: 24),
             FilledButton.icon(
@@ -162,37 +193,6 @@ class SyncScreen extends ConsumerWidget {
                   ),
                 ),
               ),
-            ],
-            if (state.pendingQueue.isNotEmpty) ...[
-              const SizedBox(height: 20),
-              Text(
-                'Pending Items',
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 8),
-              ...state.pendingQueue.map((entry) {
-                return Card(
-                  child: ListTile(
-                    leading: Icon(
-                      entry.entityType == 'Delivery'
-                          ? Icons.local_shipping
-                          : Icons.receipt_long,
-                    ),
-                    title: Text('${entry.entityType} #${entry.entityId}'),
-                    subtitle: Text(
-                      'Status: ${entry.status}',
-                      style: TextStyle(
-                        color: entry.status == 'Failed'
-                            ? theme.colorScheme.error
-                            : theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    trailing: _statusIcon(entry.status),
-                  ),
-                );
-              }),
             ],
           ],
         ],
