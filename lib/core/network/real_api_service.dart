@@ -41,8 +41,13 @@ class RealApiService implements ApiService {
   }
 
   @override
-  Future<List<Map<String, dynamic>>> fetchCategories() async {
-    return _fetchList(ApiConfig.categoryEndpoint);
+  Future<List<Map<String, dynamic>>> fetchCategories({
+    required String customerId,
+    required String transactionDate,
+  }) async {
+    return _fetchList(
+      '${ApiConfig.categoryEndpoint}?customerId=$customerId&transactionDate=$transactionDate',
+    );
   }
 
   @override
@@ -78,14 +83,16 @@ class RealApiService implements ApiService {
   }
 
   @override
-  Future<List<Map<String, dynamic>>> fetchProducts() async {
+  Future<List<Map<String, dynamic>>> fetchProducts({
+    required String customerId,
+    required String transactionDate,
+  }) async {
     try {
       final response = await _dio.get(
         ApiConfig.productEndpoint,
         queryParameters: {
-          'categoryId': ApiConfig.allCategoryId,
-          'customerId': ApiConfig.defaultCustomerId,
-          'search': '',
+          'customerId': customerId,
+          'transactionDate': transactionDate,
         },
       );
       final body = response.data as Map<String, dynamic>;
@@ -98,7 +105,10 @@ class RealApiService implements ApiService {
       }
       return [];
     } catch (_) {
-      return _fallback.fetchProducts();
+      return _fallback.fetchProducts(
+        customerId: customerId,
+        transactionDate: transactionDate,
+      );
     }
   }
 

@@ -195,27 +195,78 @@ class SyncRepository {
 
     final salesInvoiceItems = items.map((item) {
       final product = productsMap[item.productId];
-      final itemGross = item.unitPrice * item.quantity;
+
+      final taxableType = (product?['taxable'] as num?)?.toInt() ?? 0;
+      final rate = item.unitPrice;
+      final quantity = item.quantity;
+      final discount = item.discountAmount;
+      const taxPercent = 13.0;
+
+      double rateIncTax;
+      double grossAmount;
+      double grossAmountIncTax;
+      double taxableAmount;
+      double nonTaxableAmount;
+      double taxAmount;
+
+      if (taxableType == 0) {
+        rateIncTax = rate * (1 + taxPercent / 100);
+        grossAmount = rate * quantity;
+        grossAmountIncTax = rateIncTax * quantity;
+        taxableAmount = grossAmount;
+        nonTaxableAmount = 0;
+        taxAmount = grossAmountIncTax - grossAmount;
+      } else if (taxableType == 1) {
+        rateIncTax = rate;
+        final rateExTax = rate / (1 + taxPercent / 100);
+        grossAmountIncTax = rateIncTax * quantity;
+        grossAmount = rateExTax * quantity;
+        taxableAmount = grossAmount;
+        nonTaxableAmount = 0;
+        taxAmount = grossAmountIncTax - grossAmount;
+      } else {
+        rateIncTax = rate;
+        grossAmount = rate * quantity;
+        grossAmountIncTax = grossAmount;
+        taxableAmount = 0;
+        nonTaxableAmount = grossAmount;
+        taxAmount = 0;
+      }
+
       return SalesInvoiceItemRequest(
         refNo: item.productId,
         productId: item.productId,
         name: product?['name'] as String? ?? '',
-        quantity: item.quantity,
+        quantity: quantity,
         unitId: product?['unit_id'] as String? ?? '',
         unitName: product?['unit'] as String? ?? '',
         categoryId: product?['category_id'] as String? ?? '',
-        rate: item.unitPrice,
-        rateIncludingTax: item.unitPrice,
-        grossAmount: itemGross,
-        grossAmountIncludingTax: itemGross,
-        discount: item.discountAmount,
-        nonTaxable: item.lineTotal,
+        rate: rate,
+        rateIncludingTax: rateIncTax,
+        grossAmount: grossAmount,
+        grossAmountIncludingTax: grossAmountIncTax,
+        discount: discount,
+        taxable: taxableAmount,
+        nonTaxable: nonTaxableAmount,
+        taxPercent: taxPercent,
+        taxAmount: taxAmount,
         netAmount: item.lineTotal,
         salesInvoiceItemTax: [
-          SalesInvoiceItemTaxRequest(),
+          SalesInvoiceItemTaxRequest(
+            taxableAmount: taxableAmount,
+            taxAmount: taxAmount,
+            netAmount: item.lineTotal,
+          ),
         ],
       );
     }).toList();
+
+    final totalTaxable = salesInvoiceItems.fold<double>(
+        0, (sum, item) => sum + item.taxable);
+    final totalNonTaxable = salesInvoiceItems.fold<double>(
+        0, (sum, item) => sum + item.nonTaxable);
+    final totalItemTax = salesInvoiceItems.fold<double>(
+        0, (sum, item) => sum + item.taxAmount);
 
     final request = SalesInvoiceRequest(
       transactionDate: transactionDate,
@@ -223,25 +274,25 @@ class SyncRepository {
       outletId: ApiConfig.emptyGuid,
       totalQuantity: totalQty,
       totalGrossAmount: grossAmount,
-      totalGrossAmountIncludingTax: grossAmount,
+      totalGrossAmountIncludingTax: grossAmount + totalItemTax,
       totalDiscount: totalDiscount,
       totalDiscountIncludingTax: totalDiscount,
-      totalTaxableAmount: 0,
-      totalNonTaxableAmount: totalNet,
-      totalTax: 0,
-      totalNetAmount: totalNet,
-      totalPayableAmount: totalNet,
+      totalTaxableAmount: totalTaxable,
+      totalNonTaxableAmount: totalNonTaxable,
+      totalTax: totalItemTax,
+      totalNetAmount: totalNet + totalItemTax,
+      totalPayableAmount: totalNet + totalItemTax,
       payMode: payModeName,
-      tenderAmount: totalNet,
+      tenderAmount: totalNet + totalItemTax,
       salesInvoiceTax: [
-        SalesInvoiceTaxRequest(taxAmount: 0),
+        SalesInvoiceTaxRequest(taxAmount: totalItemTax),
       ],
       salesInvoiceItem: salesInvoiceItems,
       salesInvoicePayment: [
         SalesInvoicePaymentRequest(
           payMode: payModeName,
           paymentId: estimate.paymentMode ?? ApiConfig.emptyGuid,
-          amount: totalNet,
+          amount: totalNet + totalItemTax,
         ),
       ],
       currencyId: ApiConfig.defaultCurrencyId,

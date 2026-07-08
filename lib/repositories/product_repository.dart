@@ -21,16 +21,28 @@ class ProductRepository {
     : _apiService = apiService,
       _db = db;
 
-  Future<List<Product>> getProducts() async {
+  Future<List<Product>> getProducts({
+    required String customerId,
+    required String transactionDate,
+  }) async {
     final cached = await _db.query('product');
     if (cached.isNotEmpty) {
       return cached.map((map) => Product.fromMap(map)).toList();
     }
-    return _fetchAndCacheProducts();
+    return _fetchAndCacheProducts(
+      customerId: customerId,
+      transactionDate: transactionDate,
+    );
   }
 
-  Future<List<Product>> refreshProducts() async {
-    return _fetchAndCacheProducts();
+  Future<List<Product>> refreshProducts({
+    required String customerId,
+    required String transactionDate,
+  }) async {
+    return _fetchAndCacheProducts(
+      customerId: customerId,
+      transactionDate: transactionDate,
+    );
   }
 
   Future<List<Product>> getCachedProducts() async {
@@ -38,44 +50,39 @@ class ProductRepository {
     return maps.map((map) => Product.fromMap(map)).toList();
   }
 
-  Future<List<Product>> _fetchAndCacheProducts() async {
-    final data = await _apiService.fetchProducts();
+  Future<List<Product>> _fetchAndCacheProducts({
+    required String customerId,
+    required String transactionDate,
+  }) async {
+    final data = await _apiService.fetchProducts(
+      customerId: customerId,
+      transactionDate: transactionDate,
+    );
     final products = data.map((json) {
       final p = Product();
-      p.serverId = json['Id'] as String? ?? json['id'] as String;
-      p.categoryId =
-          json['CategoryId'] as String? ?? json['categoryId'] as String;
-      p.name = json['Name'] as String? ?? json['name'] as String;
+      p.serverId = json['ProductId'] as String;
+      p.categoryId = json['CategoryId'] as String;
+      p.name = json['Name'] as String;
       p.japaneseName = json['JapaneseName'] as String?;
-      p.unitPrice =
-          (json['Rate'] as num?)?.toDouble() ??
-          (json['unitPrice'] as num).toDouble();
-      p.stock = (json['Stock'] as num?)?.toDouble() ?? 20;
-      if (p.stock <= 0) p.stock = 20;
+      p.unitPrice = (json['Rate'] as num?)?.toDouble() ?? 0;
+      p.stock = (json['Quantity'] as num?)?.toDouble() ?? 0;
+      p.taxable = (json['Taxable'] as num?)?.toInt() ?? 0;
 
-      p.unitId = json['UnitId'] as String?;
-      p.unit = json['UnitName'] as String? ?? json['unit'] as String?;
-      p.description =
-          json['Description'] as String? ?? json['description'] as String?;
+      final baseUnit = json['BaseUnit'] as Map<String, dynamic>?;
+      if (baseUnit != null) {
+        p.unitId = baseUnit['UnitId'] as String?;
+        p.unit = baseUnit['UnitName'] as String?;
+      }
 
-      final rawImages =
-          json['ProductImage'] as List? ?? json['productImages'] as List?;
+      final rawImages = json['ImagePaths'] as List?;
       if (rawImages != null) {
         p.productImages = rawImages.map((e) {
           if (e is String) return e;
-          if (e is Map)
-            return (e['ImagePath'] ?? e['imagePath'] ?? e['url'] ?? '')
-                as String;
           return e.toString();
         }).toList();
         if (p.productImages.isNotEmpty && p.imageUrl == null) {
           p.imageUrl ??= p.productImages.first;
         }
-      }
-
-      final rawImageUrl = json['imageUrl'] as String?;
-      if (rawImageUrl != null) {
-        p.imageUrl = rawImageUrl;
       }
 
       return p;

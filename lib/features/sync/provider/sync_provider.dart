@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/network/api_config.dart';
 import '../../../models/sync_queue.dart';
 import '../../../repositories/category_repository.dart';
 import '../../../repositories/customer_repository.dart';
@@ -148,15 +149,25 @@ class SyncNotifier extends StateNotifier<SyncState> {
   Future<Map<String, bool>> _syncFromServer() async {
     final results = <String, bool>{};
 
+    final now = DateTime.now();
+    final transactionDate =
+        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+
     try {
-      await _categoryRepo.refreshCategories();
+      await _categoryRepo.refreshCategories(
+        customerId: ApiConfig.defaultCustomerId,
+        transactionDate: transactionDate,
+      );
       results['categories'] = true;
     } catch (_) {
       results['categories'] = false;
     }
 
     try {
-      await _productRepo.refreshProducts();
+      await _productRepo.refreshProducts(
+        customerId: ApiConfig.defaultCustomerId,
+        transactionDate: transactionDate,
+      );
       results['products'] = true;
     } catch (_) {
       results['products'] = false;

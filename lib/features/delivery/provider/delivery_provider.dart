@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/network/api_config.dart';
 import '../../../core/services/image_prefetch_service.dart';
 import '../../../models/category.dart';
 import '../../../models/customer.dart';
@@ -32,6 +33,9 @@ class DeliveryFormState {
   final bool isSaving;
   final String? stockError;
   final double paidAmount;
+  final String? discountType;
+  final double discountValue;
+  final double discountAmount;
 
   DeliveryFormState({
     this.delivery,
@@ -52,6 +56,9 @@ class DeliveryFormState {
     this.isSaving = false,
     this.stockError,
     this.paidAmount = 0,
+    this.discountType,
+    this.discountValue = 0,
+    this.discountAmount = 0,
   });
 
   List<Product> get displayedProducts {
@@ -85,7 +92,7 @@ class DeliveryFormState {
       final discount = productDiscounts[entry.key] ?? 0;
       total += gross - discount;
     }
-    return total;
+    return total - discountAmount;
   }
 
   double getRemainingQuantity(String productId) {
@@ -112,6 +119,11 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
   final DeliveryRepository _deliveryRepo;
   final EstimateRepository _estimateRepo;
   final CustomerRepository _customerRepo;
+
+  static String get _transactionDate {
+    final now = DateTime.now();
+    return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+  }
 
   DeliveryFormNotifier({
     required CategoryRepository categoryRepo,
@@ -140,7 +152,10 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
 
       if (categories.isEmpty) {
         try {
-          categories = await _categoryRepo.getCategories();
+          categories = await _categoryRepo.getCategories(
+            customerId: ApiConfig.defaultCustomerId,
+            transactionDate: _transactionDate,
+          );
         } catch (_) {}
       }
 
@@ -153,7 +168,10 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
 
       if (products.isEmpty) {
         try {
-          await _productRepo.getProducts();
+          await _productRepo.getProducts(
+            customerId: ApiConfig.defaultCustomerId,
+            transactionDate: _transactionDate,
+          );
           products = await _productRepo.getCachedProducts();
         } catch (_) {}
       }
@@ -249,9 +267,16 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
       final isReadOnly = existingEstimates.isNotEmpty;
       final paidAmount = existingEstimates.isNotEmpty ? existingEstimates.first.paidAmount : 0.0;
 
+      String? discountType;
+      double discountValue = 0;
+      double discountAmount = 0;
       final productDiscounts = <String, double>{};
       if (existingEstimates.isNotEmpty) {
-        final estimateItems = await _estimateRepo.getEstimateItems(existingEstimates.first.id!);
+        final estimate = existingEstimates.first;
+        discountType = estimate.discountType;
+        discountValue = estimate.discountValue;
+        discountAmount = estimate.discountAmount;
+        final estimateItems = await _estimateRepo.getEstimateItems(estimate.id!);
         for (final ei in estimateItems) {
           if (ei.discountAmount > 0) {
             productDiscounts[ei.productId] = ei.discountAmount;
@@ -271,6 +296,9 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
         customPrices: customPrices,
         productDiscounts: productDiscounts,
         cart: cart,
+        discountType: discountType,
+        discountValue: discountValue,
+        discountAmount: discountAmount,
         isLoadingCustomers: false,
         isLoadingProducts: false,
       );

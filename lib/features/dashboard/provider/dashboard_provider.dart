@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/network/api_config.dart';
 import '../../../core/services/image_prefetch_service.dart';
 import '../../../models/category.dart';
 import '../../../repositories/category_repository.dart';
@@ -69,7 +70,14 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
 
   Future<void> _refreshInBackground() async {
     try {
-      final categories = await _categoryRepo.refreshCategories();
+      final now = DateTime.now();
+      final transactionDate =
+          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+
+      final categories = await _categoryRepo.refreshCategories(
+        customerId: ApiConfig.defaultCustomerId,
+        transactionDate: transactionDate,
+      );
       _prefetchImages(categories);
 
       var pending = 0;

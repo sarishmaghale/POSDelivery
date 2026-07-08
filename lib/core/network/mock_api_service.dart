@@ -36,14 +36,20 @@ class MockApiService implements ApiService {
   }
 
   @override
-  Future<List<Map<String, dynamic>>> fetchCategories() async {
+  Future<List<Map<String, dynamic>>> fetchCategories({
+    required String customerId,
+    required String transactionDate,
+  }) async {
     await Future.delayed(const Duration(milliseconds: 500));
     final list = await _loadJsonList('assets/dummy/categories.json');
     return list.cast<Map<String, dynamic>>();
   }
 
   @override
-  Future<List<Map<String, dynamic>>> fetchProducts() async {
+  Future<List<Map<String, dynamic>>> fetchProducts({
+    required String customerId,
+    required String transactionDate,
+  }) async {
     await Future.delayed(const Duration(milliseconds: 500));
     final list = await _loadJsonList('assets/dummy/products.json');
     return list.cast<Map<String, dynamic>>();

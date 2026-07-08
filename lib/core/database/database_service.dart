@@ -24,7 +24,7 @@ class DatabaseService {
 
       _database = await openDatabase(
         path,
-        version: 8,
+        version: 9,
         onCreate: _createTables,
         onUpgrade: _onUpgrade,
       );
@@ -76,6 +76,13 @@ class DatabaseService {
       try {
         await db.execute(
             'ALTER TABLE estimate_item ADD COLUMN discount_amount REAL DEFAULT 0');
+      } catch (_) {}
+    }
+
+    if (oldVersion < 9) {
+      try {
+        await db.execute(
+            'ALTER TABLE product ADD COLUMN taxable INTEGER DEFAULT 0');
       } catch (_) {}
     }
   }
@@ -130,7 +137,8 @@ class DatabaseService {
         unit TEXT,
         image_url TEXT,
         product_images TEXT,
-        description TEXT
+        description TEXT,
+        taxable INTEGER DEFAULT 0
       )
     ''');
 

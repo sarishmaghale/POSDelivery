@@ -23,16 +23,28 @@ class CategoryRepository {
   })  : _apiService = apiService,
         _db = db;
 
-  Future<List<Category>> getCategories() async {
+  Future<List<Category>> getCategories({
+    required String customerId,
+    required String transactionDate,
+  }) async {
     final cached = await _db.query('category');
     if (cached.isNotEmpty) {
       return cached.map((map) => Category.fromMap(map)).toList();
     }
-    return _fetchAndCacheCategories();
+    return _fetchAndCacheCategories(
+      customerId: customerId,
+      transactionDate: transactionDate,
+    );
   }
 
-  Future<List<Category>> refreshCategories() async {
-    return _fetchAndCacheCategories();
+  Future<List<Category>> refreshCategories({
+    required String customerId,
+    required String transactionDate,
+  }) async {
+    return _fetchAndCacheCategories(
+      customerId: customerId,
+      transactionDate: transactionDate,
+    );
   }
 
   Future<List<Category>> getCachedCategories() async {
@@ -40,20 +52,23 @@ class CategoryRepository {
     return maps.map((map) => Category.fromMap(map)).toList();
   }
 
-  Future<List<Category>> _fetchAndCacheCategories() async {
-    final data = await _apiService.fetchCategories();
+  Future<List<Category>> _fetchAndCacheCategories({
+    required String customerId,
+    required String transactionDate,
+  }) async {
+    final data = await _apiService.fetchCategories(
+      customerId: customerId,
+      transactionDate: transactionDate,
+    );
     final categories = data.map((json) {
       final cat = Category();
-      cat.serverId = json['Id'] as String? ?? json['id'] as String;
-      cat.name = json['Name'] as String? ?? json['name'] as String;
+      cat.serverId = json['CategoryId'] as String;
+      cat.name = json['Name'] as String;
       cat.japaneseName = json['JapaneseName'] as String?;
-      cat.description = json['description'] as String?;
-      cat.icon = json['icon'] as String?;
-      final rawImageList = json['ImageList'] as List? ?? json['imageList'] as List?;
+      final rawImageList = json['ImagePaths'] as List?;
       if (rawImageList != null) {
         cat.imageList = rawImageList.map((e) {
           if (e is String) return e;
-          if (e is Map) return (e['imageUrl'] ?? e['url'] ?? e['path'] ?? '') as String;
           return e.toString();
         }).toList();
         if (cat.imageList.isNotEmpty) {
@@ -76,4 +91,3 @@ class CategoryRepository {
     return categories;
   }
 }
-

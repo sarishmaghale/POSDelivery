@@ -470,7 +470,6 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
       final globalDiscount = state.discountAmount;
       final totalDiscount = totalProductDiscount + globalDiscount;
       final netAmount = invoiceGrossAmount - totalDiscount;
-      final totalTax = 0.0;
 
       final totalGross = state.totalGrossAmount;
       final productsMap = <String, Product>{
@@ -483,26 +482,81 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
             : 1.0 / state.items.length;
         final itemGlobalDiscount = globalDiscount * proportion;
         final itemNetAfterAll = item.lineTotal - itemGlobalDiscount;
+
+        final taxableType = product?.taxable ?? 0;
+        final rate = item.unitPrice;
+        final quantity = item.quantity;
+        final discount = item.discountAmount;
+        const taxPercent = 13.0;
+
+        double rateIncTax;
+        double grossAmount;
+        double grossAmountIncTax;
+        double taxableAmount;
+        double nonTaxableAmount;
+        double taxAmount;
+
+        double rateExTax;
+        if (taxableType == 0) {
+          rateExTax = rate;
+          rateIncTax = rate * (1 + taxPercent / 100);
+          grossAmount = rateExTax * quantity;
+          grossAmountIncTax = rateIncTax * quantity;
+          taxableAmount = grossAmount;
+          nonTaxableAmount = 0;
+          taxAmount = grossAmountIncTax - grossAmount;
+        } else if (taxableType == 1) {
+          rateIncTax = rate;
+          rateExTax = rate / (1 + taxPercent / 100);
+          grossAmountIncTax = rateIncTax * quantity;
+          grossAmount = rateExTax * quantity;
+          taxableAmount = grossAmount;
+          nonTaxableAmount = 0;
+          taxAmount = grossAmountIncTax - grossAmount;
+        } else {
+          rateExTax = rate;
+          rateIncTax = rate;
+          grossAmount = rateExTax * quantity;
+          grossAmountIncTax = grossAmount;
+          taxableAmount = 0;
+          nonTaxableAmount = grossAmount;
+          taxAmount = 0;
+        }
+
         return SalesInvoiceItemRequest(
           refNo: item.productId,
           productId: item.productId,
           name: item.productName,
-          quantity: item.quantity,
+          quantity: quantity,
           unitId: product?.unitId ?? '',
           unitName: product?.unit ?? '',
           categoryId: product?.categoryId ?? '',
-          rate: item.unitPrice,
-          rateIncludingTax: item.unitPrice,
-          grossAmount: item.grossAmount,
-          grossAmountIncludingTax: item.grossAmount,
-          discount: item.discountAmount,
-          nonTaxable: itemNetAfterAll,
+          rate: rateExTax,
+          rateIncludingTax: rateIncTax,
+          grossAmount: grossAmount,
+          grossAmountIncludingTax: grossAmountIncTax,
+          discount: discount,
+          taxable: taxableAmount,
+          nonTaxable: nonTaxableAmount,
+          taxPercent: taxPercent,
+          taxAmount: taxAmount,
           netAmount: itemNetAfterAll,
           salesInvoiceItemTax: [
-            SalesInvoiceItemTaxRequest(),
+            SalesInvoiceItemTaxRequest(
+              taxableAmount: taxableAmount,
+              taxAmount: taxAmount,
+              netAmount: itemNetAfterAll,
+            ),
           ],
         );
       }).toList();
+
+      final totalTaxable = salesInvoiceItems.fold<double>(
+          0, (sum, item) => sum + item.taxable);
+      final totalNonTaxable = salesInvoiceItems.fold<double>(
+          0, (sum, item) => sum + item.nonTaxable);
+      final totalItemTax = salesInvoiceItems.fold<double>(
+          0, (sum, item) => sum + item.taxAmount);
 
       final salesInvoiceRequest = SalesInvoiceRequest(
         transactionDate: transactionDate,
@@ -511,25 +565,25 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
         outletId: ApiConfig.emptyGuid,
         totalQuantity: totalQty,
         totalGrossAmount: invoiceGrossAmount,
-        totalGrossAmountIncludingTax: invoiceGrossAmount,
+        totalGrossAmountIncludingTax: invoiceGrossAmount + totalItemTax,
         totalDiscount: totalDiscount,
         totalDiscountIncludingTax: totalDiscount,
-        totalTaxableAmount: 0,
-        totalNonTaxableAmount: netAmount,
-        totalTax: totalTax,
-        totalNetAmount: netAmount,
-        totalPayableAmount: netAmount,
+        totalTaxableAmount: totalTaxable,
+        totalNonTaxableAmount: totalNonTaxable,
+        totalTax: totalItemTax,
+        totalNetAmount: netAmount + totalItemTax,
+        totalPayableAmount: netAmount + totalItemTax,
         payMode: payModeName,
-        tenderAmount: netAmount,
+        tenderAmount: netAmount + totalItemTax,
         salesInvoiceTax: [
-          SalesInvoiceTaxRequest(taxAmount: totalTax),
+          SalesInvoiceTaxRequest(taxAmount: totalItemTax),
         ],
         salesInvoiceItem: salesInvoiceItems,
         salesInvoicePayment: [
           SalesInvoicePaymentRequest(
             payMode: payModeName,
             paymentId: payModeId,
-            amount: state.paidAmount > 0 ? state.paidAmount : netAmount,
+            amount: state.paidAmount > 0 ? state.paidAmount : netAmount + totalItemTax,
           ),
         ],
         currencyId: ApiConfig.defaultCurrencyId,
