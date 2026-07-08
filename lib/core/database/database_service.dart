@@ -24,7 +24,7 @@ class DatabaseService {
 
       _database = await openDatabase(
         path,
-        version: 8,
+        version: 9,
         onCreate: _createTables,
         onUpgrade: _onUpgrade,
       );
@@ -77,6 +77,41 @@ class DatabaseService {
         await db.execute(
             'ALTER TABLE estimate_item ADD COLUMN discount_amount REAL DEFAULT 0');
       } catch (_) {}
+    }
+
+    if (oldVersion < 9) {
+      await db.execute('DROP TABLE IF EXISTS sales_return_item');
+      await db.execute('DROP TABLE IF EXISTS sales_return');
+      await db.execute('''
+        CREATE TABLE sales_return (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          server_id TEXT,
+          customer_id TEXT NOT NULL,
+          reason TEXT,
+          remarks TEXT,
+          created_date TEXT NOT NULL,
+          is_synced INTEGER DEFAULT 0,
+          discount_type TEXT,
+          discount_value REAL DEFAULT 0,
+          discount_amount REAL DEFAULT 0
+        )
+      ''');
+      await db.execute('''
+        CREATE TABLE sales_return_item (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          sales_return_id INTEGER NOT NULL,
+          product_id TEXT NOT NULL,
+          product_name TEXT NOT NULL,
+          quantity REAL NOT NULL,
+          rate REAL NOT NULL DEFAULT 0,
+          unit_id TEXT,
+          unit TEXT,
+          discount_type TEXT,
+          discount_value REAL DEFAULT 0,
+          discount_amount REAL DEFAULT 0,
+          FOREIGN KEY (sales_return_id) REFERENCES sales_return(id)
+        )
+      ''');
     }
   }
 
@@ -199,15 +234,32 @@ class DatabaseService {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         server_id TEXT,
         customer_id TEXT NOT NULL,
-        product_id TEXT NOT NULL,
-        quantity REAL NOT NULL,
         reason TEXT,
         remarks TEXT,
         created_date TEXT NOT NULL,
-        is_synced INTEGER DEFAULT 0
+        is_synced INTEGER DEFAULT 0,
+        discount_type TEXT,
+        discount_value REAL DEFAULT 0,
+        discount_amount REAL DEFAULT 0
       )
     ''');
 
+    await db.execute('''
+      CREATE TABLE sales_return_item (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        sales_return_id INTEGER NOT NULL,
+        product_id TEXT NOT NULL,
+        product_name TEXT NOT NULL,
+        quantity REAL NOT NULL,
+        rate REAL NOT NULL DEFAULT 0,
+        unit_id TEXT,
+        unit TEXT,
+        discount_type TEXT,
+        discount_value REAL DEFAULT 0,
+        discount_amount REAL DEFAULT 0
+      )
+    ''');
+    
     await db.execute('''
       CREATE TABLE sync_queue (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
