@@ -1,7 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/network/network_checker.dart';
-import '../../../core/network/providers.dart';
 import '../../../models/sync_queue.dart';
 import '../../../repositories/category_repository.dart';
 import '../../../repositories/customer_repository.dart';
@@ -49,7 +47,6 @@ final syncProvider = StateNotifierProvider<SyncNotifier, SyncState>((ref) {
     customerRepo: ref.read(customerRepositoryProvider),
     stockRepo: ref.read(stockRepositoryProvider),
     paymentModeRepo: ref.read(paymentModeRepositoryProvider),
-    networkChecker: ref.read(networkCheckerProvider),
   );
 });
 
@@ -60,7 +57,6 @@ class SyncNotifier extends StateNotifier<SyncState> {
   final CustomerRepository _customerRepo;
   final StockRepository _stockRepo;
   final PaymentModeRepository _paymentModeRepo;
-  final NetworkChecker _networkChecker;
 
   SyncNotifier({
     required SyncRepository syncRepo,
@@ -69,25 +65,14 @@ class SyncNotifier extends StateNotifier<SyncState> {
     required CustomerRepository customerRepo,
     required StockRepository stockRepo,
     required PaymentModeRepository paymentModeRepo,
-    required NetworkChecker networkChecker,
   })  : _syncRepo = syncRepo,
         _categoryRepo = categoryRepo,
         _productRepo = productRepo,
         _customerRepo = customerRepo,
         _stockRepo = stockRepo,
         _paymentModeRepo = paymentModeRepo,
-        _networkChecker = networkChecker,
         super(SyncState()) {
     refresh();
-    _listenToConnectivity();
-  }
-
-  void _listenToConnectivity() {
-    _networkChecker.onConnectivityChanged.listen((isConnected) {
-      if (isConnected && state.pendingCount > 0) {
-        syncAll();
-      }
-    });
   }
 
   Future<void> refresh() async {

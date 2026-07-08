@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/utils/extensions.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../delivery/provider/delivery_provider.dart';
 import '../provider/estimate_provider.dart';
@@ -27,9 +26,7 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (widget.deliveryId != null) {
-        ref
-            .read(estimateProvider.notifier)
-            .loadDelivery(widget.deliveryId!);
+        ref.read(estimateProvider.notifier).loadDelivery(widget.deliveryId!);
       } else {
         _initFromDeliveryForm(ref);
       }
@@ -38,7 +35,7 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
 
   void _initFromDeliveryForm(WidgetRef ref) {
     final deliveryForm = ref.read(deliveryFormProvider);
-    if (deliveryForm.selectedCustomer == null || deliveryForm.cart.isEmpty) {
+    if (deliveryForm.cart.isEmpty) {
       context.go('/delivery');
       return;
     }
@@ -51,14 +48,17 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
         productName: product?.name ?? AppLocalizations.of(context)!.unknown,
         quantity: e.value,
         unitPrice: deliveryForm.getUnitPrice(e.key),
+        discountAmount: deliveryForm.productDiscounts[e.key] ?? 0,
       );
     }).toList();
 
-    ref.read(estimateProvider.notifier).initializeFromDeliveryForm(
-      customer: deliveryForm.selectedCustomer!,
-      items: items,
-      paymentModes: deliveryForm.paymentModes,
-    );
+    ref
+        .read(estimateProvider.notifier)
+        .initializeFromDeliveryForm(
+          items: items,
+          paymentModes: deliveryForm.paymentModes,
+        );
+    ref.read(estimateProvider.notifier).loadCustomers();
   }
 
   @override
@@ -90,14 +90,16 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
     _syncControllers(state);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.billing),
-      ),
+      appBar: AppBar(title: Text(l10n.billing)),
       body: _buildBody(state, theme, l10n),
     );
   }
 
-  Widget _buildBody(EstimateState state, ThemeData theme, AppLocalizations l10n) {
+  Widget _buildBody(
+    EstimateState state,
+    ThemeData theme,
+    AppLocalizations l10n,
+  ) {
     if (state.isLoadingDelivery) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -108,7 +110,7 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
         onPopInvokedWithResult: (didPop, _) {
           if (!didPop && context.mounted) {
             ref.read(estimateProvider.notifier).reset();
-            context.go('/dashboard');
+            context.pop();
           }
         },
         child: Center(
@@ -129,7 +131,7 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
               FilledButton(
                 onPressed: () {
                   ref.read(estimateProvider.notifier).reset();
-                  context.go('/dashboard');
+                  context.pop();
                 },
                 child: Text(l10n.backToDashboard),
               ),
@@ -142,61 +144,141 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  l10n.deliveryNumber(state.delivery!.id?.toString() ?? 'New'),
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                if (state.customer != null) ...[
-                  Text(
-                    '${l10n.customerLabel} ${state.customer!.name}',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  if (state.customer!.phone != null &&
-                      state.customer!.phone!.isNotEmpty)
-                    Text(
-                      '${l10n.phone} ${state.customer!.phone}',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+        if (state.customer != null) ...[
+          Card(
+            color: theme.colorScheme.primaryContainer,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 28,
+                    backgroundColor: theme.colorScheme.primary,
+                    child: Text(
+                      state.customer!.name.isNotEmpty
+                          ? state.customer!.name[0].toUpperCase()
+                          : '?',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        color: theme.colorScheme.onPrimary,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          state.customer!.name,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        if (state.customer!.phone != null &&
+                            state.customer!.phone!.isNotEmpty)
+                          Text(
+                            state.customer!.phone!,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onPrimaryContainer,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => ref
+                        .read(estimateProvider.notifier)
+                        .selectCustomer(null),
+                    child: const Text('Change'),
+                  ),
                 ],
-                Text(
-                  '${l10n.date} ${state.delivery!.createdDate.formattedDateTime}',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                if (state.paymentMode != null &&
-                    state.paymentMode!.isNotEmpty)
-                  Text(
-                    '${l10n.payment} ${state.paymentModes.where((m) => m.serverId == state.paymentMode).firstOrNull?.name ?? state.paymentMode}',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                if (state.paidAmount > 0)
-                  Text(
-                    '${l10n.paid} Rs. ${state.paidAmount.toStringAsFixed(2)}',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-              ],
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: 20),
+          const SizedBox(height: 16),
+        ] else ...[
+          Card(
+            color: theme.colorScheme.surfaceContainerHighest,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.person, color: theme.colorScheme.primary),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Select Customer',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    decoration: InputDecoration(
+                      hintText: 'Search customer...',
+                      prefixIcon: const Icon(Icons.search),
+                      suffixIcon: state.customerSearchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear),
+                              onPressed: () => ref
+                                  .read(estimateProvider.notifier)
+                                  .setCustomerSearchQuery(''),
+                            )
+                          : null,
+                      border: const OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                    onChanged: (value) => ref
+                        .read(estimateProvider.notifier)
+                        .setCustomerSearchQuery(value),
+                  ),
+                  if (state.customerSearchQuery.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    ...state.filteredCustomers.map(
+                      (c) => ListTile(
+                        dense: true,
+                        leading: CircleAvatar(
+                          radius: 16,
+                          backgroundColor: theme.colorScheme.primaryContainer,
+                          child: Text(
+                            c.name.isNotEmpty ? c.name[0].toUpperCase() : '?',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        title: Text(c.name, style: theme.textTheme.bodyMedium),
+                        subtitle: c.phone != null && c.phone!.isNotEmpty
+                            ? Text(c.phone!, style: theme.textTheme.bodySmall)
+                            : null,
+                        onTap: () => ref
+                            .read(estimateProvider.notifier)
+                            .selectCustomer(c),
+                      ),
+                    ),
+                    if (state.filteredCustomers.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(
+                          'No customers found',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
+        const SizedBox(height: 16),
         Text(
           l10n.items,
           style: theme.textTheme.titleMedium?.copyWith(
@@ -222,11 +304,23 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          l10n.qtyWithPrice(item.quantity.toStringAsFixed(0), item.unitPrice.toStringAsFixed(2)),
+                          l10n.qtyWithPrice(
+                            item.quantity.toStringAsFixed(0),
+                            item.unitPrice.toStringAsFixed(2),
+                          ),
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
                         ),
+                        if (item.discountAmount > 0) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            'Discount: -Rs. ${item.discountAmount.toStringAsFixed(2)}',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.error,
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -269,23 +363,29 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
                 Row(
                   children: [
                     Expanded(
+                      flex: 3,
                       child: DropdownButtonFormField<String>(
+                        isExpanded: true,
                         initialValue: state.discountType,
                         decoration: InputDecoration(
                           labelText: l10n.discountType,
                           border: const OutlineInputBorder(),
                           isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12,
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 8,
                             vertical: 10,
                           ),
                         ),
                         items: [
                           DropdownMenuItem(value: null, child: Text(l10n.none)),
                           DropdownMenuItem(
-                              value: 'amount', child: Text(l10n.amountRs)),
+                            value: 'amount',
+                            child: Text(l10n.amountRs),
+                          ),
                           DropdownMenuItem(
-                              value: 'percent', child: Text(l10n.percent)),
+                            value: 'percent',
+                            child: Text(l10n.percent),
+                          ),
                         ],
                         onChanged: (value) {
                           ref
@@ -295,15 +395,17 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
                       ),
                     ),
                     if (state.discountType != null) ...[
-                      const SizedBox(width: 12),
-                      SizedBox(
-                        width: 120,
+                      const SizedBox(width: 8),
+                      Expanded(
+                        flex: 2,
                         child: TextField(
                           keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true),
+                            decimal: true,
+                          ),
                           inputFormatters: [
                             FilteringTextInputFormatter.allow(
-                                RegExp(r'^\d+\.?\d{0,2}')),
+                              RegExp(r'^\d+\.?\d{0,2}'),
+                            ),
                           ],
                           decoration: InputDecoration(
                             labelText: state.discountType == 'percent'
@@ -312,11 +414,12 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
                             border: const OutlineInputBorder(),
                             isDense: true,
                             contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 12,
+                              horizontal: 8,
                               vertical: 10,
                             ),
-                            suffixText:
-                                state.discountType == 'percent' ? '%' : 'Rs.',
+                            suffixText: state.discountType == 'percent'
+                                ? '%'
+                                : 'Rs.',
                           ),
                           onChanged: (value) {
                             final val = double.tryParse(value) ?? 0;
@@ -329,6 +432,27 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
                     ],
                   ],
                 ),
+                if (state.totalProductDiscount > 0) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Product Discount',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.error,
+                        ),
+                      ),
+                      Text(
+                        '- Rs. ${state.totalProductDiscount.toStringAsFixed(2)}',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: theme.colorScheme.error,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
                 if (state.discountAmount > 0) ...[
                   const SizedBox(height: 8),
                   Row(
@@ -387,7 +511,9 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
             child: Column(
               children: [
                 DropdownButtonFormField<String>(
-                  initialValue: state.paymentMode?.isNotEmpty == true ? state.paymentMode : null,
+                  initialValue: state.paymentMode?.isNotEmpty == true
+                      ? state.paymentMode
+                      : null,
                   decoration: InputDecoration(
                     labelText: l10n.paymentMode,
                     border: const OutlineInputBorder(),
@@ -405,9 +531,13 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
                 const SizedBox(height: 16),
                 TextField(
                   controller: _paidAmountController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                    FilteringTextInputFormatter.allow(
+                      RegExp(r'^\d+\.?\d{0,2}'),
+                    ),
                   ],
                   decoration: InputDecoration(
                     labelText: l10n.paidAmount,
@@ -428,9 +558,9 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
                     border: const OutlineInputBorder(),
                   ),
                   onChanged: (value) {
-                    ref.read(estimateProvider.notifier).setRemarks(
-                      value.isEmpty ? null : value,
-                    );
+                    ref
+                        .read(estimateProvider.notifier)
+                        .setRemarks(value.isEmpty ? null : value);
                   },
                 ),
               ],
@@ -439,9 +569,7 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
         ),
         const SizedBox(height: 24),
         FilledButton.icon(
-          onPressed: state.isSaving
-              ? null
-              : () => _saveInvoice(context),
+          onPressed: state.isSaving ? null : () => _saveInvoice(context),
           icon: state.isSaving
               ? const SizedBox(
                   width: 18,
@@ -449,8 +577,7 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : const Icon(Icons.save),
-          label:
-              Text(state.isSaving ? l10n.saving : l10n.saveInvoice),
+          label: Text(state.isSaving ? l10n.saving : l10n.saveInvoice),
           style: FilledButton.styleFrom(
             minimumSize: const Size(double.infinity, 52),
           ),
@@ -460,9 +587,7 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
   }
 
   Future<void> _saveInvoice(BuildContext context) async {
-    final deliveryForm = ref.read(deliveryFormProvider);
-    final success =
-        await ref.read(estimateProvider.notifier).saveInvoice(deliveryForm);
+    final success = await ref.read(estimateProvider.notifier).saveInvoice();
 
     if (!context.mounted) return;
 

@@ -45,9 +45,7 @@ void main() async {
 
   runApp(
     ProviderScope(
-      overrides: [
-        databaseServiceProvider.overrideWithValue(databaseService),
-      ],
+      overrides: [databaseServiceProvider.overrideWithValue(databaseService)],
       child: const PosDeliveryApp(),
     ),
   );
@@ -57,12 +55,10 @@ class PosDeliveryApp extends ConsumerStatefulWidget {
   const PosDeliveryApp({super.key});
 
   @override
-  ConsumerState<PosDeliveryApp> createState() =>
-      _PosDeliveryAppState();
+  ConsumerState<PosDeliveryApp> createState() => _PosDeliveryAppState();
 }
 
-class _PosDeliveryAppState
-    extends ConsumerState<PosDeliveryApp> {
+class _PosDeliveryAppState extends ConsumerState<PosDeliveryApp> {
   @override
   void initState() {
     super.initState();

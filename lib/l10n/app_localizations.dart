@@ -332,11 +332,11 @@ abstract class AppLocalizations {
   /// **'In cart:'**
   String get inCart;
 
-  /// No description provided for @pleaseSelectCustomerAndItems.
+  /// No description provided for @pleaseSelectItems.
   ///
   /// In en, this message translates to:
-  /// **'Please select a customer and add items'**
-  String get pleaseSelectCustomerAndItems;
+  /// **'Please add items to continue'**
+  String get pleaseSelectItems;
 
   /// No description provided for @unknown.
   ///

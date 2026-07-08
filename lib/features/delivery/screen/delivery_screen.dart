@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/utils/extensions.dart';
 import '../../../l10n/app_localizations.dart';
 import '../models/cart_item.dart';
 import '../provider/delivery_provider.dart';
-import '../widgets/customer_dropdown.dart';
 import 'cart_screen.dart';
 
 class DeliveryScreen extends ConsumerStatefulWidget {
@@ -24,7 +24,9 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (widget.deliveryId != null) {
-        ref.read(deliveryFormProvider.notifier).loadExistingDelivery(widget.deliveryId!);
+        ref
+            .read(deliveryFormProvider.notifier)
+            .loadExistingDelivery(widget.deliveryId!);
       } else {
         ref.read(deliveryFormProvider.notifier).resetForm();
       }
@@ -38,20 +40,23 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
     final l10n = AppLocalizations.of(context)!;
 
     final cartItems = state.cart.entries.map((e) {
-      final product = state.products.where((p) => p.serverId == e.key).firstOrNull;
+      final product = state.products
+          .where((p) => p.serverId == e.key)
+          .firstOrNull;
       return CartItem(
         productId: e.key,
         productName: product?.name ?? l10n.unknown,
         quantity: e.value,
         unitPrice: state.getUnitPrice(e.key),
+        discountAmount: state.productDiscounts[e.key] ?? 0,
       );
     }).toList();
 
     final title = state.isReadOnly
         ? l10n.deliveryNumber(widget.deliveryId.toString())
         : state.editingDeliveryId != null
-            ? l10n.editDelivery
-            : l10n.addProducts;
+        ? l10n.editDelivery
+        : l10n.addProducts;
 
     return Scaffold(
       appBar: AppBar(
@@ -60,7 +65,9 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
           if (!state.isReadOnly && state.cart.isNotEmpty)
             IconButton(
               icon: Badge(
-                label: Text('${cartItems.fold<int>(0, (sum, item) => sum + item.quantity.toInt())}'),
+                label: Text(
+                  '${cartItems.fold<int>(0, (sum, item) => sum + item.quantity.toInt())}',
+                ),
                 isLabelVisible: true,
                 child: const Icon(Icons.shopping_cart_outlined),
               ),
@@ -74,22 +81,31 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
     );
   }
 
-  Widget _buildBody(DeliveryFormState state, List<CartItem> cartItems, ThemeData theme, AppLocalizations l10n) {
+  Widget _buildBody(
+    DeliveryFormState state,
+    List<CartItem> cartItems,
+    ThemeData theme,
+    AppLocalizations l10n,
+  ) {
     if (state.isReadOnly) {
-      return PopScope(
-        canPop: false,
-        onPopInvokedWithResult: (didPop, _) {
-          if (!didPop && context.mounted) {
-            context.go('/delivery-history');
-          }
-        },
-        child: _buildReadOnlyView(state, cartItems, theme, l10n),
-      );
+      return _buildReadOnlyView(state, cartItems, theme, l10n);
     }
     return _buildEditableForm(state, cartItems, theme, l10n);
   }
 
-  Widget _buildReadOnlyView(DeliveryFormState state, List<CartItem> cartItems, ThemeData theme, AppLocalizations l10n) {
+  Widget _buildReadOnlyView(
+    DeliveryFormState state,
+    List<CartItem> cartItems,
+    ThemeData theme,
+    AppLocalizations l10n,
+  ) {
+    final delivery = state.delivery;
+    final paymentModeName =
+        state.selectedPaymentMode?.name ??
+        (delivery?.paymentMode != null && delivery!.paymentMode!.isNotEmpty
+            ? delivery.paymentMode
+            : null);
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -101,12 +117,18 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
           ),
           child: Row(
             children: [
-              Icon(Icons.visibility, color: theme.colorScheme.onTertiaryContainer, size: 20),
+              Icon(
+                Icons.visibility,
+                color: theme.colorScheme.onTertiaryContainer,
+                size: 20,
+              ),
               const SizedBox(width: 8),
-              Text(
-                l10n.viewingCompletedInvoice,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onTertiaryContainer,
+              Expanded(
+                child: Text(
+                  l10n.viewingCompletedInvoice,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onTertiaryContainer,
+                  ),
                 ),
               ),
             ],
@@ -119,42 +141,106 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(l10n.customer, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
-                const SizedBox(height: 4),
-                Text(state.selectedCustomer?.name ?? l10n.unknown,
-                    style: theme.textTheme.bodyMedium),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Invoice #${delivery?.id ?? ''}',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    if (delivery?.createdDate != null)
+                      Text(
+                        delivery!.createdDate.formattedDateTime,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                const Divider(height: 1),
+                const SizedBox(height: 12),
+                if (state.customerName != null) ...[
+                  Text(
+                    l10n.customer,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(state.customerName!, style: theme.textTheme.bodyMedium),
+                ],
+                if (paymentModeName != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Payment Mode',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(paymentModeName, style: theme.textTheme.bodyMedium),
+                ],
               ],
             ),
           ),
         ),
         const SizedBox(height: 20),
-        Text(l10n.items, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+        Text(
+          l10n.items,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         const SizedBox(height: 12),
-        ...cartItems.map((item) => Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(item.productName,
-                          style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 4),
-                      Text(
-                        l10n.qtyWithPrice(item.quantity.toStringAsFixed(0), item.unitPrice.toStringAsFixed(2)),
-                        style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant)),
-                    ],
+        ...cartItems.map(
+          (item) => Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item.productName,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Qty: ${item.quantity.toStringAsFixed(0)} × Rs. ${item.unitPrice.toStringAsFixed(2)}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        if (item.discountAmount > 0) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            'Discount: -Rs. ${item.discountAmount.toStringAsFixed(2)}',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.error,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
-                ),
-                Text('Rs. ${item.lineTotal.toStringAsFixed(2)}',
-                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-              ],
+                  Text(
+                    'Rs. ${item.lineTotal.toStringAsFixed(2)}',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-        )),
+        ),
         const SizedBox(height: 16),
         Card(
           color: theme.colorScheme.primaryContainer,
@@ -163,42 +249,79 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(l10n.total, style: theme.textTheme.titleMedium?.copyWith(
+                Text(
+                  l10n.total,
+                  style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.onPrimaryContainer)),
-                Text('Rs. ${state.estimatedTotal.toStringAsFixed(2)}',
-                    style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: theme.colorScheme.onPrimaryContainer)),
+                    color: theme.colorScheme.onPrimaryContainer,
+                  ),
+                ),
+                Text(
+                  'Rs. ${state.estimatedTotal.toStringAsFixed(2)}',
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.onPrimaryContainer,
+                  ),
+                ),
               ],
             ),
           ),
         ),
+        if (state.paidAmount > 0) ...[
+          const SizedBox(height: 8),
+          Card(
+            color: theme.colorScheme.secondaryContainer,
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Paid Amount',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.onSecondaryContainer,
+                    ),
+                  ),
+                  Text(
+                    'Rs. ${state.paidAmount.toStringAsFixed(2)}',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.onSecondaryContainer,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }
 
-  Widget _buildEditableForm(DeliveryFormState state, List<CartItem> cartItems, ThemeData theme, AppLocalizations l10n) {
+  Widget _buildEditableForm(
+    DeliveryFormState state,
+    List<CartItem> cartItems,
+    ThemeData theme,
+    AppLocalizations l10n,
+  ) {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Text(l10n.customer, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
-        const SizedBox(height: 12),
-        CustomerDropdown(
-          customers: state.customers,
-          selectedCustomer: state.selectedCustomer,
-          onChanged: (customer) {
-            ref.read(deliveryFormProvider.notifier).selectCustomer(customer);
-          },
-        ),
-        const SizedBox(height: 20),
         Row(
           children: [
-            Text(l10n.products, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+            Text(
+              l10n.products,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             const Spacer(),
             if (state.selectedCategory != null)
               TextButton.icon(
-                onPressed: () => ref.read(deliveryFormProvider.notifier).selectCategory(null),
+                onPressed: () => ref
+                    .read(deliveryFormProvider.notifier)
+                    .selectCategory(null),
                 icon: const Icon(Icons.clear, size: 16),
                 label: Text(l10n.clearFilter),
               ),
@@ -217,15 +340,19 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
                 return FilterChip(
                   label: Text(l10n.all),
                   selected: isSelected,
-                  onSelected: (_) => ref.read(deliveryFormProvider.notifier).selectCategory(null),
+                  onSelected: (_) => ref
+                      .read(deliveryFormProvider.notifier)
+                      .selectCategory(null),
                 );
               }
               final cat = state.categories[index - 1];
-              final isSelected = state.selectedCategory?.serverId == cat.serverId;
+              final isSelected =
+                  state.selectedCategory?.serverId == cat.serverId;
               return FilterChip(
                 label: Text(cat.name),
                 selected: isSelected,
-                onSelected: (_) => ref.read(deliveryFormProvider.notifier)
+                onSelected: (_) => ref
+                    .read(deliveryFormProvider.notifier)
                     .selectCategory(isSelected ? null : cat),
               );
             },
@@ -239,18 +366,30 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
             suffixIcon: state.productSearchQuery.isNotEmpty
                 ? IconButton(
                     icon: const Icon(Icons.clear),
-                    onPressed: () => ref.read(deliveryFormProvider.notifier).setProductSearchQuery(''),
+                    onPressed: () => ref
+                        .read(deliveryFormProvider.notifier)
+                        .setProductSearchQuery(''),
                   )
                 : null,
             border: const OutlineInputBorder(),
             isDense: true,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 12,
+            ),
           ),
-          onChanged: (value) => ref.read(deliveryFormProvider.notifier).setProductSearchQuery(value),
+          onChanged: (value) => ref
+              .read(deliveryFormProvider.notifier)
+              .setProductSearchQuery(value),
         ),
         const SizedBox(height: 12),
         if (state.isLoadingProducts)
-          const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator()))
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: CircularProgressIndicator(),
+            ),
+          )
         else
           _buildProductGrid(context, ref, state, theme, l10n),
         if (state.stockError != null) ...[
@@ -266,13 +405,17 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
                 Icon(Icons.warning, color: theme.colorScheme.error, size: 20),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text(state.stockError!,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onErrorContainer)),
+                  child: Text(
+                    state.stockError!,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onErrorContainer,
+                    ),
+                  ),
                 ),
                 IconButton(
                   icon: const Icon(Icons.close, size: 16),
-                  onPressed: () => ref.read(deliveryFormProvider.notifier).clearStockError(),
+                  onPressed: () =>
+                      ref.read(deliveryFormProvider.notifier).clearStockError(),
                 ),
               ],
             ),
@@ -282,7 +425,13 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
     );
   }
 
-  Widget _buildProductGrid(BuildContext context, WidgetRef ref, DeliveryFormState state, ThemeData theme, AppLocalizations l10n) {
+  Widget _buildProductGrid(
+    BuildContext context,
+    WidgetRef ref,
+    DeliveryFormState state,
+    ThemeData theme,
+    AppLocalizations l10n,
+  ) {
     final products = state.filteredProducts;
     if (products.isEmpty) {
       return Card(
@@ -326,12 +475,16 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
               Expanded(
                 child: Container(
                   color: theme.colorScheme.surfaceContainerHighest,
-                  child: product.firstImageUrl != null && product.firstImageUrl!.isNotEmpty
+                  child:
+                      product.firstImageUrl != null &&
+                          product.firstImageUrl!.isNotEmpty
                       ? CachedNetworkImage(
                           imageUrl: product.firstImageUrl!,
                           fit: BoxFit.cover,
-                          placeholder: (_, __) => _buildShimmerPlaceholder(theme),
-                          errorWidget: (_, __, ___) => _buildPlaceholderIcon(theme),
+                          placeholder: (_, __) =>
+                              _buildShimmerPlaceholder(theme),
+                          errorWidget: (_, __, ___) =>
+                              _buildPlaceholderIcon(theme),
                         )
                       : _buildPlaceholderIcon(theme),
                 ),
@@ -343,7 +496,9 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
                   children: [
                     Text(
                       product.name,
-                      style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -351,13 +506,16 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
                     Text(
                       'Rs. ${product.unitPrice.toStringAsFixed(0)}/${product.unit ?? 'unit'}',
                       style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant),
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       '${l10n.available} ${remaining.toStringAsFixed(0)}',
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: remaining > 0 ? theme.colorScheme.primary : theme.colorScheme.error,
+                        color: remaining > 0
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.error,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -367,12 +525,15 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
                       child: FilledButton.tonalIcon(
                         onPressed: remaining > 0
                             ? () {
-                                ref.read(deliveryFormProvider.notifier)
+                                ref
+                                    .read(deliveryFormProvider.notifier)
                                     .addToCart(product.serverId, 1);
                               }
                             : null,
                         icon: Icon(
-                          inCart > 0 ? Icons.check_circle : Icons.add_shopping_cart,
+                          inCart > 0
+                              ? Icons.check_circle
+                              : Icons.add_shopping_cart,
                           size: 16,
                         ),
                         label: Text(inCart > 0 ? l10n.addMore : l10n.add),
@@ -439,10 +600,12 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
   Future<void> _continueToBilling(BuildContext context) async {
     if (!ref.read(deliveryFormProvider).isValid) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.pleaseSelectCustomerAndItems)),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.pleaseSelectItems),
+        ),
       );
       return;
     }
-    GoRouter.of(context).go('/estimate');
+    GoRouter.of(context).push('/estimate');
   }
 }

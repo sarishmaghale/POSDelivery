@@ -6,6 +6,8 @@ import '../../dto/delivery_request.dart';
 import '../../dto/delivery_response.dart';
 import '../../dto/estimate_request.dart';
 import '../../dto/estimate_response.dart';
+import '../../dto/sales_invoice_request.dart';
+import '../../dto/sales_invoice_response.dart';
 import 'api_service.dart';
 
 class MockApiService implements ApiService {
@@ -97,5 +99,15 @@ class MockApiService implements ApiService {
   Future<bool> syncData(Map<String, dynamic> payload) async {
     await Future.delayed(const Duration(milliseconds: 1500));
     return true;
+  }
+
+  @override
+  Future<SalesInvoiceResponse> createSalesInvoice(SalesInvoiceRequest request) async {
+    await Future.delayed(const Duration(milliseconds: 1000));
+    return SalesInvoiceResponse(
+      success: true,
+      message: 'Sales invoice created successfully',
+      invoiceId: DateTime.now().millisecondsSinceEpoch.toString(),
+    );
   }
 }

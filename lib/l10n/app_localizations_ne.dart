@@ -130,8 +130,7 @@ class AppLocalizationsNe extends AppLocalizations {
   String get inCart => 'कार्टमा:';
 
   @override
-  String get pleaseSelectCustomerAndItems =>
-      'कृपया ग्राहक चयन गर्नुहोस् र वस्तुहरू थप्नुहोस्';
+  String get pleaseSelectItems => 'कृपया वस्तुहरू थप्नुहोस्';
 
   @override
   String get unknown => 'अज्ञात';

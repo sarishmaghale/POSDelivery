@@ -130,8 +130,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inCart => 'In cart:';
 
   @override
-  String get pleaseSelectCustomerAndItems =>
-      'Please select a customer and add items';
+  String get pleaseSelectItems => 'Please add items to continue';
 
   @override
   String get unknown => 'Unknown';
