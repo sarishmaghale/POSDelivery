@@ -329,7 +329,15 @@ class SyncRepository {
     if (maps.isEmpty) return;
     final sr = SalesReturn.fromMap(maps.first);
 
-    final response = await _apiService.createSalesReturn(sr.toMap());
+    final itemMaps = await _db.query('sales_return_item',
+        where: 'sales_return_id = ?', whereArgs: [sr.id]);
+    sr.items = itemMaps.map((m) => SalesReturnItem.fromMap(m)).toList();
+
+    final payload = {
+      ...sr.toMap(),
+      'items': sr.items.map((item) => item.toMap()).toList(),
+    };
+    final response = await _apiService.createSalesReturn(payload);
 
     if (response) {
       await _db.update(

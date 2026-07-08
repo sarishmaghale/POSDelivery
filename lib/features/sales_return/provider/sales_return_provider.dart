@@ -2,18 +2,25 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../models/customer.dart';
 import '../../../models/product.dart';
+import '../../../models/sales_return.dart';
 import '../../../repositories/customer_repository.dart';
 import '../../../repositories/product_repository.dart';
 import '../../../repositories/sales_return_repository.dart';
 
 class SalesReturnState {
   final Customer? selectedCustomer;
-  final Product? selectedProduct;
+  final Product? pendingProduct;
+  final double pendingQuantity;
+  final double pendingRate;
+  final String? pendingUnit;
   final List<Customer> customers;
   final List<Product> products;
-  final double quantity;
+  final List<SalesReturnItem> items;
   final String? reason;
   final String? remarks;
+  final String? discountType;
+  final double discountValue;
+  final double discountAmount;
   final bool isLoading;
   final bool isSaving;
   final bool saved;
@@ -21,22 +28,34 @@ class SalesReturnState {
 
   SalesReturnState({
     this.selectedCustomer,
-    this.selectedProduct,
+    this.pendingProduct,
+    this.pendingQuantity = 1,
+    this.pendingRate = 0,
+    this.pendingUnit,
     this.customers = const [],
     this.products = const [],
-    this.quantity = 1,
+    this.items = const [],
     this.reason,
     this.remarks,
+    this.discountType,
+    this.discountValue = 0,
+    this.discountAmount = 0,
     this.isLoading = false,
     this.isSaving = false,
     this.saved = false,
     this.error,
   });
 
+  double get grossTotal =>
+      items.fold<double>(0, (sum, item) => sum + item.quantity * item.rate);
+
+  double get totalItemDiscount =>
+      items.fold<double>(0, (sum, item) => sum + item.discountAmount);
+
+  double get netTotal => grossTotal - totalItemDiscount - discountAmount;
+
   bool get isValid =>
-      selectedCustomer != null &&
-      selectedProduct != null &&
-      quantity > 0;
+      selectedCustomer != null && items.isNotEmpty;
 }
 
 final salesReturnProvider =
@@ -88,60 +107,268 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
   void selectCustomer(Customer? customer) {
     state = SalesReturnState(
       selectedCustomer: customer,
-      selectedProduct: state.selectedProduct,
+      pendingProduct: state.pendingProduct,
+      pendingQuantity: state.pendingQuantity,
+      pendingRate: state.pendingRate,
+      pendingUnit: state.pendingUnit,
       customers: state.customers,
       products: state.products,
-      quantity: state.quantity,
+      items: state.items,
       reason: state.reason,
       remarks: state.remarks,
+      discountType: state.discountType,
+      discountValue: state.discountValue,
+      discountAmount: state.discountAmount,
     );
   }
 
-  void selectProduct(Product? product) {
+  void setPendingProduct(Product? product) {
     state = SalesReturnState(
       selectedCustomer: state.selectedCustomer,
-      selectedProduct: product,
+      pendingProduct: product,
+      pendingQuantity: state.pendingQuantity,
+      pendingRate: state.pendingRate,
+      pendingUnit: product?.unit,
       customers: state.customers,
       products: state.products,
-      quantity: state.quantity,
+      items: state.items,
       reason: state.reason,
       remarks: state.remarks,
+      discountType: state.discountType,
+      discountValue: state.discountValue,
+      discountAmount: state.discountAmount,
     );
   }
 
-  void setQuantity(double qty) {
+  void setPendingQuantity(double qty) {
     state = SalesReturnState(
       selectedCustomer: state.selectedCustomer,
-      selectedProduct: state.selectedProduct,
+      pendingProduct: state.pendingProduct,
+      pendingQuantity: qty,
+      pendingRate: state.pendingRate,
+      pendingUnit: state.pendingUnit,
       customers: state.customers,
       products: state.products,
-      quantity: qty,
+      items: state.items,
       reason: state.reason,
       remarks: state.remarks,
+      discountType: state.discountType,
+      discountValue: state.discountValue,
+      discountAmount: state.discountAmount,
+    );
+  }
+
+  void setPendingRate(double rate) {
+    state = SalesReturnState(
+      selectedCustomer: state.selectedCustomer,
+      pendingProduct: state.pendingProduct,
+      pendingQuantity: state.pendingQuantity,
+      pendingRate: rate,
+      pendingUnit: state.pendingUnit,
+      customers: state.customers,
+      products: state.products,
+      items: state.items,
+      reason: state.reason,
+      remarks: state.remarks,
+      discountType: state.discountType,
+      discountValue: state.discountValue,
+      discountAmount: state.discountAmount,
+    );
+  }
+
+  void setPendingUnit(String? unit) {
+    state = SalesReturnState(
+      selectedCustomer: state.selectedCustomer,
+      pendingProduct: state.pendingProduct,
+      pendingQuantity: state.pendingQuantity,
+      pendingRate: state.pendingRate,
+      pendingUnit: unit,
+      customers: state.customers,
+      products: state.products,
+      items: state.items,
+      reason: state.reason,
+      remarks: state.remarks,
+      discountType: state.discountType,
+      discountValue: state.discountValue,
+      discountAmount: state.discountAmount,
+    );
+  }
+
+  void addItem() {
+    final product = state.pendingProduct;
+    if (product == null || state.pendingQuantity <= 0) return;
+
+    final existingIndex = state.items.indexWhere(
+      (item) =>
+          item.productId == product.serverId &&
+          item.rate == state.pendingRate &&
+          item.unit == state.pendingUnit,
+    );
+
+    if (existingIndex >= 0) {
+      final updated = [...state.items];
+      final existing = updated[existingIndex];
+      existing.quantity += state.pendingQuantity;
+      state = SalesReturnState(
+        selectedCustomer: state.selectedCustomer,
+        customers: state.customers,
+        products: state.products,
+        items: updated,
+        reason: state.reason,
+        remarks: state.remarks,
+        discountType: state.discountType,
+        discountValue: state.discountValue,
+        discountAmount: state.discountAmount,
+      );
+    } else {
+      final item = SalesReturnItem()
+        ..productId = product.serverId
+        ..productName = product.name
+        ..quantity = state.pendingQuantity
+        ..rate = state.pendingRate
+        ..unitId = product.unitId
+        ..unit = state.pendingUnit;
+
+      state = SalesReturnState(
+        selectedCustomer: state.selectedCustomer,
+        customers: state.customers,
+        products: state.products,
+        items: [...state.items, item],
+        reason: state.reason,
+        remarks: state.remarks,
+        discountType: state.discountType,
+        discountValue: state.discountValue,
+        discountAmount: state.discountAmount,
+      );
+    }
+  }
+
+  void removeItem(int index) {
+    final updated = [...state.items];
+    updated.removeAt(index);
+
+    state = SalesReturnState(
+      selectedCustomer: state.selectedCustomer,
+      customers: state.customers,
+      products: state.products,
+      items: updated,
+      reason: state.reason,
+      remarks: state.remarks,
+      discountType: state.discountType,
+      discountValue: state.discountValue,
+      discountAmount: state.discountAmount,
     );
   }
 
   void setReason(String? reason) {
     state = SalesReturnState(
       selectedCustomer: state.selectedCustomer,
-      selectedProduct: state.selectedProduct,
+      pendingProduct: state.pendingProduct,
+      pendingQuantity: state.pendingQuantity,
+      pendingRate: state.pendingRate,
+      pendingUnit: state.pendingUnit,
       customers: state.customers,
       products: state.products,
-      quantity: state.quantity,
+      items: state.items,
       reason: reason,
       remarks: state.remarks,
+      discountType: state.discountType,
+      discountValue: state.discountValue,
+      discountAmount: state.discountAmount,
     );
   }
 
   void setRemarks(String? remarks) {
     state = SalesReturnState(
       selectedCustomer: state.selectedCustomer,
-      selectedProduct: state.selectedProduct,
+      pendingProduct: state.pendingProduct,
+      pendingQuantity: state.pendingQuantity,
+      pendingRate: state.pendingRate,
+      pendingUnit: state.pendingUnit,
       customers: state.customers,
       products: state.products,
-      quantity: state.quantity,
+      items: state.items,
       reason: state.reason,
       remarks: remarks,
+      discountType: state.discountType,
+      discountValue: state.discountValue,
+      discountAmount: state.discountAmount,
+    );
+  }
+
+  double _calcDiscountAmount(String? type, double value, double gross) {
+    if (value <= 0 || gross <= 0) return 0;
+    if (type == 'percent') {
+      return gross * (value / 100);
+    }
+    return value;
+  }
+
+  void setDiscountType(String? type) {
+    state = SalesReturnState(
+      selectedCustomer: state.selectedCustomer,
+      pendingProduct: state.pendingProduct,
+      pendingQuantity: state.pendingQuantity,
+      pendingRate: state.pendingRate,
+      pendingUnit: state.pendingUnit,
+      customers: state.customers,
+      products: state.products,
+      items: state.items,
+      reason: state.reason,
+      remarks: state.remarks,
+      discountType: type,
+      discountValue: type == null ? 0 : state.discountValue,
+      discountAmount: type == null
+          ? 0
+          : _calcDiscountAmount(type, state.discountValue, state.grossTotal),
+    );
+  }
+
+  void setDiscountValue(double value) {
+    final amount =
+        _calcDiscountAmount(state.discountType, value, state.grossTotal);
+    state = SalesReturnState(
+      selectedCustomer: state.selectedCustomer,
+      pendingProduct: state.pendingProduct,
+      pendingQuantity: state.pendingQuantity,
+      pendingRate: state.pendingRate,
+      pendingUnit: state.pendingUnit,
+      customers: state.customers,
+      products: state.products,
+      items: state.items,
+      reason: state.reason,
+      remarks: state.remarks,
+      discountType: state.discountType,
+      discountValue: value,
+      discountAmount: amount,
+    );
+  }
+
+  void setItemDiscount(int index, String? type, double value) {
+    if (index < 0 || index >= state.items.length) return;
+    final updated = [...state.items];
+    final item = updated[index];
+    final gross = item.quantity * item.rate;
+    item.discountType = type;
+    item.discountValue = type == null ? 0 : value;
+    item.discountAmount = type == null
+        ? 0
+        : _calcDiscountAmount(type, value, gross);
+
+    state = SalesReturnState(
+      selectedCustomer: state.selectedCustomer,
+      pendingProduct: state.pendingProduct,
+      pendingQuantity: state.pendingQuantity,
+      pendingRate: state.pendingRate,
+      pendingUnit: state.pendingUnit,
+      customers: state.customers,
+      products: state.products,
+      items: updated,
+      reason: state.reason,
+      remarks: state.remarks,
+      discountType: state.discountType,
+      discountValue: state.discountValue,
+      discountAmount: state.discountAmount,
     );
   }
 
@@ -150,22 +377,27 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
 
     state = SalesReturnState(
       selectedCustomer: state.selectedCustomer,
-      selectedProduct: state.selectedProduct,
+      pendingUnit: state.pendingUnit,
       customers: state.customers,
       products: state.products,
-      quantity: state.quantity,
+      items: state.items,
       reason: state.reason,
       remarks: state.remarks,
+      discountType: state.discountType,
+      discountValue: state.discountValue,
+      discountAmount: state.discountAmount,
       isSaving: true,
     );
 
     try {
       await _salesReturnRepo.saveSalesReturn(
         customerId: state.selectedCustomer!.serverId,
-        productId: state.selectedProduct!.serverId,
-        quantity: state.quantity,
+        items: state.items,
         reason: state.reason,
         remarks: state.remarks,
+        discountType: state.discountType,
+        discountValue: state.discountValue,
+        discountAmount: state.discountAmount,
       );
 
       state = SalesReturnState(
@@ -177,12 +409,15 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
     } catch (e) {
       state = SalesReturnState(
         selectedCustomer: state.selectedCustomer,
-        selectedProduct: state.selectedProduct,
+        pendingUnit: state.pendingUnit,
         customers: state.customers,
         products: state.products,
-        quantity: state.quantity,
+        items: state.items,
         reason: state.reason,
         remarks: state.remarks,
+        discountType: state.discountType,
+        discountValue: state.discountValue,
+        discountAmount: state.discountAmount,
         isSaving: false,
         error: e.toString(),
       );

@@ -43,9 +43,14 @@ void main() async {
   final databaseService = DatabaseService();
   await databaseService.initialize();
 
+  final savedLocale = await loadSavedLocale();
+
   runApp(
     ProviderScope(
-      overrides: [databaseServiceProvider.overrideWithValue(databaseService)],
+      overrides: [
+        databaseServiceProvider.overrideWithValue(databaseService),
+        localeProvider.overrideWithProvider(StateProvider<Locale>((ref) => savedLocale)),
+      ],
       child: const PosDeliveryApp(),
     ),
   );

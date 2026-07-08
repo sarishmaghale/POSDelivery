@@ -1,4 +1,5 @@
 class ApiConfig {
+<<<<<<< HEAD
   static const String baseUrl = 'https://hrpmstest.crossoverpms.com';
 
   static const String staticBearerToken =

@@ -31,7 +31,7 @@ class LocationTrackingTaskHandler extends TaskHandler {
   Future<void> _initAsync() async {
     try {
       final data = await FlutterForegroundTask.getData<String>(key: 'driverId');
-      _driverId = data ?? '0271B366-CDA5-48C2-9308-29AD5153081F';
+      _driverId = data ?? 'C3C7C7AA-7F7D-4EE2-8440-122DF4E6CB54';
 
       final dio = Dio(BaseOptions(
         baseUrl: ApiConfig.baseUrl,

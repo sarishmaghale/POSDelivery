@@ -1,55 +1,55 @@
 import 'package:flutter/material.dart';
 
-import '../../../models/customer.dart';
+import '../../../models/product.dart';
 
-class CustomerDropdown extends StatelessWidget {
-  final List<Customer> customers;
-  final Customer? selectedCustomer;
-  final ValueChanged<Customer?> onChanged;
+class ProductDropdown extends StatelessWidget {
+  final List<Product> products;
+  final Product? selectedProduct;
+  final ValueChanged<Product?> onChanged;
 
-  const CustomerDropdown({
+  const ProductDropdown({
     super.key,
-    required this.customers,
-    required this.selectedCustomer,
+    required this.products,
+    required this.selectedProduct,
     required this.onChanged,
   });
 
   @override
   Widget build(BuildContext context) {
-    return SearchCustomerField(
-      customers: customers,
-      selectedCustomer: selectedCustomer,
+    return SearchProductField(
+      products: products,
+      selectedProduct: selectedProduct,
       onChanged: onChanged,
     );
   }
 }
 
-class SearchCustomerField extends StatefulWidget {
-  final List<Customer> customers;
-  final Customer? selectedCustomer;
-  final ValueChanged<Customer?> onChanged;
+class SearchProductField extends StatefulWidget {
+  final List<Product> products;
+  final Product? selectedProduct;
+  final ValueChanged<Product?> onChanged;
 
-  const SearchCustomerField({
+  const SearchProductField({
     super.key,
-    required this.customers,
-    required this.selectedCustomer,
+    required this.products,
+    required this.selectedProduct,
     required this.onChanged,
   });
 
   @override
-  State<SearchCustomerField> createState() => _SearchCustomerFieldState();
+  State<SearchProductField> createState() => _SearchProductFieldState();
 }
 
-class _SearchCustomerFieldState extends State<SearchCustomerField> {
+class _SearchProductFieldState extends State<SearchProductField> {
   final _searchController = TextEditingController();
   final _focusNode = FocusNode();
   bool _isSearching = false;
-  List<Customer> _results = [];
+  List<Product> _results = [];
 
   @override
-  void didUpdateWidget(SearchCustomerField oldWidget) {
+  void didUpdateWidget(SearchProductField oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.selectedCustomer != oldWidget.selectedCustomer) {
+    if (widget.selectedProduct != oldWidget.selectedProduct) {
       _searchController.clear();
       setState(() {
         _isSearching = false;
@@ -72,18 +72,16 @@ class _SearchCustomerFieldState extends State<SearchCustomerField> {
         _results = [];
       } else {
         final q = query.toLowerCase();
-        _results = widget.customers
-            .where((c) =>
-                c.name.toLowerCase().contains(q) ||
-                (c.phone?.toLowerCase().contains(q) ?? false))
+        _results = widget.products
+            .where((p) => p.name.toLowerCase().contains(q))
             .take(5)
             .toList();
       }
     });
   }
 
-  void _selectCustomer(Customer customer) {
-    widget.onChanged(customer);
+  void _selectProduct(Product product) {
+    widget.onChanged(product);
     _searchController.clear();
     setState(() {
       _isSearching = false;
@@ -120,10 +118,10 @@ class _SearchCustomerFieldState extends State<SearchCustomerField> {
             controller: _searchController,
             focusNode: _focusNode,
             decoration: InputDecoration(
-              labelText: widget.selectedCustomer?.name ?? 'Search Customer',
-              hintText: widget.selectedCustomer != null ? '' : 'Type to search...',
-              prefixIcon: const Icon(Icons.search),
-              suffixIcon: widget.selectedCustomer != null
+              labelText: widget.selectedProduct?.name ?? 'Search Product',
+              hintText: widget.selectedProduct != null ? '' : 'Type to search...',
+              prefixIcon: const Icon(Icons.inventory_2),
+              suffixIcon: widget.selectedProduct != null
                   ? IconButton(
                       icon: const Icon(Icons.clear),
                       onPressed: _clearSelection,
@@ -145,7 +143,7 @@ class _SearchCustomerFieldState extends State<SearchCustomerField> {
             Padding(
               padding: const EdgeInsets.only(top: 4),
               child: Text(
-                'No customers found',
+                'No products found',
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -167,26 +165,26 @@ class _SearchCustomerFieldState extends State<SearchCustomerField> {
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: _results.length,
                 itemBuilder: (context, index) {
-                  final customer = _results[index];
+                  final product = _results[index];
                   return ListTile(
                     dense: true,
                     leading: CircleAvatar(
-                      backgroundColor: theme.colorScheme.primaryContainer,
+                      backgroundColor: theme.colorScheme.secondaryContainer,
                       child: Text(
-                        customer.name.isNotEmpty
-                            ? customer.name[0].toUpperCase()
+                        product.name.isNotEmpty
+                            ? product.name[0].toUpperCase()
                             : '?',
                         style: TextStyle(
-                          color: theme.colorScheme.onPrimaryContainer,
+                          color: theme.colorScheme.onSecondaryContainer,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
-                    title: Text(customer.name),
-                    subtitle: customer.phone != null
-                        ? Text(customer.phone!)
-                        : null,
-                    onTap: () => _selectCustomer(customer),
+                    title: Text(product.name),
+                    subtitle: Text(
+                      'Rs. ${product.unitPrice.toStringAsFixed(2)}${product.unit != null ? ' / ${product.unit}' : ''}',
+                    ),
+                    onTap: () => _selectProduct(product),
                   );
                 },
               ),
