@@ -4,6 +4,11 @@ class ApiConfig {
   static String get categoryEndpoint => '/ap1/inventory/category/getECategory';
   static String get productEndpoint => '/ap1/inventory/product/getEProduct';
   static String get customerEndpoint => '/ap1/pos/customer/GetCustomerOnSearch';
-  static const String defaultCustomerId = 'D5A1F7BB-8C1E-4C4F-BD85-0E3F4A2F9C12';
+  static const String defaultCustomerId =
+      'D5A1F7BB-8C1E-4C4F-BD85-0E3F4A2F9C12';
+  static String get salesInvoiceAddEndpoint => '/ap1/pos/salesInvoice/add';
   static const String allCategoryId = '00000000-0000-0000-0000-000000000000';
+  static const String emptyGuid = '00000000-0000-0000-0000-000000000000';
+  static const String defaultCurrencyId =
+      'cc06ecf8-7785-483d-a1e6-60653fcfad09';
 }

@@ -45,7 +45,7 @@
   "add": "Add",
   "addMore": "Add more",
   "inCart": "In cart:",
-  "pleaseSelectCustomerAndItems": "Please select a customer and add items",
+  "pleaseSelectItems": "Please add items to continue",
   "unknown": "Unknown",
   "qty": "Qty",
   "available": "Available:",

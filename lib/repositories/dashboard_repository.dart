@@ -113,6 +113,11 @@ class DashboardRepository {
     return Sqflite.firstIntValue(result) ?? 0;
   }
 
+  Future<int> getAssignedProductsCount() async {
+    final result = await _db.rawQuery('SELECT COUNT(*) as count FROM driver_stock');
+    return Sqflite.firstIntValue(result) ?? 0;
+  }
+
   Future<List<Map<String, dynamic>>> getRemainingAssignedStock() async {
     final stockMaps = await _db.query('driver_stock');
     final result = <Map<String, dynamic>>[];

@@ -59,6 +59,15 @@ final appRouterProvider = GoRouter(
       ],
     ),
     GoRoute(
+      path: '/delivery-detail/:id',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) {
+        final deliveryId = int.tryParse(
+            state.pathParameters['id'] ?? '');
+        return DeliveryScreen(deliveryId: deliveryId);
+      },
+    ),
+    GoRoute(
       path: '/estimate',
       parentNavigatorKey: _rootNavigatorKey,
       builder: (context, state) {

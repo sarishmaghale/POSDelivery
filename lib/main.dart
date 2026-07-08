@@ -60,12 +60,10 @@ class PosDeliveryApp extends ConsumerStatefulWidget {
   const PosDeliveryApp({super.key});
 
   @override
-  ConsumerState<PosDeliveryApp> createState() =>
-      _PosDeliveryAppState();
+  ConsumerState<PosDeliveryApp> createState() => _PosDeliveryAppState();
 }
 
-class _PosDeliveryAppState
-    extends ConsumerState<PosDeliveryApp> {
+class _PosDeliveryAppState extends ConsumerState<PosDeliveryApp> {
   @override
   void initState() {
     super.initState();

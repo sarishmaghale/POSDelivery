@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/services/image_prefetch_service.dart';
-import '../../../dto/dashboard_response.dart';
 import '../../../models/category.dart';
 import '../../../repositories/category_repository.dart';
 import '../../../repositories/dashboard_repository.dart';
@@ -14,6 +13,7 @@ class DashboardState {
   final int todaysSalesReturns;
   final int pendingSync;
   final int assignedCustomersCount;
+  final int assignedProductsCount;
   final List<Map<String, dynamic>> remainingStock;
   final String? lastSyncTime;
   final bool isLoading;
@@ -26,6 +26,7 @@ class DashboardState {
     this.todaysSalesReturns = 0,
     this.pendingSync = 0,
     this.assignedCustomersCount = 0,
+    this.assignedProductsCount = 0,
     this.remainingStock = const [],
     this.lastSyncTime,
     this.isLoading = false,
@@ -71,35 +72,30 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
       final categories = await _categoryRepo.refreshCategories();
       _prefetchImages(categories);
 
-      DashboardResponse? apiData;
-      try {
-        apiData = await _dashboardRepo.fetchDashboard();
-      } catch (_) {}
-
-      var deliveries = 0;
-      var estimates = 0;
-      var salesReturns = 0;
       var pending = 0;
-      var assignedCustomers = 0;
-      List<Map<String, dynamic>> remainingStock = [];
       String? lastSync;
       String? driverName;
+      int assignedProductCount = 0;
 
-      if (apiData != null) {
-        deliveries = apiData.todaysDeliveries;
-        estimates = apiData.estimatedBillsCreated;
+      try {
+        final apiData = await _dashboardRepo.fetchDashboard();
         pending = apiData.pendingSync;
         lastSync = apiData.lastSyncTime;
         driverName = apiData.driverName;
-      } else {
-        deliveries = await _dashboardRepo.getTodaysDeliveries();
-        estimates = await _dashboardRepo.getEstimatedBillsCreated();
-        salesReturns = await _dashboardRepo.getTodaysSalesReturns();
-        pending = await _dashboardRepo.getPendingSyncCount();
-        assignedCustomers = await _dashboardRepo.getAssignedCustomersCount();
-        remainingStock = await _dashboardRepo.getRemainingAssignedStock();
+        assignedProductCount = apiData.assignedProductIds.length;
+      } catch (_) {}
+
+      final deliveries = await _dashboardRepo.getTodaysDeliveries();
+      final estimates = await _dashboardRepo.getEstimatedBillsCreated();
+      final salesReturns = await _dashboardRepo.getTodaysSalesReturns();
+      final assignedCustomers = await _dashboardRepo.getAssignedCustomersCount();
+      final remainingStock = await _dashboardRepo.getRemainingAssignedStock();
+      if (lastSync == null) {
         final dbLastSync = await _dashboardRepo.getLastSyncTime();
         lastSync = dbLastSync?.toIso8601String();
+      }
+      if (assignedProductCount == 0) {
+        assignedProductCount = await _dashboardRepo.getAssignedProductsCount();
       }
 
       state = DashboardState(
@@ -110,6 +106,7 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
         todaysSalesReturns: salesReturns,
         pendingSync: pending,
         assignedCustomersCount: assignedCustomers,
+        assignedProductsCount: assignedProductCount,
         remainingStock: remainingStock,
         lastSyncTime: lastSync,
       );

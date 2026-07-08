@@ -159,6 +159,13 @@ class DeliveryRepository {
           where: 'entity_type = ? AND entity_id = ?',
           whereArgs: ['Delivery', delivery.id],
         );
+      } else {
+        await _db.update(
+          'sync_queue',
+          {'status': 'Failed'},
+          where: 'entity_type = ? AND entity_id = ?',
+          whereArgs: ['Delivery', delivery.id],
+        );
       }
     } catch (_) {
       await _db.update(

@@ -16,9 +16,7 @@ class SyncScreen extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.sync),
-      ),
+      appBar: AppBar(title: Text(l10n.sync)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -68,26 +66,32 @@ class SyncScreen extends ConsumerWidget {
                     Row(
                       children: [
                         const SizedBox(
-                          width: 16, height: 16,
+                          width: 16,
+                          height: 16,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         ),
                         const SizedBox(width: 12),
-                        Text(l10n.syncing,
+                        Text(
+                          l10n.syncing,
                           style: theme.textTheme.titleSmall?.copyWith(
                             fontWeight: FontWeight.w600,
-                          )),
+                          ),
+                        ),
                       ],
                     ),
                     if (state.incomingStatus.isNotEmpty) ...[
                       const SizedBox(height: 12),
-                      ...state.incomingStatus.entries.map((e) =>
-                        Padding(
+                      ...state.incomingStatus.entries.map(
+                        (e) => Padding(
                           padding: const EdgeInsets.symmetric(vertical: 2),
                           child: Row(
                             children: [
                               _incomingIcon(e.value.success),
                               const SizedBox(width: 8),
-                              Text(e.value.label, style: theme.textTheme.bodySmall),
+                              Text(
+                                e.value.label,
+                                style: theme.textTheme.bodySmall,
+                              ),
                             ],
                           ),
                         ),
@@ -106,19 +110,24 @@ class SyncScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(l10n.serverData,
+                    Text(
+                      l10n.serverData,
                       style: theme.textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.w600,
-                      )),
+                      ),
+                    ),
                     const SizedBox(height: 8),
-                    ...state.incomingStatus.entries.map((e) =>
-                      Padding(
+                    ...state.incomingStatus.entries.map(
+                      (e) => Padding(
                         padding: const EdgeInsets.symmetric(vertical: 2),
                         child: Row(
                           children: [
                             _incomingIcon(e.value.success),
                             const SizedBox(width: 8),
-                            Text(e.value.label, style: theme.textTheme.bodySmall),
+                            Text(
+                              e.value.label,
+                              style: theme.textTheme.bodySmall,
+                            ),
                           ],
                         ),
                       ),
@@ -127,6 +136,37 @@ class SyncScreen extends ConsumerWidget {
                 ),
               ),
             ),
+          ],
+          if (state.pendingQueue.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            Text(
+              'Pending Items',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            ...state.pendingQueue.map((entry) {
+              return Card(
+                child: ListTile(
+                  leading: Icon(
+                    entry.entityType == 'Delivery'
+                        ? Icons.local_shipping
+                        : Icons.receipt_long,
+                  ),
+                  title: Text('${entry.entityType} #${entry.entityId}'),
+                  subtitle: Text(
+                    'Status: ${entry.status}',
+                    style: TextStyle(
+                      color: entry.status == 'Failed'
+                          ? theme.colorScheme.error
+                          : theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  trailing: _statusIcon(entry.status),
+                ),
+              );
+            }),
           ],
           if (!state.isSyncing) ...[
             const SizedBox(height: 24),
@@ -205,7 +245,8 @@ class SyncScreen extends ConsumerWidget {
   Widget _incomingIcon(bool? success) {
     if (success == null) {
       return const SizedBox(
-        width: 14, height: 14,
+        width: 14,
+        height: 14,
         child: CircularProgressIndicator(strokeWidth: 2),
       );
     }

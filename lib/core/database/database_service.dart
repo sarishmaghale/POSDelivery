@@ -24,7 +24,7 @@ class DatabaseService {
 
       _database = await openDatabase(
         path,
-        version: 7,
+        version: 8,
         onCreate: _createTables,
         onUpgrade: _onUpgrade,
       );
@@ -70,6 +70,13 @@ class DatabaseService {
           temp_id INTEGER NOT NULL
         )
       ''');
+    }
+
+    if (oldVersion < 8) {
+      try {
+        await db.execute(
+            'ALTER TABLE estimate_item ADD COLUMN discount_amount REAL DEFAULT 0');
+      } catch (_) {}
     }
   }
 
@@ -182,7 +189,8 @@ class DatabaseService {
         product_id TEXT NOT NULL,
         quantity REAL NOT NULL,
         unit_price REAL NOT NULL,
-        line_total REAL NOT NULL
+        line_total REAL NOT NULL,
+        discount_amount REAL DEFAULT 0
       )
     ''');
 

@@ -121,7 +121,7 @@ class _DeliveryHistoryScreenState
                           title: Text(l10n.deliveryNumber(d.id.toString())),
                           subtitle: _subtitle(d),
                           onTap: () {
-                            context.go('/delivery?deliveryId=${d.id}');
+                            context.push('/delivery-detail/${d.id}');
                           },
                         ),
                       );
