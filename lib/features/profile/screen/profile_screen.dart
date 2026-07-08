@@ -29,8 +29,9 @@ class ProfileScreen extends ConsumerWidget {
               trailing: Switch(
                 value: currentLocale.languageCode == 'ne',
                 onChanged: (value) {
-                  ref.read(localeProvider.notifier).state =
-                      value ? const Locale('ne') : const Locale('en');
+                  final newLocale = value ? const Locale('ne') : const Locale('en');
+                  ref.read(localeProvider.notifier).state = newLocale;
+                  saveLocale(newLocale);
                 },
               ),
             ),
