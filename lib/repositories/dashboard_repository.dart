@@ -114,7 +114,7 @@ class DashboardRepository {
   }
 
   Future<int> getAssignedProductsCount() async {
-    final result = await _db.rawQuery('SELECT COUNT(*) as count FROM driver_stock');
+    final result = await _db.rawQuery('SELECT COUNT(*) as count FROM product');
     return Sqflite.firstIntValue(result) ?? 0;
   }
 

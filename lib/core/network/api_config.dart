@@ -7,7 +7,7 @@ class ApiConfig {
       '/ap1/pos/posMobile/getAssignedCategories';
   static String get productEndpoint =>
       '/ap1/pos/posMobile/getAssignedProducts';
-  static String get customerEndpoint => '/ap1/pos/customer/GetCustomerOnSearch';
+  static String get customerEndpoint => '/ap1/pos/posMobile/getCustomers';
   static const String defaultCustomerId =
       'B32C97D3-4D21-41F2-948C-73500DDBFE5D';
   static String get salesInvoiceAddEndpoint => '/ap1/pos/salesInvoice/add';
