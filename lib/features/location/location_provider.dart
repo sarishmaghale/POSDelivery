@@ -21,7 +21,7 @@ final locationStateProvider = StateNotifierProvider<LocationStateNotifier, Locat
     ref.read(locationServiceProvider),
     ref.read(locationDatabaseServiceProvider),
     ref.read(locationSyncServiceProvider),
-    initialDriverId: '0271B366-CDA5-48C2-9308-29AD5153081F',
+    initialDriverId: 'C3C7C7AA-7F7D-4EE2-8440-122DF4E6CB54',
   );
 });
 

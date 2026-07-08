@@ -31,22 +31,31 @@ class SalesReturnRepository {
 
   Future<SalesReturn> saveSalesReturn({
     required String customerId,
-    required String productId,
-    required double quantity,
+    required List<SalesReturnItem> items,
     String? reason,
     String? remarks,
+    String? discountType,
+    double discountValue = 0,
+    double discountAmount = 0,
   }) async {
     final sr = SalesReturn()
       ..customerId = customerId
-      ..productId = productId
-      ..quantity = quantity
       ..reason = reason
       ..remarks = remarks
+      ..discountType = discountType
+      ..discountValue = discountValue
+      ..discountAmount = discountAmount
       ..createdDate = DateTime.now()
       ..isSynced = false;
 
     final id = await _db.insert('sales_return', sr.toMap());
     sr.id = id;
+
+    for (final item in items) {
+      item.salesReturnId = id;
+      await _db.insert('sales_return_item', item.toMap());
+    }
+    sr.items = items;
 
     final syncEntry = SyncQueue()
       ..entityType = 'SalesReturn'
@@ -72,7 +81,11 @@ class SalesReturnRepository {
     );
 
     try {
-      final response = await _apiService.createSalesReturn(sr.toMap());
+      final payload = {
+        ...sr.toMap(),
+        'items': sr.items.map((item) => item.toMap()).toList(),
+      };
+      final response = await _apiService.createSalesReturn(payload);
 
       if (response) {
         await _db.update(
@@ -108,13 +121,25 @@ class SalesReturnRepository {
           endOfDay.toIso8601String()
         ],
         orderBy: 'created_date DESC');
-    return maps.map((m) => SalesReturn.fromMap(m)).toList();
+    final returns = maps.map((m) => SalesReturn.fromMap(m)).toList();
+    for (final sr in returns) {
+      final itemMaps = await _db.query('sales_return_item',
+          where: 'sales_return_id = ?', whereArgs: [sr.id]);
+      sr.items = itemMaps.map((m) => SalesReturnItem.fromMap(m)).toList();
+    }
+    return returns;
   }
 
   Future<List<SalesReturn>> getPendingReturns() async {
     final maps = await _db
         .query('sales_return', where: 'is_synced = ?', whereArgs: [0]);
-    return maps.map((m) => SalesReturn.fromMap(m)).toList();
+    final returns = maps.map((m) => SalesReturn.fromMap(m)).toList();
+    for (final sr in returns) {
+      final itemMaps = await _db.query('sales_return_item',
+          where: 'sales_return_id = ?', whereArgs: [sr.id]);
+      sr.items = itemMaps.map((m) => SalesReturnItem.fromMap(m)).toList();
+    }
+    return returns;
   }
 
   Future<int> getTodaysReturnsCount() async {
