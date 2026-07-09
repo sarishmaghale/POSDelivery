@@ -103,6 +103,30 @@ class RealApiService implements ApiService {
   }
 
   @override
+  Future<List<Map<String, dynamic>>> fetchAllProducts() async {
+    final url = '${_dio.options.baseUrl}${ApiConfig.allProductsEndpoint}';
+    print('[API] Calling AllProducts: $url');
+    try {
+      final response = await _dio.get(ApiConfig.allProductsEndpoint);
+      print('[API] AllProducts response status: ${response.statusCode}');
+      final body = response.data as Map<String, dynamic>;
+      print('[API] AllProducts response body: ${body.toString().substring(0, body.toString().length.clamp(0, 500))}');
+      if (body['Status'] != true) {
+        throw Exception(body['Message'] ?? 'API returned status false');
+      }
+      final data = body['Data'];
+      if (data is List) {
+        print('[API] AllProducts got ${data.length} products');
+        return data.cast<Map<String, dynamic>>();
+      }
+      return [];
+    } catch (e) {
+      print('[API] AllProducts ERROR: $e');
+      rethrow;
+    }
+  }
+
+  @override
   Future<Map<String, dynamic>> fetchDriver() => _fallback.fetchDriver();
 
   @override

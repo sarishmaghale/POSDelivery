@@ -50,6 +50,11 @@ class MockApiService implements ApiService {
   }
 
   @override
+  Future<List<Map<String, dynamic>>> fetchAllProducts() async {
+    return [];
+  }
+
+  @override
   Future<Map<String, dynamic>> fetchDriver() async {
     await Future.delayed(const Duration(milliseconds: 300));
     return await _loadJson('assets/dummy/driver.json');

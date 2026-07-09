@@ -12,6 +12,7 @@ abstract class ApiService {
   Future<List<Map<String, dynamic>>> fetchCustomers();
   Future<List<Map<String, dynamic>>> fetchCategories();
   Future<List<Map<String, dynamic>>> fetchProducts();
+  Future<List<Map<String, dynamic>>> fetchAllProducts();
   Future<Map<String, dynamic>> fetchDriver();
   Future<List<Map<String, dynamic>>> fetchStock();
   Future<List<Map<String, dynamic>>> fetchPaymentModes();

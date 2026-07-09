@@ -170,15 +170,20 @@ class _SearchProductFieldState extends State<SearchProductField> {
                     dense: true,
                     leading: CircleAvatar(
                       backgroundColor: theme.colorScheme.secondaryContainer,
-                      child: Text(
-                        product.name.isNotEmpty
-                            ? product.name[0].toUpperCase()
-                            : '?',
-                        style: TextStyle(
-                          color: theme.colorScheme.onSecondaryContainer,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      backgroundImage: product.firstImageUrl != null
+                          ? NetworkImage(product.firstImageUrl!)
+                          : null,
+                      child: product.firstImageUrl == null
+                          ? Text(
+                              product.name.isNotEmpty
+                                  ? product.name[0].toUpperCase()
+                                  : '?',
+                              style: TextStyle(
+                                color: theme.colorScheme.onSecondaryContainer,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            )
+                          : null,
                     ),
                     title: Text(product.name),
                     subtitle: Text(

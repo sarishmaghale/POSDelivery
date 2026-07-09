@@ -87,7 +87,10 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
 
     try {
       final customers = await _customerRepo.getCustomers();
-      final products = await _productRepo.getCachedProducts();
+      var products = await _productRepo.getCachedAllProducts();
+      if (products.isEmpty) {
+        products = await _productRepo.refreshAllProducts();
+      }
 
       state = SalesReturnState(
         customers: customers,
@@ -97,7 +100,7 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
     } catch (_) {
       state = SalesReturnState(
         customers: await _customerRepo.getCachedCustomers(),
-        products: await _productRepo.getCachedProducts(),
+        products: await _productRepo.getCachedAllProducts(),
         isLoading: false,
       );
     }
