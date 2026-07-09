@@ -178,7 +178,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
                         },
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 16),
                     Expanded(
                       flex: 2,
                       child: TextField(
@@ -195,7 +195,12 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
                         },
                       ),
                     ),
-                    const SizedBox(width: 8),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    const SizedBox(width: 16),
                     Expanded(
                       flex: 2,
                       child: TextField(
@@ -215,7 +220,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
                         },
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 16),
                     FilledButton.tonalIcon(
                       onPressed: state.pendingProduct == null
                           ? null

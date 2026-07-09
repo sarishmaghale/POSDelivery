@@ -97,7 +97,8 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
         products: products,
         isLoading: false,
       );
-    } catch (_) {
+    } catch (e) {
+      print('[SalesReturn] loadInitialData error: $e');
       state = SalesReturnState(
         customers: await _customerRepo.getCachedCustomers(),
         products: await _productRepo.getCachedAllProducts(),

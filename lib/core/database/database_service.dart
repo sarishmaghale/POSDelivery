@@ -148,7 +148,15 @@ class DatabaseService {
       try{
         await db.execute('ALTER TABLE product ADD COLUMN chalan_number TEXT');
       }catch (_) {}
+
+      try {
+        await db.execute('ALTER TABLE all_product ADD COLUMN unit_price REAL DEFAULT 0');
+      } catch (_) {}
     }
+
+    try {
+      await db.execute('ALTER TABLE all_product ADD COLUMN unit_price REAL DEFAULT 0');
+    } catch (_) {}
 
     if (oldVersion < 11) {
       await db.execute('''
@@ -344,6 +352,7 @@ class DatabaseService {
         japanese_name TEXT,
         unit_id TEXT,
         unit TEXT,
+        unit_price REAL DEFAULT 0,
         image_url TEXT
       )
     ''');

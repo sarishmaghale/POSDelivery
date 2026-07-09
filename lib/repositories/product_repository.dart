@@ -55,14 +55,14 @@ class ProductRepository {
     final data = await _apiService.fetchAllProducts();
     final products = data.map((json) {
       final p = Product();
-      p.serverId = json['ProductId'] as String;
-      p.categoryId = json['CategoryId'] as String;
-      p.name = json['Name'] as String;
-      p.code = json['Code'] as String?;
-      p.japaneseName = json['JapneseName'] as String?;
-      p.imageUrl = json['ImagePath'] as String?;
-      p.unitId = json['BaseUnitId'] as String?;
-      p.unit = json['BaseUnitName'] as String?;
+      p.serverId = json['ProductId']?.toString() ?? '';
+      p.categoryId = json['CategoryId']?.toString() ?? '';
+      p.name = json['Name']?.toString() ?? '';
+      p.code = json['Code']?.toString();
+      p.japaneseName = json['JapaneseName']?.toString() ?? json['JapneseName']?.toString();
+      p.imageUrl = json['ImagePath']?.toString();
+      p.unitId = json['BaseUnitId']?.toString();
+      p.unit = json['BaseUnitName']?.toString();
       p.unitPrice = (json['Rate'] as num?)?.toDouble() ?? 0;
       return p;
     }).toList();
@@ -101,7 +101,7 @@ class ProductRepository {
       p.unitId = map['unit_id'] as String?;
       p.unit = map['unit'] as String?;
       p.imageUrl = map['image_url'] as String?;
-      p.unitPrice = map['unit_price'] as double;
+      p.unitPrice = (map['unit_price'] as num?)?.toDouble() ?? 0;
       return p;
     }).toList();
   }
