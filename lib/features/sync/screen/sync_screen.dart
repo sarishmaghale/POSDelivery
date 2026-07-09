@@ -86,16 +86,16 @@ class SyncScreen extends ConsumerWidget {
             icon: Icons.check_circle_outline,
             color: theme.colorScheme.primaryContainer,
           ),
-          const SizedBox(height: 16),
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.schedule),
-              title: Text(l10n.lastSync),
-              subtitle: Text(
-                state.lastSyncTime?.formattedDateTime ?? l10n.never,
-              ),
-            ),
-          ),
+          // const SizedBox(height: 16),
+          // Card(
+          //   child: ListTile(
+          //     leading: const Icon(Icons.schedule),
+          //     title: Text(l10n.lastSync),
+          //     subtitle: Text(
+          //       state.lastSyncTime?.formattedDateTime ?? l10n.never,
+          //     ),
+          //   ),
+          // ),
           if (state.isSyncing) ...[
             const SizedBox(height: 16),
             Card(
