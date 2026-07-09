@@ -23,6 +23,7 @@ class SalesReturnState {
   final double discountAmount;
   final bool isLoading;
   final bool isSaving;
+  final bool isValid;
   final bool saved;
   final String? error;
 
@@ -42,6 +43,7 @@ class SalesReturnState {
     this.discountAmount = 0,
     this.isLoading = false,
     this.isSaving = false,
+    this.isValid=true,
     this.saved = false,
     this.error,
   });
@@ -53,9 +55,6 @@ class SalesReturnState {
       items.fold<double>(0, (sum, item) => sum + item.discountAmount);
 
   double get netTotal => grossTotal - totalItemDiscount - discountAmount;
-
-  bool get isValid =>
-      selectedCustomer != null && items.isNotEmpty;
 }
 
 final salesReturnProvider =
@@ -88,7 +87,10 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
 
     try {
       final customers = await _customerRepo.getCachedCustomers();
-      final products = await _productRepo.getCachedProducts();
+      var products = await _productRepo.getCachedAllProducts();
+      if (products.isEmpty) {
+        products = await _productRepo.refreshAllProducts();
+      }
 
       state = SalesReturnState(
         customers: customers,
@@ -98,7 +100,7 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
     } catch (_) {
       state = SalesReturnState(
         customers: await _customerRepo.getCachedCustomers(),
-        products: await _productRepo.getCachedProducts(),
+        products: await _productRepo.getCachedAllProducts(),
         isLoading: false,
       );
     }
@@ -260,6 +262,46 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
     );
   }
 
+  void incrementItemQuantity(int index) {
+    if (index < 0 || index >= state.items.length) return;
+    final updated = [...state.items];
+    updated[index].quantity += 1;
+
+    state = SalesReturnState(
+      selectedCustomer: state.selectedCustomer,
+      customers: state.customers,
+      products: state.products,
+      items: updated,
+      reason: state.reason,
+      remarks: state.remarks,
+      discountType: state.discountType,
+      discountValue: state.discountValue,
+      discountAmount: state.discountAmount,
+    );
+  }
+
+  void decrementItemQuantity(int index) {
+    if (index < 0 || index >= state.items.length) return;
+    final updated = [...state.items];
+    if (updated[index].quantity <= 1) {
+      updated.removeAt(index);
+    } else {
+      updated[index].quantity -= 1;
+    }
+
+    state = SalesReturnState(
+      selectedCustomer: state.selectedCustomer,
+      customers: state.customers,
+      products: state.products,
+      items: updated,
+      reason: state.reason,
+      remarks: state.remarks,
+      discountType: state.discountType,
+      discountValue: state.discountValue,
+      discountAmount: state.discountAmount,
+    );
+  }
+
   void setReason(String? reason) {
     state = SalesReturnState(
       selectedCustomer: state.selectedCustomer,
@@ -372,8 +414,30 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
     );
   }
 
+  String? validate() {
+    if (state.selectedCustomer == null) return 'Please select a customer';
+    if (state.items.isEmpty) return 'Please select at least one product';
+    return null;
+  }
+
   Future<bool> saveSalesReturn() async {
-    if (!state.isValid) return false;
+    final validationError = validate();
+    if (validationError != null) {
+      state = SalesReturnState(
+        selectedCustomer: state.selectedCustomer,
+        pendingUnit: state.pendingUnit,
+        customers: state.customers,
+        products: state.products,
+        items: state.items,
+        reason: state.reason,
+        remarks: state.remarks,
+        discountType: state.discountType,
+        discountValue: state.discountValue,
+        discountAmount: state.discountAmount,
+        error: validationError,
+      );
+      return false;
+    }
 
     state = SalesReturnState(
       selectedCustomer: state.selectedCustomer,

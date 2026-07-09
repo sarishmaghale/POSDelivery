@@ -6,6 +6,7 @@ class Product {
   late String categoryId;
   late String name;
   String? japaneseName;
+  String? code;
   late double unitPrice;
   double stock = 0;
   String? unitId;

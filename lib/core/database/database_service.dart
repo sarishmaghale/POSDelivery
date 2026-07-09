@@ -24,7 +24,7 @@ class DatabaseService {
 
       _database = await openDatabase(
         path,
-        version: 10,
+        version: 11,
         onCreate: _createTables,
         onUpgrade: _onUpgrade,
       );
@@ -122,8 +122,49 @@ class DatabaseService {
 
     if (oldVersion < 10) {
       try {
-        await db.execute('ALTER TABLE product ADD COLUMN chalan_number TEXT');
+        await db.execute(
+            'ALTER TABLE sales_return ADD COLUMN discount_type TEXT');
       } catch (_) {}
+      try {
+        await db.execute(
+            'ALTER TABLE sales_return ADD COLUMN discount_value REAL DEFAULT 0');
+      } catch (_) {}
+      try {
+        await db.execute(
+            'ALTER TABLE sales_return ADD COLUMN discount_amount REAL DEFAULT 0');
+      } catch (_) {}
+      try {
+        await db.execute(
+            'ALTER TABLE sales_return_item ADD COLUMN discount_type TEXT');
+      } catch (_) {}
+      try {
+        await db.execute(
+            'ALTER TABLE sales_return_item ADD COLUMN discount_value REAL DEFAULT 0');
+      } catch (_) {}
+      try {
+        await db.execute(
+            'ALTER TABLE sales_return_item ADD COLUMN discount_amount REAL DEFAULT 0');
+      } catch (_) {}
+      try{
+        await db.execute('ALTER TABLE product ADD COLUMN chalan_number TEXT');
+      }catch (_) {}
+    }
+
+    if (oldVersion < 11) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS all_product (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          server_id TEXT NOT NULL UNIQUE,
+          code TEXT,
+          category_id TEXT NOT NULL,
+          name TEXT NOT NULL,
+          japanese_name TEXT,
+          unit_id TEXT,
+          unit TEXT,
+          unit_price TEXT,
+          image_url TEXT
+        )
+      ''');
     }
   }
 
@@ -290,6 +331,20 @@ class DatabaseService {
         server_id TEXT NOT NULL UNIQUE,
         name TEXT NOT NULL,
         temp_id INTEGER NOT NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE all_product (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        server_id TEXT NOT NULL UNIQUE,
+        code TEXT,
+        category_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        japanese_name TEXT,
+        unit_id TEXT,
+        unit TEXT,
+        image_url TEXT
       )
     ''');
   }

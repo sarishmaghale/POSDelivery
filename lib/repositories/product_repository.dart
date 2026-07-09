@@ -1,3 +1,4 @@
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -50,7 +51,62 @@ class ProductRepository {
     return maps.map((map) => Product.fromMap(map)).toList();
   }
 
-  Future<List<Product>> _fetchAndCacheProducts({
+  Future<List<Product>> refreshAllProducts() async {
+    final data = await _apiService.fetchAllProducts();
+    final products = data.map((json) {
+      final p = Product();
+      p.serverId = json['ProductId'] as String;
+      p.categoryId = json['CategoryId'] as String;
+      p.name = json['Name'] as String;
+      p.code = json['Code'] as String?;
+      p.japaneseName = json['JapneseName'] as String?;
+      p.imageUrl = json['ImagePath'] as String?;
+      p.unitId = json['BaseUnitId'] as String?;
+      p.unit = json['BaseUnitName'] as String?;
+      p.unitPrice = (json['Rate'] as num?)?.toDouble() ?? 0;
+      return p;
+    }).toList();
+
+    if (products.isNotEmpty) {
+      await _db.transaction((txn) async {
+        await txn.delete('all_product');
+        for (final p in products) {
+          await txn.insert('all_product', {
+            'server_id': p.serverId,
+            'code': p.code,
+            'category_id': p.categoryId,
+            'name': p.name,
+            'japanese_name': p.japaneseName,
+            'unit_id': p.unitId,
+            'unit': p.unit,
+            'unit_price':p.unitPrice,
+            'image_url': p.imageUrl,
+          }, conflictAlgorithm: ConflictAlgorithm.replace);
+        }
+      });
+    }
+
+    return products;
+  }
+
+  Future<List<Product>> getCachedAllProducts() async {
+    final maps = await _db.query('all_product');
+    return maps.map((map) {
+      final p = Product();
+      p.serverId = map['server_id'] as String;
+      p.code = map['code'] as String?;
+      p.categoryId = map['category_id'] as String;
+      p.name = map['name'] as String;
+      p.japaneseName = map['japanese_name'] as String?;
+      p.unitId = map['unit_id'] as String?;
+      p.unit = map['unit'] as String?;
+      p.imageUrl = map['image_url'] as String?;
+      p.unitPrice = map['unit_price'] as double;
+      return p;
+    }).toList();
+  }
+
+ Future<List<Product>> _fetchAndCacheProducts({
     required String customerId,
     required String transactionDate,
   }) async {
