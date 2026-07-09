@@ -130,7 +130,7 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
       selectedCustomer: state.selectedCustomer,
       pendingProduct: product,
       pendingQuantity: state.pendingQuantity,
-      pendingRate: state.pendingRate,
+      pendingRate: product?.unitPrice ?? 0,
       pendingUnit: product?.unit,
       customers: state.customers,
       products: state.products,
@@ -384,6 +384,32 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
       discountType: state.discountType,
       discountValue: value,
       discountAmount: amount,
+    );
+  }
+
+  void setItemRate(int index, double rate) {
+    if (index < 0 || index >= state.items.length) return;
+    final updated = [...state.items];
+    final item = updated[index];
+    item.rate = rate;
+    final gross = item.quantity * item.rate;
+    item.discountAmount = item.discountType == null
+        ? 0
+        : _calcDiscountAmount(item.discountType, item.discountValue, gross);
+    state = SalesReturnState(
+      selectedCustomer: state.selectedCustomer,
+      pendingProduct: state.pendingProduct,
+      pendingQuantity: state.pendingQuantity,
+      pendingRate: state.pendingRate,
+      pendingUnit: state.pendingUnit,
+      customers: state.customers,
+      products: state.products,
+      items: updated,
+      reason: state.reason,
+      remarks: state.remarks,
+      discountType: state.discountType,
+      discountValue: state.discountValue,
+      discountAmount: state.discountAmount,
     );
   }
 
