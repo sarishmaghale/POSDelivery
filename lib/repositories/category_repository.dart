@@ -82,10 +82,12 @@ class CategoryRepository {
       await _db.transaction((txn) async {
         await txn.delete('category');
         for (final c in categories) {
-          txn.insert('category', c.toMap(),
+          await txn.insert('category', c.toMap(),
               conflictAlgorithm: ConflictAlgorithm.replace);
         }
       });
+    } else {
+      await _db.delete('category');
     }
 
     return categories;

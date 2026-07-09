@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/network/api_config.dart';
 import '../../../core/services/image_prefetch_service.dart';
 import '../../../models/category.dart';
 import '../../../models/customer.dart';
@@ -101,7 +100,7 @@ class DeliveryFormState {
 }
 
 final deliveryFormProvider =
-    StateNotifierProvider<DeliveryFormNotifier, DeliveryFormState>((ref) {
+    StateNotifierProvider.autoDispose<DeliveryFormNotifier, DeliveryFormState>((ref) {
   return DeliveryFormNotifier(
     categoryRepo: ref.read(categoryRepositoryProvider),
     productRepo: ref.read(productRepositoryProvider),
@@ -119,11 +118,6 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
   final DeliveryRepository _deliveryRepo;
   final EstimateRepository _estimateRepo;
   final CustomerRepository _customerRepo;
-
-  static String get _transactionDate {
-    final now = DateTime.now();
-    return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-  }
 
   DeliveryFormNotifier({
     required CategoryRepository categoryRepo,
@@ -146,35 +140,9 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
     state = DeliveryFormState(isLoadingCustomers: true);
 
     try {
-      var categories = await _categoryRepo.getCachedCategories();
-      var products = await _loadAllProducts();
-      var paymentModes = await _loadAllPaymentModes();
-
-      if (categories.isEmpty) {
-        try {
-          categories = await _categoryRepo.getCategories(
-            customerId: ApiConfig.defaultCustomerId,
-            transactionDate: _transactionDate,
-          );
-        } catch (_) {}
-      }
-
-      if (paymentModes.isEmpty) {
-        try {
-          await _paymentModeRepo.refreshPaymentModes();
-          paymentModes = await _paymentModeRepo.getPaymentModes();
-        } catch (_) {}
-      }
-
-      if (products.isEmpty) {
-        try {
-          await _productRepo.getProducts(
-            customerId: ApiConfig.defaultCustomerId,
-            transactionDate: _transactionDate,
-          );
-          products = await _productRepo.getCachedProducts();
-        } catch (_) {}
-      }
+      final categories = await _categoryRepo.getCachedCategories();
+      final products = await _loadAllProducts();
+      final paymentModes = await _loadAllPaymentModes();
 
       _prefetchProductImages(products);
 
@@ -210,6 +178,35 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
     } catch (_) {
       return [];
     }
+  }
+
+  Future<void> refreshProducts() async {
+    final products = await _loadAllProducts();
+    if (products.isNotEmpty) {
+      _prefetchProductImages(products);
+    }
+    state = DeliveryFormState(
+      delivery: state.delivery,
+      selectedCategory: state.selectedCategory,
+      categories: state.categories,
+      products: products,
+      paymentModes: state.paymentModes,
+      selectedPaymentMode: state.selectedPaymentMode,
+      cart: state.cart,
+      customPrices: state.customPrices,
+      productDiscounts: state.productDiscounts,
+      customerName: state.customerName,
+      productSearchQuery: state.productSearchQuery,
+      editingDeliveryId: state.editingDeliveryId,
+      isReadOnly: state.isReadOnly,
+      isLoadingCustomers: false,
+      isLoadingProducts: false,
+      isSaving: state.isSaving,
+      paidAmount: state.paidAmount,
+      discountType: state.discountType,
+      discountValue: state.discountValue,
+      discountAmount: state.discountAmount,
+    );
   }
 
   void _prefetchProductImages(List<Product> products) {

@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/network/api_config.dart';
 import '../../../core/services/image_prefetch_service.dart';
 import '../../../models/category.dart';
 import '../../../repositories/category_repository.dart';
@@ -85,53 +84,28 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
 
   Future<void> _refreshInBackground() async {
     try {
-      final now = DateTime.now();
-      final transactionDate =
-          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-
-      final categories = await _categoryRepo.refreshCategories(
-        customerId: ApiConfig.defaultCustomerId,
-        transactionDate: transactionDate,
-      );
+      final categories = await _categoryRepo.getCachedCategories();
       _prefetchImages(categories);
-
-      var pending = state.pendingSync;
-      String? lastSync = state.lastSyncTime;
-      String? driverName;
-      int assignedProductCount = state.assignedProductsCount;
-
-      try {
-        final apiData = await _dashboardRepo.fetchDashboard();
-        pending = apiData.pendingSync;
-        lastSync = apiData.lastSyncTime;
-        driverName = apiData.driverName;
-        assignedProductCount = apiData.assignedProductIds.length;
-      } catch (_) {}
 
       final deliveries = await _dashboardRepo.getTodaysDeliveries();
       final estimates = await _dashboardRepo.getEstimatedBillsCreated();
       final salesReturns = await _dashboardRepo.getTodaysSalesReturns();
       final assignedCustomers = await _dashboardRepo.getAssignedCustomersCount();
+      final assignedProductCount = await _dashboardRepo.getAssignedProductsCount();
       final remainingStock = await _dashboardRepo.getRemainingAssignedStock();
-      if (lastSync == null) {
-        final dbLastSync = await _dashboardRepo.getLastSyncTime();
-        lastSync = dbLastSync?.toIso8601String();
-      }
-      if (assignedProductCount == 0) {
-        assignedProductCount = await _dashboardRepo.getAssignedProductsCount();
-      }
+      final pendingSync = await _dashboardRepo.getPendingSyncCount();
+      final dbLastSync = await _dashboardRepo.getLastSyncTime();
 
       state = DashboardState(
-        driverName: driverName ?? state.driverName,
         categories: categories,
         todaysDeliveries: deliveries,
         estimatedBills: estimates,
         todaysSalesReturns: salesReturns,
-        pendingSync: pending,
+        pendingSync: pendingSync,
         assignedCustomersCount: assignedCustomers,
         assignedProductsCount: assignedProductCount,
         remainingStock: remainingStock,
-        lastSyncTime: lastSync,
+        lastSyncTime: dbLastSync?.toIso8601String(),
       );
     } catch (_) {
       state = DashboardState(

@@ -23,6 +23,7 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(deliveryFormProvider.notifier).refreshProducts();
       if (widget.deliveryId != null) {
         ref
             .read(deliveryFormProvider.notifier)
@@ -411,17 +412,7 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
               .setProductSearchQuery(value),
         ),
         const SizedBox(height: 12),
-        if (state.isLoadingProducts)
-          const Center(
-            child: Padding(
-              padding: EdgeInsets.all(24),
-              child: CircularProgressIndicator(),
-            ),
-          )
-        else
-          _buildProductGrid(context, ref, state, theme, l10n),
         if (state.stockError != null) ...[
-          const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -448,7 +439,17 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
               ],
             ),
           ),
+          const SizedBox(height: 8),
         ],
+        if (state.isLoadingProducts)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: CircularProgressIndicator(),
+            ),
+          )
+        else
+          _buildProductGrid(context, ref, state, theme, l10n),
       ],
     );
   }

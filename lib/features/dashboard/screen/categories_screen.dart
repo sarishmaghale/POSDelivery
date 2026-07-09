@@ -1,7 +1,7 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/network/api_config.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../models/category.dart';
 import '../../../repositories/category_repository.dart';
@@ -26,13 +26,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
     try {
-      final now = DateTime.now();
-      final transactionDate =
-          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-      final categories = await ref.read(categoryRepositoryProvider).getCategories(
-        customerId: ApiConfig.defaultCustomerId,
-        transactionDate: transactionDate,
-      );
+      final categories = await ref.read(categoryRepositoryProvider).getCachedCategories();
       setState(() {
         _categories = categories;
         _isLoading = false;
@@ -74,12 +68,17 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                             backgroundColor: theme.colorScheme.primaryContainer,
                             child: cat.firstImageUrl != null
                                 ? ClipOval(
-                                    child: Image.network(
-                                      cat.firstImageUrl!,
+                                    child: CachedNetworkImage(
+                                      imageUrl: cat.firstImageUrl!,
                                       width: 40,
                                       height: 40,
                                       fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) => Text(
+                                      placeholder: (_, __) => const SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(strokeWidth: 2),
+                                      ),
+                                      errorWidget: (_, __, ___) => Text(
                                         cat.name.isNotEmpty
                                             ? cat.name[0].toUpperCase()
                                             : '?',

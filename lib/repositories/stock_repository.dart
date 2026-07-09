@@ -2,50 +2,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite/sqflite.dart';
 
 import '../core/database/providers.dart';
-import '../core/network/api_service.dart';
-import '../core/network/providers.dart';
 import '../models/driver_stock.dart';
 import '../models/product.dart';
 
 final stockRepositoryProvider = Provider<StockRepository>((ref) {
   return StockRepository(
-    apiService: ref.read(apiServiceProvider),
     db: ref.read(databaseServiceProvider).db,
   );
 });
 
 class StockRepository {
-  final ApiService _apiService;
   final Database _db;
 
   StockRepository({
-    required ApiService apiService,
     required Database db,
-  })  : _apiService = apiService,
-        _db = db;
-
-  Future<List<DriverStock>> refreshStock() async {
-    final stockList = await fetchStockFromApi();
-    if (stockList.isNotEmpty) {
-      await _db.transaction((txn) async {
-        await txn.delete('driver_stock');
-        for (final s in stockList) {
-          txn.insert('driver_stock', s.toMap(),
-              conflictAlgorithm: ConflictAlgorithm.replace);
-        }
-      });
-    }
-    return stockList;
-  }
-
-  Future<List<DriverStock>> fetchStockFromApi() async {
-    final data = await _apiService.fetchStock();
-    return data.map((json) => DriverStock()
-      ..productId = json['productId'] as String
-      ..assignedQuantity = (json['assignedQuantity'] as num).toDouble()
-      ..deliveredQuantity = (json['deliveredQuantity'] as num?)?.toDouble() ?? 0
-    ).toList();
-  }
+  })  : _db = db;
 
   Future<void> saveStock(List<DriverStock> stockList) async {
     final batch = _db.batch();
@@ -104,11 +75,19 @@ class StockRepository {
     final result = <Map<String, dynamic>>[];
     final stockList = await getAllStock();
 
+    if (stockList.isEmpty) return result;
+
+    final productIds = stockList.map((s) => s.productId).toList();
+    final placeholders = List.generate(productIds.length, (_) => '?').join(',');
+    final productMaps = await _db.query('product',
+        where: 'server_id IN ($placeholders)', whereArgs: productIds);
+    final productMap = {
+      for (final m in productMaps) m['server_id'] as String: Product.fromMap(m)
+    };
+
     for (final stock in stockList) {
-      final productMaps = await _db.query('product',
-          where: 'server_id = ?', whereArgs: [stock.productId]);
-      if (productMaps.isNotEmpty) {
-        final product = Product.fromMap(productMaps.first);
+      final product = productMap[stock.productId];
+      if (product != null) {
         result.add({
           'product': product,
           'stock': stock,

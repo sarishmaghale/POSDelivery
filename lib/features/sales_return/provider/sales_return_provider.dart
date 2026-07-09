@@ -59,7 +59,7 @@ class SalesReturnState {
 }
 
 final salesReturnProvider =
-    StateNotifierProvider<SalesReturnNotifier, SalesReturnState>((ref) {
+    StateNotifierProvider.autoDispose<SalesReturnNotifier, SalesReturnState>((ref) {
   return SalesReturnNotifier(
     customerRepo: ref.read(customerRepositoryProvider),
     productRepo: ref.read(productRepositoryProvider),
@@ -87,7 +87,7 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
     state = SalesReturnState(isLoading: true);
 
     try {
-      final customers = await _customerRepo.getCustomers();
+      final customers = await _customerRepo.getCachedCustomers();
       final products = await _productRepo.getCachedProducts();
 
       state = SalesReturnState(

@@ -67,6 +67,7 @@ class ProductRepository {
       p.unitPrice = (json['Rate'] as num?)?.toDouble() ?? 0;
       p.stock = (json['Quantity'] as num?)?.toDouble() ?? 0;
       p.taxable = (json['Taxable'] as num?)?.toInt() ?? 0;
+      p.chalanNumber = json['ChalanNumber'] as String?;
 
       final baseUnit = json['BaseUnit'] as Map<String, dynamic>?;
       if (baseUnit != null) {
@@ -92,13 +93,15 @@ class ProductRepository {
       await _db.transaction((txn) async {
         await txn.delete('product');
         for (final p in products) {
-          txn.insert(
+          await txn.insert(
             'product',
             p.toMap(),
             conflictAlgorithm: ConflictAlgorithm.replace,
           );
         }
       });
+    } else {
+      await _db.delete('product');
     }
 
     return products;

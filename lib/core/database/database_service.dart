@@ -24,7 +24,7 @@ class DatabaseService {
 
       _database = await openDatabase(
         path,
-        version: 9,
+        version: 10,
         onCreate: _createTables,
         onUpgrade: _onUpgrade,
       );
@@ -53,14 +53,14 @@ class DatabaseService {
     if (oldVersion < 6) {
       try {
         await db.execute(
-            'ALTER TABLE product ADD COLUMN sold_quantity REAL DEFAULT 0');
+          'ALTER TABLE product ADD COLUMN sold_quantity REAL DEFAULT 0',
+        );
       } catch (_) {}
     }
 
     if (oldVersion < 7) {
       try {
-        await db.execute(
-            'ALTER TABLE delivery ADD COLUMN payment_mode TEXT');
+        await db.execute('ALTER TABLE delivery ADD COLUMN payment_mode TEXT');
       } catch (_) {}
       await db.execute('''
         CREATE TABLE IF NOT EXISTS payment_mode (
@@ -75,14 +75,16 @@ class DatabaseService {
     if (oldVersion < 8) {
       try {
         await db.execute(
-            'ALTER TABLE estimate_item ADD COLUMN discount_amount REAL DEFAULT 0');
+          'ALTER TABLE estimate_item ADD COLUMN discount_amount REAL DEFAULT 0',
+        );
       } catch (_) {}
     }
 
     if (oldVersion < 9) {
       try {
         await db.execute(
-            'ALTER TABLE product ADD COLUMN taxable INTEGER DEFAULT 0');
+          'ALTER TABLE product ADD COLUMN taxable INTEGER DEFAULT 0',
+        );
       } catch (_) {}
       await db.execute('DROP TABLE IF EXISTS sales_return_item');
       await db.execute('DROP TABLE IF EXISTS sales_return');
@@ -116,6 +118,12 @@ class DatabaseService {
           FOREIGN KEY (sales_return_id) REFERENCES sales_return(id)
         )
       ''');
+    }
+
+    if (oldVersion < 10) {
+      try {
+        await db.execute('ALTER TABLE product ADD COLUMN chalan_number TEXT');
+      } catch (_) {}
     }
   }
 
@@ -170,7 +178,8 @@ class DatabaseService {
         image_url TEXT,
         product_images TEXT,
         description TEXT,
-        taxable INTEGER DEFAULT 0
+        taxable INTEGER DEFAULT 0,
+        chalan_number TEXT
       )
     ''');
 
@@ -264,7 +273,7 @@ class DatabaseService {
         discount_amount REAL DEFAULT 0
       )
     ''');
-    
+
     await db.execute('''
       CREATE TABLE sync_queue (
         id INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -1,7 +1,7 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/network/api_config.dart';
 import '../../../models/product.dart';
 import '../../../repositories/product_repository.dart';
 
@@ -25,13 +25,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
     try {
-      final now = DateTime.now();
-      final transactionDate =
-          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-      final products = await ref.read(productRepositoryProvider).getProducts(
-        customerId: ApiConfig.defaultCustomerId,
-        transactionDate: transactionDate,
-      );
+      final products = await ref.read(productRepositoryProvider).getCachedProducts();
       setState(() {
         _products = products;
         _isLoading = false;
@@ -72,12 +66,17 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                             backgroundColor: theme.colorScheme.primaryContainer,
                             child: product.firstImageUrl != null
                                 ? ClipOval(
-                                    child: Image.network(
-                                      product.firstImageUrl!,
+                                    child: CachedNetworkImage(
+                                      imageUrl: product.firstImageUrl!,
                                       width: 40,
                                       height: 40,
                                       fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) => Text(
+                                      placeholder: (_, __) => const SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(strokeWidth: 2),
+                                      ),
+                                      errorWidget: (_, __, ___) => Text(
                                         product.name.isNotEmpty
                                             ? product.name[0].toUpperCase()
                                             : '?',

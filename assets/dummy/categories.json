@@ -1,5 +1,0 @@
-[
-  { "id": "1", "name": "Milk", "description": "Dairy milk products", "icon": "local_drink", "imageUrl": "https://images.unsplash.com/photo-1563636619-e9143da7973b?w=300" },
-  { "id": "2", "name": "Bakery", "description": "Fresh bakery items", "icon": "bakery_dining", "imageUrl": "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=300" },
-  { "id": "3", "name": "Cold Drinks", "description": "Chilled beverages", "icon": "local_cafe", "imageUrl": "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=300" }
-]
