@@ -21,6 +21,9 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
   final _unitController = TextEditingController();
   final _rateController = TextEditingController();
   final _discountValueController = TextEditingController();
+  final Map<int, TextEditingController> _itemDiscControllers = {};
+  final Map<int, String?> _itemDiscTypes = {};
+  int _lastItemCount = 0;
   String? _previousPendingUnit;
 
   @override
@@ -29,7 +32,20 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
     _unitController.dispose();
     _rateController.dispose();
     _discountValueController.dispose();
+    for (final c in _itemDiscControllers.values) {
+      c.dispose();
+    }
     super.dispose();
+  }
+
+  void _syncItemControllers(int itemCount) {
+    if (itemCount == _lastItemCount) return;
+    for (final c in _itemDiscControllers.values) {
+      c.dispose();
+    }
+    _itemDiscControllers.clear();
+    _itemDiscTypes.clear();
+    _lastItemCount = itemCount;
   }
 
   @override
@@ -101,6 +117,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
   }
 
   Widget _buildForm(SalesReturnState state, ThemeData theme, AppLocalizations l10n) {
+    _syncItemControllers(state.items.length);
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -148,7 +165,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
                         controller: _qtyController,
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
                         inputFormatters: [
-                          FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                          FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
                         ],
                         decoration: InputDecoration(
                           labelText: 'Qty',
@@ -185,7 +202,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
                         controller: _rateController,
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
                         inputFormatters: [
-                          FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                          FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
                         ],
                         decoration: InputDecoration(
                           labelText: 'Rate',
@@ -217,14 +234,12 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
             ),
           ),
         ),
-        if (state.items.isNotEmpty) ...[
-          const SizedBox(height: 16),
-          _buildItemsTable(state, theme, l10n),
-          const SizedBox(height: 16),
-          _buildTotalsCard(state, theme),
-          const SizedBox(height: 16),
-          _buildDiscountSection(state, theme, l10n),
-        ],
+        const SizedBox(height: 16),
+        _buildItemsSection(state, theme, l10n),
+        const SizedBox(height: 16),
+        _buildTotalsCard(state, theme),
+        const SizedBox(height: 16),
+        _buildHeaderDiscountSection(state, theme, l10n),
         const SizedBox(height: 24),
         Text(
           l10n.additionalDetails,
@@ -268,7 +283,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
         ),
         const SizedBox(height: 24),
         FilledButton.icon(
-          onPressed: state.isSaving || !state.isValid
+          onPressed: state.isSaving
               ? null
               : () => _saveSalesReturn(context),
           icon: state.isSaving
@@ -290,7 +305,23 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
     );
   }
 
-  Widget _buildItemsTable(SalesReturnState state, ThemeData theme, AppLocalizations l10n) {
+  Widget _buildItemsSection(SalesReturnState state, ThemeData theme, AppLocalizations l10n) {
+    if (state.items.isEmpty) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Center(
+            child: Text(
+              'No products added',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -304,85 +335,229 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
         const SizedBox(height: 8),
         Card(
           clipBehavior: Clip.hardEdge,
-          child: ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: state.items.length,
-            separatorBuilder: (_, __) => const Divider(height: 1),
-              itemBuilder: (context, index) {
-              final item = state.items[index];
-              final gross = item.quantity * item.rate;
-              return ListTile(
-                dense: true,
-                leading: CircleAvatar(
-                  backgroundColor: theme.colorScheme.primaryContainer,
-                  child: Text(
-                    '${index + 1}',
-                    style: TextStyle(
-                      color: theme.colorScheme.onPrimaryContainer,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                title: Text(
-                  item.productName,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      [
-                        if (item.unit != null) item.unit,
-                        if (item.rate > 0) 'Rate: Rs. ${item.rate.toStringAsFixed(2)}',
-                        'Total: Rs. ${gross.toStringAsFixed(2)}',
-                      ].join('  |  '),
-                      style: theme.textTheme.bodySmall,
-                    ),
-                    if (item.discountAmount > 0)
-                      Text(
-                        'Discount: -Rs. ${item.discountAmount.toStringAsFixed(2)}  |  Net: Rs. ${item.lineTotal.toStringAsFixed(2)}',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.error,
-                        ),
-                      ),
-                  ],
-                ),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: Icon(
-                        Icons.discount_outlined,
-                        color: item.discountAmount > 0
-                            ? theme.colorScheme.primary
-                            : theme.colorScheme.onSurfaceVariant,
-                      ),
-                      onPressed: () => _showItemDiscountDialog(context, index, item),
-                    ),
-                    Text(
-                      'Qty: ${item.quantity.toStringAsFixed(item.quantity == item.quantity.roundToDouble() ? 0 : 1)}',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    IconButton(
-                      icon: Icon(
-                        Icons.remove_circle_outline,
-                        color: theme.colorScheme.error,
-                      ),
-                      onPressed: () {
-                        ref.read(salesReturnProvider.notifier).removeItem(index);
-                      },
-                    ),
-                  ],
-                ),
-              );
-            },
+          child: Column(
+            children: [
+              _buildItemHeader(theme),
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: state.items.length,
+                separatorBuilder: (_, __) => const Divider(height: 1, indent: 16, endIndent: 16),
+                itemBuilder: (context, index) {
+                  return _buildItemRow(context, index, state.items[index], theme);
+                },
+              ),
+            ],
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildItemHeader(ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+      child: Row(
+        children: [
+          const SizedBox(width: 28), // for leading number
+          Expanded(
+            flex: 3,
+            child: Text('Product', style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w600)),
+          ),
+          const SizedBox(width: 4),
+          Expanded(
+            flex: 3,
+            child: Text('Qty', style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w600), textAlign: TextAlign.center),
+          ),
+          const SizedBox(width: 4),
+          Expanded(
+            flex: 2,
+            child: Text('Rate', style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w600), textAlign: TextAlign.center),
+          ),
+          const SizedBox(width: 4),
+          Expanded(
+            flex: 2,
+            child: Text('Unit', style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w600), textAlign: TextAlign.center),
+          ),
+          const SizedBox(width: 4),
+          Expanded(
+            flex: 2,
+            child: Text('Disc. Value', style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w600), textAlign: TextAlign.center),
+          ),
+          const SizedBox(width: 4),
+          Expanded(
+            flex: 2,
+            child: Text('Disc. Type', style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w600), textAlign: TextAlign.center),
+          ),
+          const SizedBox(width: 4),
+          Expanded(
+            flex: 2,
+            child: Text('Amount', style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w600), textAlign: TextAlign.end),
+          ),
+          const SizedBox(width: 28), // for delete icon (fits the icon button size)
+        ],
+      ),
+    );
+  }
+
+  Widget _buildItemRow(BuildContext context, int index, SalesReturnItem item, ThemeData theme) {
+    final gross = item.quantity * item.rate;
+
+    if (!_itemDiscControllers.containsKey(index)) {
+      _itemDiscControllers[index] = TextEditingController(
+        text: item.discountValue > 0 ? item.discountValue.toString() : '',
+      );
+      _itemDiscTypes[index] = item.discountType;
+    }
+    final discCtrl = _itemDiscControllers[index]!;
+    String? selectedType = _itemDiscTypes[index];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 28,
+            child: Text(
+              '${index + 1}',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: Text(
+              item.productName,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodySmall,
+            ),
+          ),
+          const SizedBox(width: 4),
+          Expanded(
+            flex: 3,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  iconSize: 20,
+                  constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                  icon: Icon(Icons.remove_circle_outline, color: theme.colorScheme.error),
+                  onPressed: () {
+                    ref.read(salesReturnProvider.notifier).decrementItemQuantity(index);
+                  },
+                ),
+                Text(
+                  item.quantity.toStringAsFixed(item.quantity == item.quantity.roundToDouble() ? 0 : 1),
+                  style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+                ),
+                IconButton(
+                  iconSize: 20,
+                  constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                  icon: Icon(Icons.add_circle_outline, color: theme.colorScheme.primary),
+                  onPressed: () {
+                    ref.read(salesReturnProvider.notifier).incrementItemQuantity(index);
+                  },
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 4),
+          Expanded(
+            flex: 2,
+            child: Text(
+              'Rs.${item.rate.toStringAsFixed(2)}',
+              style: theme.textTheme.bodySmall,
+              textAlign: TextAlign.center,
+            ),
+          ),
+          const SizedBox(width: 4),
+          Expanded(
+            flex: 2,
+            child: Text(
+              item.unit ?? '',
+              style: theme.textTheme.bodySmall,
+              textAlign: TextAlign.center,
+            ),
+          ),
+          const SizedBox(width: 4),
+          Expanded(
+            flex: 2,
+            child: SizedBox(
+              height: 36,
+              child: TextField(
+                controller: discCtrl,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
+                ],
+                decoration: InputDecoration(
+                  hintText: '0',
+                  border: const OutlineInputBorder(),
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                ),
+                onChanged: (value) {
+                  final val = double.tryParse(value) ?? 0;
+                  ref.read(salesReturnProvider.notifier).setItemDiscount(
+                    index, selectedType, val,
+                  );
+                },
+              ),
+            ),
+          ),
+          const SizedBox(width: 4),
+          Expanded(
+            flex: 2,
+            child: SizedBox(
+              height: 36,
+              child: DropdownButtonFormField<String?>(
+                isExpanded: true,
+                initialValue: selectedType,
+                decoration: InputDecoration(
+                  border: const OutlineInputBorder(),
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                ),
+                items: const [
+                  DropdownMenuItem(value: null, child: Text('None', style: TextStyle(fontSize: 12))),
+                  DropdownMenuItem(value: 'amount', child: Text('Rs.', style: TextStyle(fontSize: 12))),
+                  DropdownMenuItem(value: 'percent', child: Text('%', style: TextStyle(fontSize: 12))),
+                ],
+                onChanged: (value) {
+                  _itemDiscTypes[index] = value;
+                  ref.read(salesReturnProvider.notifier).setItemDiscount(
+                    index, value, double.tryParse(discCtrl.text) ?? 0,
+                  );
+                },
+              ),
+            ),
+          ),
+          const SizedBox(width: 4),
+          SizedBox(
+            width: 60,
+            child: Text(
+              item.discountAmount > 0
+                  ? '-Rs.${item.discountAmount.toStringAsFixed(0)}'
+                  : 'Rs.${gross.toStringAsFixed(0)}',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: item.discountAmount > 0 ? theme.colorScheme.error : null,
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.end,
+            ),
+          ),
+          IconButton(
+            iconSize: 20,
+            constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+            icon: Icon(Icons.remove_circle_outline, color: theme.colorScheme.error),
+            onPressed: () {
+              ref.read(salesReturnProvider.notifier).removeItem(index);
+            },
+          ),
+        ],
+      ),
     );
   }
 
@@ -393,13 +568,11 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
         child: Column(
           children: [
             _totalRow('Gross Total', state.grossTotal, theme, null),
-            if (state.totalItemDiscount > 0)
-              _totalRow('Item Discount', -state.totalItemDiscount, theme, theme.colorScheme.error),
-            if (state.discountAmount > 0)
-              _totalRow('Header Discount', -state.discountAmount, theme, theme.colorScheme.error),
+            _totalRow('Item Discount', -state.totalItemDiscount, theme, theme.colorScheme.error),
+            _totalRow('Header Discount', -state.discountAmount, theme, theme.colorScheme.error),
             const Divider(),
             _totalRow('Net Total', state.netTotal, theme,
-                Theme.of(context).colorScheme.primary, bold: true),
+                theme.colorScheme.primary, bold: true),
           ],
         ),
       ),
@@ -420,7 +593,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
             ),
           ),
           Text(
-            'Rs. ${amount.toStringAsFixed(2)}',
+            amount >= 0 ? 'Rs. ${amount.toStringAsFixed(2)}' : '- Rs. ${(-amount).toStringAsFixed(2)}',
             style: (bold ? theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600) : theme.textTheme.bodyMedium)?.copyWith(
               color: color,
               fontWeight: bold ? FontWeight.w600 : null,
@@ -431,7 +604,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
     );
   }
 
-  Widget _buildDiscountSection(SalesReturnState state, ThemeData theme, AppLocalizations l10n) {
+  Widget _buildHeaderDiscountSection(SalesReturnState state, ThemeData theme, AppLocalizations l10n) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -446,74 +619,36 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            DropdownButtonFormField<String?>(
-              isExpanded: true,
-              value: state.discountType,
-              decoration: const InputDecoration(
-                labelText: 'Discount Type',
-                border: OutlineInputBorder(),
-                isDense: true,
-              ),
-              items: const [
-                DropdownMenuItem(value: null, child: Text('None')),
-                DropdownMenuItem(value: 'amount', child: Text('Amount (Rs.)')),
-                DropdownMenuItem(value: 'percent', child: Text('Percent (%)')),
-              ],
-              onChanged: (value) {
-                ref.read(salesReturnProvider.notifier).setDiscountType(value);
-                if (value == null) {
-                  _discountValueController.clear();
-                }
-              },
-            ),
-            if (state.discountType != null) ...[
-              const SizedBox(height: 12),
-              TextField(
-                controller: _discountValueController,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
-                ],
-                decoration: InputDecoration(
-                  labelText: state.discountType == 'percent' ? 'Percent (%)' : 'Amount (Rs.)',
-                  suffixText: state.discountType == 'percent' ? '%' : 'Rs.',
-                  border: const OutlineInputBorder(),
-                  isDense: true,
+            Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: TextField(
+                    controller: _discountValueController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
+                    ],
+                    decoration: InputDecoration(
+                      labelText: 'Value',
+                      hintText: '0',
+                      border: const OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                    onChanged: (value) {
+                      final val = double.tryParse(value) ?? 0;
+                      ref.read(salesReturnProvider.notifier).setDiscountValue(val);
+                    },
+                  ),
                 ),
-                onChanged: (value) {
-                  final val = double.tryParse(value) ?? 0;
-                  ref.read(salesReturnProvider.notifier).setDiscountValue(val);
-                },
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showItemDiscountDialog(BuildContext context, int index, SalesReturnItem item) {
-    final typeController = TextEditingController(text: item.discountType ?? '');
-    final valueController = TextEditingController(
-      text: item.discountValue > 0 ? item.discountValue.toString() : '',
-    );
-    String? selectedType = item.discountType;
-
-    showDialog(
-      context: context,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: Text('Discount - ${item.productName}'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  DropdownButtonFormField<String?>(
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 2,
+                  child:                   DropdownButtonFormField<String?>(
                     isExpanded: true,
-                    value: selectedType,
+                    initialValue: state.discountType,
                     decoration: const InputDecoration(
-                      labelText: 'Discount Type',
+                      labelText: 'Type',
                       border: OutlineInputBorder(),
                       isDense: true,
                     ),
@@ -523,68 +658,33 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
                       DropdownMenuItem(value: 'percent', child: Text('Percent (%)')),
                     ],
                     onChanged: (value) {
-                      setDialogState(() {
-                        selectedType = value;
-                        if (value == null) valueController.clear();
-                      });
+                      ref.read(salesReturnProvider.notifier).setDiscountType(value);
+                      if (value == null) {
+                        _discountValueController.clear();
+                      }
                     },
                   ),
-                  if (selectedType != null) ...[
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: valueController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
-                      ],
-                      decoration: InputDecoration(
-                        labelText: selectedType == 'percent' ? 'Percent (%)' : 'Amount (Rs.)',
-                        suffixText: selectedType == 'percent' ? '%' : 'Rs.',
-                        border: const OutlineInputBorder(),
-                        isDense: true,
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 8),
-                  Text(
-                    'Gross: Rs. ${(item.quantity * item.rate).toStringAsFixed(2)}',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Cancel'),
-                ),
-                FilledButton(
-                  onPressed: () {
-                    final val = double.tryParse(valueController.text) ?? 0;
-                    ref.read(salesReturnProvider.notifier).setItemDiscount(
-                      index, selectedType, val,
-                    );
-                    Navigator.pop(ctx);
-                  },
-                  child: const Text('Apply'),
                 ),
               ],
-            );
-          },
-        );
-      },
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   Future<void> _saveSalesReturn(BuildContext context) async {
-    final success =
-        await ref.read(salesReturnProvider.notifier).saveSalesReturn();
+    final notifier = ref.read(salesReturnProvider.notifier);
+    final success = await notifier.saveSalesReturn();
 
     if (!context.mounted) return;
 
     if (!success) {
+      final errMsg = ref.read(salesReturnProvider).error;
+      print(errMsg);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(AppLocalizations.of(context)!.failedToSaveSalesReturn),
+          content: Text(errMsg ?? AppLocalizations.of(context)!.failedToSaveSalesReturn),
           backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
