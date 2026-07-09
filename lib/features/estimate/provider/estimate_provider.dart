@@ -85,24 +85,26 @@ class EstimateState {
     if (customerSearchQuery.isEmpty) return [];
     final query = customerSearchQuery.toLowerCase();
     return customers
-        .where((c) =>
-            c.name.toLowerCase().contains(query) ||
-            (c.phone?.toLowerCase().contains(query) ?? false))
+        .where(
+          (c) =>
+              c.name.toLowerCase().contains(query) ||
+              (c.phone?.toLowerCase().contains(query) ?? false),
+        )
         .take(5)
         .toList();
   }
 }
 
 final estimateProvider =
-    StateNotifierProvider<EstimateNotifier, EstimateState>((ref) {
-  return EstimateNotifier(
-    deliveryRepo: ref.read(deliveryRepositoryProvider),
-    customerRepo: ref.read(customerRepositoryProvider),
-    productRepo: ref.read(productRepositoryProvider),
-    paymentModeRepo: ref.read(paymentModeRepositoryProvider),
-    estimateRepo: ref.read(estimateRepositoryProvider),
-  );
-});
+    StateNotifierProvider.autoDispose<EstimateNotifier, EstimateState>((ref) {
+      return EstimateNotifier(
+        deliveryRepo: ref.read(deliveryRepositoryProvider),
+        customerRepo: ref.read(customerRepositoryProvider),
+        productRepo: ref.read(productRepositoryProvider),
+        paymentModeRepo: ref.read(paymentModeRepositoryProvider),
+        estimateRepo: ref.read(estimateRepositoryProvider),
+      );
+    });
 
 class EstimateNotifier extends StateNotifier<EstimateState> {
   final DeliveryRepository _deliveryRepo;
@@ -117,18 +119,21 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
     required ProductRepository productRepo,
     required PaymentModeRepository paymentModeRepo,
     required EstimateRepository estimateRepo,
-  })  : _deliveryRepo = deliveryRepo,
-        _customerRepo = customerRepo,
-        _productRepo = productRepo,
-        _paymentModeRepo = paymentModeRepo,
-        _estimateRepo = estimateRepo,
-        super(EstimateState(isLoadingDelivery: true));
+  }) : _deliveryRepo = deliveryRepo,
+       _customerRepo = customerRepo,
+       _productRepo = productRepo,
+       _paymentModeRepo = paymentModeRepo,
+       _estimateRepo = estimateRepo,
+       super(EstimateState(isLoadingDelivery: true));
 
   void initializeFromDeliveryForm({
     required List<EstimateItemView> items,
     required List<PaymentMode> paymentModes,
   }) {
-    final netAfterProductDiscount = items.fold<double>(0, (sum, i) => sum + i.lineTotal);
+    final netAfterProductDiscount = items.fold<double>(
+      0,
+      (sum, i) => sum + i.lineTotal,
+    );
     final draftDelivery = Delivery()
       ..customerId = ''
       ..createdDate = DateTime.now();
@@ -142,41 +147,22 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
   }
 
   Future<void> loadCustomers() async {
-    try {
-      final customers = await _customerRepo.getCustomers();
-      state = EstimateState(
-        delivery: state.delivery,
-        customer: state.customer,
-        items: state.items,
-        customers: customers,
-        pendingDeliveries: state.pendingDeliveries,
-        paymentModes: state.paymentModes,
-        paymentMode: state.paymentMode,
-        paidAmount: state.paidAmount,
-        remarks: state.remarks,
-        discountType: state.discountType,
-        discountValue: state.discountValue,
-        discountAmount: state.discountAmount,
-        isLoadingDelivery: false,
-      );
-    } catch (_) {
-      final customers = await _customerRepo.getCachedCustomers();
-      state = EstimateState(
-        delivery: state.delivery,
-        customer: state.customer,
-        items: state.items,
-        customers: customers,
-        pendingDeliveries: state.pendingDeliveries,
-        paymentModes: state.paymentModes,
-        paymentMode: state.paymentMode,
-        paidAmount: state.paidAmount,
-        remarks: state.remarks,
-        discountType: state.discountType,
-        discountValue: state.discountValue,
-        discountAmount: state.discountAmount,
-        isLoadingDelivery: false,
-      );
-    }
+    final customers = await _customerRepo.getCachedCustomers();
+    state = EstimateState(
+      delivery: state.delivery,
+      customer: state.customer,
+      items: state.items,
+      customers: customers,
+      pendingDeliveries: state.pendingDeliveries,
+      paymentModes: state.paymentModes,
+      paymentMode: state.paymentMode,
+      paidAmount: state.paidAmount,
+      remarks: state.remarks,
+      discountType: state.discountType,
+      discountValue: state.discountValue,
+      discountAmount: state.discountAmount,
+      isLoadingDelivery: false,
+    );
   }
 
   void selectCustomer(Customer? customer) {
@@ -232,17 +218,21 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
 
     final customers = await _customerRepo.getCachedCustomers();
     final customer = customers.cast<Customer?>().firstWhere(
-          (c) => c?.serverId == delivery.customerId,
-          orElse: () => null,
-        );
+      (c) => c?.serverId == delivery.customerId,
+      orElse: () => null,
+    );
 
     final products = await _productRepo.getCachedProducts();
     final paymentModes = await _loadAllPaymentModes();
     final items = await _deliveryRepo.getDeliveryItems(deliveryId);
 
     final itemViews = items.map((item) {
-      final product = products.where((p) => p.serverId == item.productId).firstOrNull;
-      final price = item.unitPrice > 0 ? item.unitPrice : (product?.unitPrice ?? 0);
+      final product = products
+          .where((p) => p.serverId == item.productId)
+          .firstOrNull;
+      final price = item.unitPrice > 0
+          ? item.unitPrice
+          : (product?.unitPrice ?? 0);
       return EstimateItemView(
         productId: item.productId,
         productName: product?.name ?? 'Unknown',
@@ -258,7 +248,9 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
     double discountValue = 0;
     double discountAmount = 0;
 
-    final existingEstimates = await _estimateRepo.getEstimatesByDelivery(deliveryId);
+    final existingEstimates = await _estimateRepo.getEstimatesByDelivery(
+      deliveryId,
+    );
     if (existingEstimates.isNotEmpty) {
       final existing = existingEstimates.first;
       paymentMode = existing.paymentMode;
@@ -385,7 +377,11 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
   }
 
   void setDiscountValue(double value) {
-    final amount = _calcDiscountAmount(state.discountType, value, state.grossTotal);
+    final amount = _calcDiscountAmount(
+      state.discountType,
+      value,
+      state.grossTotal,
+    );
     state = EstimateState(
       delivery: state.delivery,
       customer: state.customer,
@@ -450,10 +446,14 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
       }).toList();
 
       final payModeName = state.paymentMode != null
-          ? (state.paymentModes.cast<PaymentMode?>().firstWhere(
-                (m) => m?.serverId == state.paymentMode,
-                orElse: () => null,
-              )?.name ?? 'Cash')
+          ? (state.paymentModes
+                    .cast<PaymentMode?>()
+                    .firstWhere(
+                      (m) => m?.serverId == state.paymentMode,
+                      orElse: () => null,
+                    )
+                    ?.name ??
+                'Cash')
           : 'Cash';
 
       final payModeId = state.paymentMode ?? ApiConfig.emptyGuid;
@@ -464,13 +464,14 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
           '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
 
       final totalQty = state.items.fold<double>(
-          0, (sum, item) => sum + item.quantity);
+        0,
+        (sum, item) => sum + item.quantity,
+      );
       final invoiceGrossAmount = state.totalGrossAmount;
       final totalProductDiscount = state.totalProductDiscount;
       final globalDiscount = state.discountAmount;
       final totalDiscount = totalProductDiscount + globalDiscount;
       final netAmount = invoiceGrossAmount - totalDiscount;
-      final totalTax = 0.0;
 
       final totalGross = state.totalGrossAmount;
       final productsMap = <String, Product>{
@@ -483,26 +484,90 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
             : 1.0 / state.items.length;
         final itemGlobalDiscount = globalDiscount * proportion;
         final itemNetAfterAll = item.lineTotal - itemGlobalDiscount;
+
+        final taxableType = product?.taxable ?? 0;
+        final rate = item.unitPrice;
+        final quantity = item.quantity;
+        final discount = item.discountAmount;
+        const taxPercent = 13.0;
+
+        double rateIncTax;
+        double grossAmount;
+        double grossAmountIncTax;
+        double taxableAmount;
+        double nonTaxableAmount;
+        double taxAmount;
+
+        double rateExTax;
+        if (taxableType == 0) {
+          rateExTax = rate;
+          rateIncTax = rate * (1 + taxPercent / 100);
+          grossAmount = rateExTax * quantity;
+          grossAmountIncTax = rateIncTax * quantity;
+          taxableAmount = grossAmount;
+          nonTaxableAmount = 0;
+          taxAmount = grossAmountIncTax - grossAmount;
+        } else if (taxableType == 1) {
+          rateIncTax = rate;
+          rateExTax = rate / (1 + taxPercent / 100);
+          grossAmountIncTax = rateIncTax * quantity;
+          grossAmount = rateExTax * quantity;
+          taxableAmount = grossAmount;
+          nonTaxableAmount = 0;
+          taxAmount = grossAmountIncTax - grossAmount;
+        } else {
+          rateExTax = rate;
+          rateIncTax = rate;
+          grossAmount = rateExTax * quantity;
+          grossAmountIncTax = grossAmount;
+          taxableAmount = 0;
+          nonTaxableAmount = grossAmount;
+          taxAmount = 0;
+        }
+
         return SalesInvoiceItemRequest(
           refNo: item.productId,
+          chalanNumber: product?.chalanNumber ?? '',
           productId: item.productId,
           name: item.productName,
-          quantity: item.quantity,
+          quantity: quantity,
           unitId: product?.unitId ?? '',
           unitName: product?.unit ?? '',
           categoryId: product?.categoryId ?? '',
-          rate: item.unitPrice,
-          rateIncludingTax: item.unitPrice,
-          grossAmount: item.grossAmount,
-          grossAmountIncludingTax: item.grossAmount,
-          discount: item.discountAmount,
-          nonTaxable: itemNetAfterAll,
+          rate: rateExTax,
+          rateIncludingTax: rateIncTax,
+          grossAmount: grossAmount,
+          grossAmountIncludingTax: grossAmountIncTax,
+          discount: discount,
+          taxable: taxableAmount,
+          nonTaxable: nonTaxableAmount,
+          taxPercent: taxPercent,
+          taxAmount: taxAmount,
           netAmount: itemNetAfterAll,
           salesInvoiceItemTax: [
-            SalesInvoiceItemTaxRequest(),
+            SalesInvoiceItemTaxRequest(
+              taxableAmount: taxableAmount,
+              taxAmount: taxAmount,
+              netAmount: itemNetAfterAll,
+            ),
           ],
         );
       }).toList();
+
+      final chalanNumber =
+          productsMap[state.items.first.productId]?.chalanNumber ?? '';
+      final totalTaxable = salesInvoiceItems.fold<double>(
+        0,
+        (sum, item) => sum + item.taxable,
+      );
+      final totalNonTaxable = salesInvoiceItems.fold<double>(
+        0,
+        (sum, item) => sum + item.nonTaxable,
+      );
+      final totalItemTax = salesInvoiceItems.fold<double>(
+        0,
+        (sum, item) => sum + item.taxAmount,
+      );
 
       final salesInvoiceRequest = SalesInvoiceRequest(
         transactionDate: transactionDate,
@@ -511,25 +576,26 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
         outletId: ApiConfig.emptyGuid,
         totalQuantity: totalQty,
         totalGrossAmount: invoiceGrossAmount,
-        totalGrossAmountIncludingTax: invoiceGrossAmount,
+        totalGrossAmountIncludingTax: invoiceGrossAmount + totalItemTax,
         totalDiscount: totalDiscount,
         totalDiscountIncludingTax: totalDiscount,
-        totalTaxableAmount: 0,
-        totalNonTaxableAmount: netAmount,
-        totalTax: totalTax,
-        totalNetAmount: netAmount,
-        totalPayableAmount: netAmount,
+        totalTaxableAmount: totalTaxable,
+        totalNonTaxableAmount: totalNonTaxable,
+        totalTax: totalItemTax,
+        totalNetAmount: netAmount + totalItemTax,
+        totalPayableAmount: netAmount + totalItemTax,
         payMode: payModeName,
-        tenderAmount: netAmount,
-        salesInvoiceTax: [
-          SalesInvoiceTaxRequest(taxAmount: totalTax),
-        ],
+        tenderAmount: netAmount + totalItemTax,
+        chalanNumber: chalanNumber,
+        salesInvoiceTax: [SalesInvoiceTaxRequest(taxAmount: totalItemTax)],
         salesInvoiceItem: salesInvoiceItems,
         salesInvoicePayment: [
           SalesInvoicePaymentRequest(
             payMode: payModeName,
             paymentId: payModeId,
-            amount: state.paidAmount > 0 ? state.paidAmount : netAmount,
+            amount: state.paidAmount > 0
+                ? state.paidAmount
+                : netAmount + totalItemTax,
           ),
         ],
         currencyId: ApiConfig.defaultCurrencyId,

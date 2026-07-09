@@ -165,7 +165,8 @@ class _CartItemCard extends StatefulWidget {
 class _CartItemCardState extends State<_CartItemCard> {
   late TextEditingController _qtyController;
   late TextEditingController _discountController;
-  bool _isFocused = false;
+  bool _isQtyFocused = false;
+  bool _isDiscountFocused = false;
 
   @override
   void initState() {
@@ -183,10 +184,10 @@ class _CartItemCardState extends State<_CartItemCard> {
   @override
   void didUpdateWidget(_CartItemCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (!_isFocused) {
+    if (!_isQtyFocused) {
       _qtyController.text = widget.item.quantity.toStringAsFixed(0);
     }
-    if (widget.item.discountAmount != oldWidget.item.discountAmount) {
+    if (!_isDiscountFocused && widget.item.discountAmount != oldWidget.item.discountAmount) {
       _discountController.text = widget.item.discountAmount > 0
           ? widget.item.discountAmount.toStringAsFixed(2)
           : '';
@@ -205,7 +206,7 @@ class _CartItemCardState extends State<_CartItemCard> {
     if (qty != widget.item.quantity) {
       widget.onQuantityChanged(qty);
     }
-    setState(() => _isFocused = false);
+    setState(() => _isQtyFocused = false);
   }
 
   @override
@@ -284,7 +285,7 @@ class _CartItemCardState extends State<_CartItemCard> {
                   child: Focus(
                     onFocusChange: (focused) {
                       if (!focused) _applyQty();
-                      setState(() => _isFocused = focused);
+                      setState(() => _isQtyFocused = focused);
                     },
                     child: TextField(
                       controller: _qtyController,
@@ -326,7 +327,11 @@ class _CartItemCardState extends State<_CartItemCard> {
               children: [
                 SizedBox(
                   width: 120,
-                  child: TextField(
+                  child: Focus(
+                    onFocusChange: (focused) {
+                      setState(() => _isDiscountFocused = focused);
+                    },
+                    child: TextField(
                     controller: _discountController,
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
@@ -356,6 +361,7 @@ class _CartItemCardState extends State<_CartItemCard> {
                       final discount = double.tryParse(value) ?? 0;
                       widget.onDiscountChanged(discount);
                     },
+                  ),
                   ),
                 ),
                 const Spacer(),

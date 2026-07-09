@@ -2,9 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite/sqflite.dart';
 
 import '../core/database/providers.dart';
-import '../core/network/api_service.dart';
-import '../core/network/providers.dart';
-import '../dto/dashboard_response.dart';
 import '../models/category.dart';
 import '../models/driver.dart';
 import '../models/driver_stock.dart';
@@ -12,24 +9,16 @@ import '../models/product.dart';
 
 final dashboardRepositoryProvider = Provider<DashboardRepository>((ref) {
   return DashboardRepository(
-    apiService: ref.read(apiServiceProvider),
     db: ref.read(databaseServiceProvider).db,
   );
 });
 
 class DashboardRepository {
-  final ApiService _apiService;
   final Database _db;
 
   DashboardRepository({
-    required ApiService apiService,
     required Database db,
-  })  : _apiService = apiService,
-        _db = db;
-
-  Future<DashboardResponse> fetchDashboard() {
-    return _apiService.fetchDashboard();
-  }
+  })  : _db = db;
 
   Future<Driver?> getDriver() async {
     final maps = await _db.query('driver', limit: 1);
@@ -114,20 +103,27 @@ class DashboardRepository {
   }
 
   Future<int> getAssignedProductsCount() async {
-    final result = await _db.rawQuery('SELECT COUNT(*) as count FROM driver_stock');
+    final result = await _db.rawQuery('SELECT COUNT(*) as count FROM product');
     return Sqflite.firstIntValue(result) ?? 0;
   }
 
   Future<List<Map<String, dynamic>>> getRemainingAssignedStock() async {
-    final stockMaps = await _db.query('driver_stock');
     final result = <Map<String, dynamic>>[];
+    final stockMaps = await _db.query('driver_stock');
+    if (stockMaps.isEmpty) return result;
 
-    for (final stockMap in stockMaps) {
-      final stock = DriverStock.fromMap(stockMap);
-      final productMaps = await _db.query('product',
-          where: 'server_id = ?', whereArgs: [stock.productId]);
-      if (productMaps.isNotEmpty) {
-        final product = Product.fromMap(productMaps.first);
+    final stockList = stockMaps.map((m) => DriverStock.fromMap(m)).toList();
+    final productIds = stockList.map((s) => s.productId).toList();
+    final placeholders = List.generate(productIds.length, (_) => '?').join(',');
+    final productMaps = await _db.query('product',
+        where: 'server_id IN ($placeholders)', whereArgs: productIds);
+    final productMap = {
+      for (final m in productMaps) m['server_id'] as String: Product.fromMap(m)
+    };
+
+    for (final stock in stockList) {
+      final product = productMap[stock.productId];
+      if (product != null) {
         result.add({
           'product': product,
           'assigned': stock.assignedQuantity,

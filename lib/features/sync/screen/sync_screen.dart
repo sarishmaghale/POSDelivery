@@ -20,6 +20,47 @@ class SyncScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          if (state.pendingQueue.isNotEmpty && !state.isSyncing) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.errorContainer,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.cloud_off,
+                    color: theme.colorScheme.onErrorContainer,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${state.pendingQueue.length} bill(s) pending sync',
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: theme.colorScheme.onErrorContainer,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Offline invoices waiting to be pushed to server.',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onErrorContainer,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
           Text(
             l10n.syncStatus,
             style: theme.textTheme.titleMedium?.copyWith(
@@ -136,37 +177,6 @@ class SyncScreen extends ConsumerWidget {
                 ),
               ),
             ),
-          ],
-          if (state.pendingQueue.isNotEmpty) ...[
-            const SizedBox(height: 20),
-            Text(
-              'Pending Items',
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 8),
-            ...state.pendingQueue.map((entry) {
-              return Card(
-                child: ListTile(
-                  leading: Icon(
-                    entry.entityType == 'Delivery'
-                        ? Icons.local_shipping
-                        : Icons.receipt_long,
-                  ),
-                  title: Text('${entry.entityType} #${entry.entityId}'),
-                  subtitle: Text(
-                    'Status: ${entry.status}',
-                    style: TextStyle(
-                      color: entry.status == 'Failed'
-                          ? theme.colorScheme.error
-                          : theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  trailing: _statusIcon(entry.status),
-                ),
-              );
-            }),
           ],
           if (!state.isSyncing) ...[
             const SizedBox(height: 24),

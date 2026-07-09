@@ -58,9 +58,24 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
     final cachedCategories = await _categoryRepo.getCachedCategories();
     final hasCache = cachedCategories.isNotEmpty;
 
+    final deliveries = await _dashboardRepo.getTodaysDeliveries();
+    final estimates = await _dashboardRepo.getEstimatedBillsCreated();
+    final salesReturns = await _dashboardRepo.getTodaysSalesReturns();
+    final assignedCustomers = await _dashboardRepo.getAssignedCustomersCount();
+    final assignedProducts = await _dashboardRepo.getAssignedProductsCount();
+    final pendingSync = await _dashboardRepo.getPendingSyncCount();
+    final dbLastSync = await _dashboardRepo.getLastSyncTime();
+
     state = DashboardState(
       isLoading: !hasCache,
       categories: cachedCategories,
+      todaysDeliveries: deliveries,
+      estimatedBills: estimates,
+      todaysSalesReturns: salesReturns,
+      pendingSync: pendingSync,
+      assignedCustomersCount: assignedCustomers,
+      assignedProductsCount: assignedProducts,
+      lastSyncTime: dbLastSync?.toIso8601String(),
     );
 
     _prefetchImages(cachedCategories);
@@ -69,51 +84,41 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
 
   Future<void> _refreshInBackground() async {
     try {
-      final categories = await _categoryRepo.refreshCategories();
+      final categories = await _categoryRepo.getCachedCategories();
       _prefetchImages(categories);
-
-      var pending = 0;
-      String? lastSync;
-      String? driverName;
-      int assignedProductCount = 0;
-
-      try {
-        final apiData = await _dashboardRepo.fetchDashboard();
-        pending = apiData.pendingSync;
-        lastSync = apiData.lastSyncTime;
-        driverName = apiData.driverName;
-        assignedProductCount = apiData.assignedProductIds.length;
-      } catch (_) {}
 
       final deliveries = await _dashboardRepo.getTodaysDeliveries();
       final estimates = await _dashboardRepo.getEstimatedBillsCreated();
       final salesReturns = await _dashboardRepo.getTodaysSalesReturns();
       final assignedCustomers = await _dashboardRepo.getAssignedCustomersCount();
+      final assignedProductCount = await _dashboardRepo.getAssignedProductsCount();
       final remainingStock = await _dashboardRepo.getRemainingAssignedStock();
-      if (lastSync == null) {
-        final dbLastSync = await _dashboardRepo.getLastSyncTime();
-        lastSync = dbLastSync?.toIso8601String();
-      }
-      if (assignedProductCount == 0) {
-        assignedProductCount = await _dashboardRepo.getAssignedProductsCount();
-      }
+      final pendingSync = await _dashboardRepo.getPendingSyncCount();
+      final dbLastSync = await _dashboardRepo.getLastSyncTime();
 
       state = DashboardState(
-        driverName: driverName ?? state.driverName,
         categories: categories,
         todaysDeliveries: deliveries,
         estimatedBills: estimates,
         todaysSalesReturns: salesReturns,
-        pendingSync: pending,
+        pendingSync: pendingSync,
         assignedCustomersCount: assignedCustomers,
         assignedProductsCount: assignedProductCount,
         remainingStock: remainingStock,
-        lastSyncTime: lastSync,
+        lastSyncTime: dbLastSync?.toIso8601String(),
       );
     } catch (_) {
       state = DashboardState(
         driverName: state.driverName,
         categories: state.categories,
+        todaysDeliveries: state.todaysDeliveries,
+        estimatedBills: state.estimatedBills,
+        todaysSalesReturns: state.todaysSalesReturns,
+        pendingSync: state.pendingSync,
+        assignedCustomersCount: state.assignedCustomersCount,
+        assignedProductsCount: state.assignedProductsCount,
+        remainingStock: state.remainingStock,
+        lastSyncTime: state.lastSyncTime,
         isLoading: false,
       );
     }

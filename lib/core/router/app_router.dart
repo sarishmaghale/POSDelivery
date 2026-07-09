@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/dashboard/screen/categories_screen.dart';
+import '../../features/dashboard/screen/customers_screen.dart';
 import '../../features/dashboard/screen/dashboard_screen.dart';
+import '../../features/dashboard/screen/products_screen.dart';
 import '../../features/delivery/screen/delivery_history_screen.dart';
 import '../../features/delivery/screen/delivery_screen.dart';
 import '../../features/estimate/screen/estimate_history_screen.dart';
@@ -85,6 +88,21 @@ final appRouterProvider = GoRouter(
       path: '/estimate-history',
       parentNavigatorKey: _rootNavigatorKey,
       builder: (context, state) => const EstimateHistoryScreen(),
+    ),
+    GoRoute(
+      path: '/categories',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const CategoriesScreen(),
+    ),
+    GoRoute(
+      path: '/products',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const ProductsScreen(),
+    ),
+    GoRoute(
+      path: '/customers',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const CustomersScreen(),
     ),
   ],
 );

@@ -1,24 +1,18 @@
 import 'package:dio/dio.dart';
 
-import '../../../dto/dashboard_response.dart';
-import '../../../dto/delivery_request.dart';
-import '../../../dto/delivery_response.dart';
-import '../../../dto/estimate_request.dart';
-import '../../../dto/estimate_response.dart';
-import '../../../dto/sales_invoice_request.dart';
-import '../../../dto/sales_invoice_response.dart';
+import '../../dto/sales_invoice_request.dart';
+import '../../dto/sales_invoice_response.dart';
 import 'api_config.dart';
 import 'api_service.dart';
-import 'mock_api_service.dart';
 
 class RealApiService implements ApiService {
   late final Dio _dio;
-  final MockApiService _fallback;
 
-  RealApiService()
-      : _fallback = MockApiService() {
+  RealApiService() {
     _dio = Dio(BaseOptions(
       baseUrl: ApiConfig.baseUrl,
+      connectTimeout: const Duration(seconds: 15),
+      receiveTimeout: const Duration(seconds: 15),
       headers: {
         'Authorization': 'Bearer ${ApiConfig.staticBearerToken}',
         'Content-Type': 'application/json',
@@ -41,68 +35,49 @@ class RealApiService implements ApiService {
   }
 
   @override
-  Future<List<Map<String, dynamic>>> fetchCategories() async {
-    return _fetchList(ApiConfig.categoryEndpoint);
+  Future<List<Map<String, dynamic>>> fetchCategories({
+    required String customerId,
+    required String transactionDate,
+  }) async {
+    return _fetchList(
+      '${ApiConfig.categoryEndpoint}?customerId=$customerId&transactionDate=$transactionDate',
+    );
   }
-
-  @override
-  Future<DashboardResponse> fetchDashboard() => _fallback.fetchDashboard();
 
   @override
   Future<List<Map<String, dynamic>>> fetchCustomers() async {
-    try {
-      final url = '${_dio.options.baseUrl}${ApiConfig.customerEndpoint}';
-      print('[API] Calling: $url?customernamesearch=');
-      final response = await _dio.get(
-        ApiConfig.customerEndpoint,
-        queryParameters: {'customernamesearch': ''},
-      );
-      print('[API] Response status: ${response.statusCode}');
-      print('[API] Response body: ${response.data}');
-      final body = response.data as Map<String, dynamic>;
-      final status = body['Status'] ?? body['status'] ?? false;
-      if (status != true) {
-        throw Exception(body['Message'] ?? body['message'] ?? 'API returned status false');
-      }
-      final data = body['Data'] ?? body['data'] ?? [];
-      if (data is List) {
-        print('[API] Got ${data.length} customers');
-        return data.cast<Map<String, dynamic>>();
-      }
-      return [];
-    } catch (e) {
-      print('[API] ERROR: $e');
-      print('[API] Falling back to mock');
-      return _fallback.fetchCustomers();
+    final response = await _dio.get(
+      ApiConfig.customerEndpoint,
+      queryParameters: {'customernamesearch': ''},
+    );
+    final body = response.data as Map<String, dynamic>;
+    final status = body['Status'] ?? body['status'] ?? false;
+    if (status != true) {
+      throw Exception(body['Message'] ?? body['message'] ?? 'API returned status false');
     }
+    final data = body['Data'] ?? body['data'] ?? [];
+    if (data is List) {
+      return data.cast<Map<String, dynamic>>();
+    }
+    return [];
   }
 
   @override
-  Future<List<Map<String, dynamic>>> fetchProducts() async {
-    try {
-      final response = await _dio.get(
-        ApiConfig.productEndpoint,
-        queryParameters: {
-          'categoryId': ApiConfig.allCategoryId,
-          'customerId': ApiConfig.defaultCustomerId,
-          'search': '',
-        },
-      );
-      final body = response.data as Map<String, dynamic>;
-      if (body['Status'] != true) {
-        throw Exception(body['Message'] ?? 'API returned status false');
-      }
-      final data = body['Data'];
-      if (data is List) {
-        return data.cast<Map<String, dynamic>>();
-      }
-      return [];
-    } catch (_) {
-      return _fallback.fetchProducts();
-    }
+  Future<List<Map<String, dynamic>>> fetchProducts({
+    required String customerId,
+    required String transactionDate,
+  }) async {
+    return _fetchList(
+      '${ApiConfig.productEndpoint}?customerId=$customerId&transactionDate=$transactionDate',
+    );
   }
 
   @override
+  Future<List<Map<String, dynamic>>> fetchPaymentModes() async {
+    return _fetchList(ApiConfig.paymodeEndpoint);
+  }
+
+@override
   Future<List<Map<String, dynamic>>> fetchAllProducts() async {
     final url = '${_dio.options.baseUrl}${ApiConfig.allProductsEndpoint}';
     print('[API] Calling AllProducts: $url');
@@ -125,44 +100,18 @@ class RealApiService implements ApiService {
       rethrow;
     }
   }
-
-  @override
-  Future<Map<String, dynamic>> fetchDriver() => _fallback.fetchDriver();
-
-  @override
-  Future<List<Map<String, dynamic>>> fetchStock() => _fallback.fetchStock();
-
-  @override
-  Future<List<Map<String, dynamic>>> fetchPaymentModes() =>
-      _fallback.fetchPaymentModes();
-
-  @override
-  Future<DeliveryResponse> createDelivery(DeliveryRequest request) =>
-      _fallback.createDelivery(request);
-
-  @override
-  Future<EstimateResponse> createEstimate(EstimateRequest request) =>
-      _fallback.createEstimate(request);
-
-  @override
-  Future<bool> createSalesReturn(Map<String, dynamic> data) =>
-      _fallback.createSalesReturn(data);
-
-  @override
-  Future<bool> syncData(Map<String, dynamic> payload) =>
-      _fallback.syncData(payload);
-
   @override
   Future<SalesInvoiceResponse> createSalesInvoice(SalesInvoiceRequest request) async {
-    try {
-      final response = await _dio.post(
-        ApiConfig.salesInvoiceAddEndpoint,
-        data: request.toJson(),
-      );
-      final body = response.data as Map<String, dynamic>;
-      return SalesInvoiceResponse.fromJson(body);
-    } catch (_) {
-      return _fallback.createSalesInvoice(request);
-    }
+    final response = await _dio.post(
+      ApiConfig.salesInvoiceAddEndpoint,
+      data: request.toJson(),
+    );
+    final body = response.data as Map<String, dynamic>;
+    return SalesInvoiceResponse.fromJson(body);
+  }
+
+  @override
+  Future<bool> createSalesReturn(Map<String, dynamic> data) async {
+    throw UnimplementedError('createSalesReturn not implemented on real API');
   }
 }

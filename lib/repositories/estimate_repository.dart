@@ -61,20 +61,21 @@ class EstimateRepository {
       ..createdDate = DateTime.now()
       ..isSynced = false;
 
-    final id = await _db.insert('estimate', estimate.toMap());
+    final id = await _db.transaction((txn) async {
+      final estimateId = await txn.insert('estimate', estimate.toMap());
+      for (final item in items) {
+        item.estimateId = estimateId;
+        await txn.insert('estimate_item', item.toMap());
+      }
+      final syncEntry = SyncQueue()
+        ..entityType = 'Estimate'
+        ..entityId = estimateId
+        ..status = 'Pending'
+        ..createdDate = DateTime.now();
+      await txn.insert('sync_queue', syncEntry.toMap());
+      return estimateId;
+    });
     estimate.id = id;
-
-    for (final item in items) {
-      item.estimateId = id;
-      await _db.insert('estimate_item', item.toMap());
-    }
-
-    final syncEntry = SyncQueue()
-      ..entityType = 'Estimate'
-      ..entityId = id
-      ..status = 'Pending'
-      ..createdDate = DateTime.now();
-    await _db.insert('sync_queue', syncEntry.toMap());
 
     final isOnline = await _networkChecker.isConnected;
     if (isOnline && salesInvoiceRequest != null) {
@@ -97,7 +98,6 @@ class EstimateRepository {
 
     try {
       final response = await _apiService.createSalesInvoice(request);
-      debugPrint(request.toJson().toString());
       if (response.success) {
         await _db.update(
           'estimate',

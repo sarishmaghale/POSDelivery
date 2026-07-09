@@ -1,11 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/network/api_config.dart';
+import '../../../core/services/image_prefetch_service.dart';
 import '../../../models/sync_queue.dart';
 import '../../../repositories/category_repository.dart';
 import '../../../repositories/customer_repository.dart';
 import '../../../repositories/payment_mode_repository.dart';
 import '../../../repositories/product_repository.dart';
-import '../../../repositories/stock_repository.dart';
 import '../../../repositories/sync_repository.dart';
 
 class SyncStatus {
@@ -45,7 +46,6 @@ final syncProvider = StateNotifierProvider<SyncNotifier, SyncState>((ref) {
     categoryRepo: ref.read(categoryRepositoryProvider),
     productRepo: ref.read(productRepositoryProvider),
     customerRepo: ref.read(customerRepositoryProvider),
-    stockRepo: ref.read(stockRepositoryProvider),
     paymentModeRepo: ref.read(paymentModeRepositoryProvider),
   );
 });
@@ -55,7 +55,6 @@ class SyncNotifier extends StateNotifier<SyncState> {
   final CategoryRepository _categoryRepo;
   final ProductRepository _productRepo;
   final CustomerRepository _customerRepo;
-  final StockRepository _stockRepo;
   final PaymentModeRepository _paymentModeRepo;
 
   SyncNotifier({
@@ -63,13 +62,11 @@ class SyncNotifier extends StateNotifier<SyncState> {
     required CategoryRepository categoryRepo,
     required ProductRepository productRepo,
     required CustomerRepository customerRepo,
-    required StockRepository stockRepo,
     required PaymentModeRepository paymentModeRepo,
   })  : _syncRepo = syncRepo,
         _categoryRepo = categoryRepo,
         _productRepo = productRepo,
         _customerRepo = customerRepo,
-        _stockRepo = stockRepo,
         _paymentModeRepo = paymentModeRepo,
         super(SyncState()) {
     refresh();
@@ -97,7 +94,6 @@ class SyncNotifier extends StateNotifier<SyncState> {
         'categories': const SyncStatus(label: 'Categories', success: null),
         'products': const SyncStatus(label: 'Products', success: null),
         'customers': const SyncStatus(label: 'Customers', success: null),
-        'stock': const SyncStatus(label: 'Stock', success: null),
         'paymentModes': const SyncStatus(label: 'Payment Modes', success: null),
       },
     );
@@ -111,7 +107,6 @@ class SyncNotifier extends StateNotifier<SyncState> {
           'categories': SyncStatus(label: 'Categories', success: results['categories']),
           'products': SyncStatus(label: 'Products', success: results['products']),
           'customers': SyncStatus(label: 'Customers', success: results['customers']),
-          'stock': SyncStatus(label: 'Stock', success: results['stock']),
           'paymentModes': SyncStatus(label: 'Payment Modes', success: results['paymentModes']),
         },
         isSyncing: true,
@@ -124,6 +119,10 @@ class SyncNotifier extends StateNotifier<SyncState> {
 
     await refresh();
 
+    final queuePending = state.pendingCount;
+    final queueFailed = state.failedCount;
+    final queueSyncOk = queuePending == 0 && queueFailed == 0;
+
     state = SyncState(
       pendingQueue: state.pendingQueue,
       pendingCount: state.pendingCount,
@@ -131,13 +130,14 @@ class SyncNotifier extends StateNotifier<SyncState> {
       syncedCount: state.syncedCount,
       lastSyncTime: state.lastSyncTime,
       isSyncing: false,
-      syncResult: allOk,
-      errorMessage: allOk ? null : 'Some data failed to sync from server. Local data preserved.',
+      syncResult: allOk && queueSyncOk,
+      errorMessage: allOk
+          ? (queueSyncOk ? null : 'Some bills failed to push to server.')
+          : 'Some data failed to sync from server. Local data preserved.',
       incomingStatus: {
         'categories': SyncStatus(label: 'Categories', success: results['categories']),
         'products': SyncStatus(label: 'Products', success: results['products']),
         'customers': SyncStatus(label: 'Customers', success: results['customers']),
-        'stock': SyncStatus(label: 'Stock', success: results['stock']),
         'paymentModes': SyncStatus(label: 'Payment Modes', success: results['paymentModes']),
       },
     );
@@ -148,16 +148,40 @@ class SyncNotifier extends StateNotifier<SyncState> {
   Future<Map<String, bool>> _syncFromServer() async {
     final results = <String, bool>{};
 
+    final now = DateTime.now();
+    final transactionDate =
+        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+
     try {
-      await _categoryRepo.refreshCategories();
+      final categories = await _categoryRepo.refreshCategories(
+        customerId: ApiConfig.defaultCustomerId,
+        transactionDate: transactionDate,
+      );
       results['categories'] = true;
+      final catUrls = categories
+          .where((c) => c.firstImageUrl != null && c.firstImageUrl!.isNotEmpty)
+          .map((c) => c.firstImageUrl!)
+          .toList();
+      if (catUrls.isNotEmpty) {
+        ImagePrefetchService().prefetchImages(catUrls);
+      }
     } catch (_) {
       results['categories'] = false;
     }
 
     try {
-      await _productRepo.refreshProducts();
+      final products = await _productRepo.refreshProducts(
+        customerId: ApiConfig.defaultCustomerId,
+        transactionDate: transactionDate,
+      );
       results['products'] = true;
+      final prodUrls = products
+          .where((p) => p.firstImageUrl != null && p.firstImageUrl!.isNotEmpty)
+          .map((p) => p.firstImageUrl!)
+          .toList();
+      if (prodUrls.isNotEmpty) {
+        ImagePrefetchService().prefetchImages(prodUrls);
+      }
     } catch (_) {
       results['products'] = false;
     }
@@ -167,13 +191,6 @@ class SyncNotifier extends StateNotifier<SyncState> {
       results['customers'] = true;
     } catch (_) {
       results['customers'] = false;
-    }
-
-    try {
-      await _stockRepo.refreshStock();
-      results['stock'] = true;
-    } catch (_) {
-      results['stock'] = false;
     }
 
     try {

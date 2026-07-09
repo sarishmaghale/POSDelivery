@@ -14,6 +14,8 @@ class Product {
   String? imageUrl;
   List<String> productImages = [];
   String? description;
+  int taxable = 0;
+  String? chalanNumber;
 
   Product();
 
@@ -33,6 +35,8 @@ class Product {
           ? jsonEncode(productImages)
           : null,
       'description': description,
+      'taxable': taxable,
+      'chalan_number': chalanNumber,
     };
   }
 
@@ -44,12 +48,13 @@ class Product {
     product.name = map['name'] as String;
     product.japaneseName = map['japanese_name'] as String?;
     product.unitPrice = (map['unit_price'] as num).toDouble();
-    product.stock = (map['stock'] as num?)?.toDouble() ?? 20;
-    if (product.stock <= 0) product.stock = 20;
+    product.stock = (map['stock'] as num?)?.toDouble() ?? 0;
     product.unitId = map['unit_id'] as String?;
     product.unit = map['unit'] as String?;
     product.imageUrl = map['image_url'] as String?;
     product.description = map['description'] as String?;
+    product.taxable = (map['taxable'] as num?)?.toInt() ?? 0;
+    product.chalanNumber = map['chalan_number'] as String?;
     final imagesRaw = map['product_images'] as String?;
     if (imagesRaw != null && imagesRaw.isNotEmpty) {
       product.productImages = (jsonDecode(imagesRaw) as List).cast<String>();

@@ -9,6 +9,7 @@ class SalesInvoiceRequest {
   final dynamic customerMobile;
   final dynamic customerAddress;
   final dynamic customerPan;
+  final String chalanNumber;
   final String outletId;
   final double totalQuantity;
   final double totalGrossAmount;
@@ -46,6 +47,7 @@ class SalesInvoiceRequest {
     this.customerMobile,
     this.customerAddress,
     this.customerPan,
+    this.chalanNumber = '',
     required this.outletId,
     required this.totalQuantity,
     required this.totalGrossAmount,
@@ -85,6 +87,7 @@ class SalesInvoiceRequest {
       'CustomerMobile': customerMobile,
       'CustomerAddress': customerAddress,
       'CustomerPAN': customerPan,
+      'ChalanNumber': chalanNumber,
       'OutletId': outletId,
       'TotalQuantity': totalQuantity,
       'TotalGrossAmount': totalGrossAmount,
@@ -104,7 +107,9 @@ class SalesInvoiceRequest {
       'IsSettled': isSettled,
       'SalesInvoiceTax': salesInvoiceTax.map((e) => e.toJson()).toList(),
       'SalesInvoiceItem': salesInvoiceItem.map((e) => e.toJson()).toList(),
-      'SalesInvoicePayment': salesInvoicePayment.map((e) => e.toJson()).toList(),
+      'SalesInvoicePayment': salesInvoicePayment
+          .map((e) => e.toJson())
+          .toList(),
       'RefImageDocumentId': refImageDocumentId,
       'AdditionalCharges': additionalCharges,
       'VolumeDiscount': volumeDiscount,
@@ -126,11 +131,7 @@ class SalesInvoiceTaxRequest {
   });
 
   Map<String, dynamic> toJson() {
-    return {
-      'TaxOrder': taxOrder,
-      'Name': name,
-      'TaxAmount': taxAmount,
-    };
+    return {'TaxOrder': taxOrder, 'Name': name, 'TaxAmount': taxAmount};
   }
 }
 
@@ -139,6 +140,7 @@ class SalesInvoiceItemRequest {
   final bool hasSerialNumber;
   final String serialNumber;
   final String refNo;
+  final String chalanNumber;
   final String lotNo;
   final String productId;
   final String name;
@@ -175,6 +177,7 @@ class SalesInvoiceItemRequest {
     this.hasSerialNumber = false,
     this.serialNumber = '',
     required this.refNo,
+    this.chalanNumber = '',
     this.lotNo = '',
     required this.productId,
     required this.name,
@@ -213,6 +216,7 @@ class SalesInvoiceItemRequest {
       'HasSerialNumber': hasSerialNumber,
       'SerialNumber': serialNumber,
       'RefNo': refNo,
+      'ChalanNumber': chalanNumber,
       'LotNo': lotNo,
       'ProductId': productId,
       'Name': name,
@@ -238,7 +242,9 @@ class SalesInvoiceItemRequest {
       'TaxPercent': taxPercent,
       'TaxAmount': taxAmount,
       'NetAmount': netAmount,
-      'SalesInvoiceItemTax': salesInvoiceItemTax.map((e) => e.toJson()).toList(),
+      'SalesInvoiceItemTax': salesInvoiceItemTax
+          .map((e) => e.toJson())
+          .toList(),
       'Barcode': barcode,
       'HSCode': hsCode,
       'Attribute1': attribute1,

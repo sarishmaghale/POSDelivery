@@ -23,6 +23,7 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(deliveryFormProvider.notifier).refreshProducts();
       if (widget.deliveryId != null) {
         ref
             .read(deliveryFormProvider.notifier)
@@ -241,6 +242,34 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
             ),
           ),
         ),
+        if (state.discountAmount > 0) ...[
+          const SizedBox(height: 8),
+          Card(
+            color: theme.colorScheme.errorContainer,
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Global Discount',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.onErrorContainer,
+                    ),
+                  ),
+                  Text(
+                    '- Rs. ${state.discountAmount.toStringAsFixed(2)}',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.onErrorContainer,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
         const SizedBox(height: 16),
         Card(
           color: theme.colorScheme.primaryContainer,
@@ -383,17 +412,7 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
               .setProductSearchQuery(value),
         ),
         const SizedBox(height: 12),
-        if (state.isLoadingProducts)
-          const Center(
-            child: Padding(
-              padding: EdgeInsets.all(24),
-              child: CircularProgressIndicator(),
-            ),
-          )
-        else
-          _buildProductGrid(context, ref, state, theme, l10n),
         if (state.stockError != null) ...[
-          const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -420,7 +439,17 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
               ],
             ),
           ),
+          const SizedBox(height: 8),
         ],
+        if (state.isLoadingProducts)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: CircularProgressIndicator(),
+            ),
+          )
+        else
+          _buildProductGrid(context, ref, state, theme, l10n),
       ],
     );
   }

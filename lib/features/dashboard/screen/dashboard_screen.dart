@@ -41,7 +41,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               color: locationState.isOnline ? Colors.green : Colors.red,
             ),
             tooltip: locationState.isOnline ? l10n.online : l10n.offline,
-            onPressed: () => ref.read(locationStateProvider.notifier).manualSync(),
+            onPressed: () =>
+                ref.read(locationStateProvider.notifier).manualSync(),
           ),
           IconButton(
             icon: const Icon(Icons.account_circle),
@@ -74,7 +75,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildDriverHeader(DashboardState state, ThemeData theme, AppLocalizations l10n) {
+  Widget _buildDriverHeader(
+    DashboardState state,
+    ThemeData theme,
+    AppLocalizations l10n,
+  ) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -119,7 +124,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildLocationTrackingSection(LocationState locationState, ThemeData theme, AppLocalizations l10n) {
+  Widget _buildLocationTrackingSection(
+    LocationState locationState,
+    ThemeData theme,
+    AppLocalizations l10n,
+  ) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -130,38 +139,55 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: locationState.isTracking ? Colors.green.shade50 : Colors.grey.shade100,
+                color: locationState.isTracking
+                    ? Colors.green.shade50
+                    : Colors.grey.shade100,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: locationState.isTracking ? Colors.green.shade200 : Colors.grey.shade300,
+                  color: locationState.isTracking
+                      ? Colors.green.shade200
+                      : Colors.grey.shade300,
                 ),
               ),
               child: Row(
                 children: [
                   Icon(
-                    locationState.isTracking ? Icons.track_changes : Icons.location_off,
-                    color: locationState.isTracking ? Colors.green : Colors.grey,
+                    locationState.isTracking
+                        ? Icons.track_changes
+                        : Icons.location_off,
+                    color: locationState.isTracking
+                        ? Colors.green
+                        : Colors.grey,
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      locationState.isTracking ? l10n.yourLocationIsBeingTracked : l10n.pleaseStartDuty,
+                      locationState.isTracking
+                          ? l10n.yourLocationIsBeingTracked
+                          : l10n.pleaseStartDuty,
                       style: TextStyle(
                         fontWeight: FontWeight.w500,
-                        color: locationState.isTracking ? Colors.green.shade700 : Colors.grey.shade700,
+                        color: locationState.isTracking
+                            ? Colors.green.shade700
+                            : Colors.grey.shade700,
                       ),
                     ),
                   ),
                   if (locationState.pendingSyncCount > 0) ...[
                     const SizedBox(width: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.orange.shade100,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        l10n.countPending(locationState.pendingSyncCount.toString()),
+                        l10n.countPending(
+                          locationState.pendingSyncCount.toString(),
+                        ),
                         style: TextStyle(
                           color: Colors.orange.shade700,
                           fontSize: 12,
@@ -180,7 +206,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   child: ElevatedButton.icon(
                     onPressed: locationState.isTracking
                         ? null
-                        : () => ref.read(locationStateProvider.notifier).startTracking(),
+                        : () => ref
+                              .read(locationStateProvider.notifier)
+                              .startTracking(),
                     icon: const Icon(Icons.play_arrow, size: 18),
                     label: Text(l10n.startDuty),
                     style: ElevatedButton.styleFrom(
@@ -194,7 +222,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: locationState.isTracking
-                        ? () => ref.read(locationStateProvider.notifier).stopTracking()
+                        ? () => ref
+                              .read(locationStateProvider.notifier)
+                              .stopTracking()
                         : null,
                     icon: const Icon(Icons.stop, size: 18),
                     label: Text(l10n.stopDuty),
@@ -212,12 +242,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               width: double.infinity,
               child: OutlinedButton.icon(
                 onPressed: locationState.pendingSyncCount > 0
-                    ? () => ref.read(locationStateProvider.notifier).manualSync()
+                    ? () =>
+                          ref.read(locationStateProvider.notifier).manualSync()
                     : null,
                 icon: const Icon(Icons.sync, size: 18),
                 label: Text(
                   locationState.pendingSyncCount > 0
-                      ? l10n.syncNowPending(locationState.pendingSyncCount.toString())
+                      ? l10n.syncNowPending(
+                          locationState.pendingSyncCount.toString(),
+                        )
                       : l10n.noPendingDataToSync,
                 ),
                 style: OutlinedButton.styleFrom(
@@ -247,7 +280,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildStatsRow(DashboardState state, ThemeData theme, AppLocalizations l10n) {
+  Widget _buildStatsRow(
+    DashboardState state,
+    ThemeData theme,
+    AppLocalizations l10n,
+  ) {
     return Column(
       children: [
         Row(
@@ -272,10 +309,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             const SizedBox(width: 12),
             Expanded(
               child: StatCard(
-                title: l10n.categories,
-                value: state.categories.length.toString(),
-                icon: Icons.category,
-                onTap: () => context.go('/delivery'),
+                title: l10n.customers,
+                value: state.assignedCustomersCount.toString(),
+                icon: Icons.people,
+                onTap: () => context.push('/customers'),
               ),
             ),
           ],
@@ -285,10 +322,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           children: [
             Expanded(
               child: StatCard(
-                title: l10n.customers,
-                value: state.assignedCustomersCount.toString(),
-                icon: Icons.people,
-                onTap: () {},
+                title: l10n.categories,
+                value: state.categories.length.toString(),
+                icon: Icons.category,
+                onTap: () => context.push('/categories'),
               ),
             ),
             const SizedBox(width: 12),
@@ -297,7 +334,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 title: 'Products',
                 value: state.assignedProductsCount.toString(),
                 icon: Icons.inventory_2,
-                onTap: () {},
+                onTap: () => context.push('/products'),
               ),
             ),
           ],
