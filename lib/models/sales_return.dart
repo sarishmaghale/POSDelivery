@@ -71,6 +71,8 @@ class SalesReturn {
 
   double get netTotal => grossTotal - totalItemDiscount - discountAmount;
 
+  double get netTotalBeforeHeaderDiscount => grossTotal - totalItemDiscount;
+
   Map<String, dynamic> toMap() {
     return {
       if (id != null) 'id': id,
