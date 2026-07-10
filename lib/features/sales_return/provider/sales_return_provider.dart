@@ -54,7 +54,9 @@ class SalesReturnState {
   double get totalItemDiscount =>
       items.fold<double>(0, (sum, item) => sum + item.discountAmount);
 
-  double get netTotal => grossTotal - totalItemDiscount - discountAmount;
+  double get netTotalBeforeHeaderDiscount => grossTotal - totalItemDiscount;
+
+  double get netTotal => netTotalBeforeHeaderDiscount - discountAmount;
 }
 
 final salesReturnProvider =
@@ -211,6 +213,10 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
       existing.quantity += state.pendingQuantity;
       state = SalesReturnState(
         selectedCustomer: state.selectedCustomer,
+        pendingProduct: state.pendingProduct,
+        pendingQuantity: state.pendingQuantity,
+        pendingRate: state.pendingRate,
+        pendingUnit: state.pendingUnit,
         customers: state.customers,
         products: state.products,
         items: updated,
@@ -231,6 +237,10 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
 
       state = SalesReturnState(
         selectedCustomer: state.selectedCustomer,
+        pendingProduct: state.pendingProduct,
+        pendingQuantity: state.pendingQuantity,
+        pendingRate: state.pendingRate,
+        pendingUnit: state.pendingUnit,
         customers: state.customers,
         products: state.products,
         items: [...state.items, item],
@@ -241,6 +251,7 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
         discountAmount: state.discountAmount,
       );
     }
+    _recalcHeaderDiscount();
   }
 
   void removeItem(int index) {
@@ -249,6 +260,10 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
 
     state = SalesReturnState(
       selectedCustomer: state.selectedCustomer,
+      pendingProduct: state.pendingProduct,
+      pendingQuantity: state.pendingQuantity,
+      pendingRate: state.pendingRate,
+      pendingUnit: state.pendingUnit,
       customers: state.customers,
       products: state.products,
       items: updated,
@@ -258,6 +273,7 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
       discountValue: state.discountValue,
       discountAmount: state.discountAmount,
     );
+    _recalcHeaderDiscount();
   }
 
   void incrementItemQuantity(int index) {
@@ -267,6 +283,10 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
 
     state = SalesReturnState(
       selectedCustomer: state.selectedCustomer,
+      pendingProduct: state.pendingProduct,
+      pendingQuantity: state.pendingQuantity,
+      pendingRate: state.pendingRate,
+      pendingUnit: state.pendingUnit,
       customers: state.customers,
       products: state.products,
       items: updated,
@@ -276,6 +296,7 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
       discountValue: state.discountValue,
       discountAmount: state.discountAmount,
     );
+    _recalcHeaderDiscount();
   }
 
   void decrementItemQuantity(int index) {
@@ -289,6 +310,10 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
 
     state = SalesReturnState(
       selectedCustomer: state.selectedCustomer,
+      pendingProduct: state.pendingProduct,
+      pendingQuantity: state.pendingQuantity,
+      pendingRate: state.pendingRate,
+      pendingUnit: state.pendingUnit,
       customers: state.customers,
       products: state.products,
       items: updated,
@@ -298,6 +323,7 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
       discountValue: state.discountValue,
       discountAmount: state.discountAmount,
     );
+    _recalcHeaderDiscount();
   }
 
   void setReason(String? reason) {
@@ -336,10 +362,33 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
     );
   }
 
-  double _calcDiscountAmount(String? type, double value, double gross) {
-    if (value <= 0 || gross <= 0) return 0;
+  void _recalcHeaderDiscount() {
+    final netBeforeHeader = state.netTotalBeforeHeaderDiscount;
+    final amount = _calcDiscountAmount(
+        state.discountType, state.discountValue, netBeforeHeader);
+    if (amount != state.discountAmount) {
+      state = SalesReturnState(
+        selectedCustomer: state.selectedCustomer,
+        pendingProduct: state.pendingProduct,
+        pendingQuantity: state.pendingQuantity,
+        pendingRate: state.pendingRate,
+        pendingUnit: state.pendingUnit,
+        customers: state.customers,
+        products: state.products,
+        items: state.items,
+        reason: state.reason,
+        remarks: state.remarks,
+        discountType: state.discountType,
+        discountValue: state.discountValue,
+        discountAmount: amount,
+      );
+    }
+  }
+
+  double _calcDiscountAmount(String? type, double value, double netBeforeHeader) {
+    if (value <= 0 || netBeforeHeader <= 0) return 0;
     if (type == 'percent') {
-      return gross * (value / 100);
+      return netBeforeHeader * (value / 100);
     }
     return value;
   }
@@ -360,13 +409,13 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
       discountValue: type == null ? 0 : state.discountValue,
       discountAmount: type == null
           ? 0
-          : _calcDiscountAmount(type, state.discountValue, state.grossTotal),
+          : _calcDiscountAmount(type, state.discountValue, state.netTotalBeforeHeaderDiscount),
     );
   }
 
   void setDiscountValue(double value) {
-    final amount =
-        _calcDiscountAmount(state.discountType, value, state.grossTotal);
+    final amount = _calcDiscountAmount(
+        state.discountType, value, state.netTotalBeforeHeaderDiscount);
     state = SalesReturnState(
       selectedCustomer: state.selectedCustomer,
       pendingProduct: state.pendingProduct,
@@ -408,6 +457,7 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
       discountValue: state.discountValue,
       discountAmount: state.discountAmount,
     );
+    _recalcHeaderDiscount();
   }
 
   void setItemDiscount(int index, String? type, double value) {
@@ -436,6 +486,7 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
       discountValue: state.discountValue,
       discountAmount: state.discountAmount,
     );
+    _recalcHeaderDiscount();
   }
 
   String? validate() {
