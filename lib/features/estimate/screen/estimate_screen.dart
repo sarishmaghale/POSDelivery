@@ -49,6 +49,7 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
         quantity: e.value,
         unitPrice: deliveryForm.getUnitPrice(e.key),
         discountAmount: deliveryForm.productDiscounts[e.key] ?? 0,
+        taxableType: product?.taxable ?? 0,
       );
     }).toList();
 
@@ -306,7 +307,7 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
                         Text(
                           l10n.qtyWithPrice(
                             item.quantity.toStringAsFixed(0),
-                            item.unitPrice.toStringAsFixed(2),
+                            item.rateIncTax.toStringAsFixed(2),
                           ),
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
@@ -325,7 +326,7 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
                     ),
                   ),
                   Text(
-                    'Rs. ${item.lineTotal.toStringAsFixed(2)}',
+                    'Rs. ${item.netAmount.toStringAsFixed(2)}',
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -469,6 +470,26 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
                         style: theme.textTheme.bodyMedium?.copyWith(
                           fontWeight: FontWeight.w600,
                           color: theme.colorScheme.error,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+                if (state.totalTax > 0) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        l10n.tax,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      Text(
+                        'Rs. ${state.totalTax.toStringAsFixed(2)}',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],

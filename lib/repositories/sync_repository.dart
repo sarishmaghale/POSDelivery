@@ -6,6 +6,7 @@ import '../core/network/api_config.dart';
 import '../core/network/api_service.dart';
 import '../core/network/network_checker.dart';
 import '../core/network/providers.dart';
+import '../core/utils/tax_calculator.dart';
 import '../dto/sales_invoice_request.dart';
 import '../models/estimate.dart';
 import '../models/sales_return.dart';
@@ -89,8 +90,8 @@ class SyncRepository {
           whereArgs: [entry.id],
         );
 
-        if (entry.entityType == 'Estimate') {
-          await _syncEstimateEntry(entry);
+        if (entry.entityType == 'Delivery') {
+          await _syncDeliveryEntry(entry);
         } else if (entry.entityType == 'SalesReturn') {
           await _syncSalesReturnEntry(entry);
         } else {
@@ -114,10 +115,10 @@ class SyncRepository {
     return true;
   }
 
-  Future<void> _syncEstimateEntry(SyncQueue entry) async {
-    final maps = await _db
-        .query('estimate', where: 'id = ?', whereArgs: [entry.entityId]);
-    if (maps.isEmpty) {
+  Future<void> _syncDeliveryEntry(SyncQueue entry) async {
+    final deliveryMaps = await _db.query('delivery',
+        where: 'id = ?', whereArgs: [entry.entityId]);
+    if (deliveryMaps.isEmpty) {
       await _db.update(
         'sync_queue',
         {'status': 'Failed'},
@@ -126,13 +127,20 @@ class SyncRepository {
       );
       return;
     }
-    final estimate = Estimate.fromMap(maps.first);
 
-    final deliveryMaps = await _db.query('delivery',
-        where: 'id = ?', whereArgs: [estimate.deliveryId]);
-    final customerId = deliveryMaps.isNotEmpty
-        ? deliveryMaps.first['customer_id'] as String?
-        : null;
+    final estimateMaps = await _db.query('estimate',
+        where: 'delivery_id = ?', whereArgs: [entry.entityId]);
+    if (estimateMaps.isEmpty) {
+      await _db.update(
+        'sync_queue',
+        {'status': 'Failed'},
+        where: 'id = ?',
+        whereArgs: [entry.id],
+      );
+      return;
+    }
+    final estimate = Estimate.fromMap(estimateMaps.first);
+    final customerId = deliveryMaps.first['customer_id'] as String?;
 
     final itemMaps = await _db.query('estimate_item',
         where: 'estimate_id = ?', whereArgs: [estimate.id]);
@@ -157,87 +165,43 @@ class SyncRepository {
         '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
 
     final totalQty = items.fold<double>(0, (sum, i) => sum + i.quantity);
-    final invoiceGrossAmount = items.fold<double>(
-        0, (sum, i) => sum + (i.unitPrice * i.quantity));
-    final totalProductDiscount = items.fold<double>(
-        0, (sum, i) => sum + i.discountAmount);
     final globalDiscount = estimate.discountAmount;
-    final totalDiscount = totalProductDiscount + globalDiscount;
-    final netAmount = invoiceGrossAmount - totalDiscount;
 
     final salesInvoiceItems = items.map((item) {
       final product = productsMap[item.productId];
 
-      final taxableType = (product?['taxable'] as num?)?.toInt() ?? 0;
-      final rate = item.unitPrice;
-      final quantity = item.quantity;
-      final discount = item.discountAmount;
-      const taxPercent = 13.0;
-
-      double rateIncTax;
-      double grossAmount;
-      double grossAmountIncTax;
-      double taxableAmount;
-      double nonTaxableAmount;
-      double taxAmount;
-
-      double rateExTax;
-      if (taxableType == 0) {
-        rateExTax = rate;
-        rateIncTax = rate * (1 + taxPercent / 100);
-        grossAmount = rateExTax * quantity;
-        grossAmountIncTax = rateIncTax * quantity;
-        taxableAmount = grossAmount;
-        nonTaxableAmount = 0;
-        taxAmount = grossAmountIncTax - grossAmount;
-      } else if (taxableType == 1) {
-        rateIncTax = rate;
-        rateExTax = rate / (1 + taxPercent / 100);
-        grossAmountIncTax = rateIncTax * quantity;
-        grossAmount = rateExTax * quantity;
-        taxableAmount = grossAmount;
-        nonTaxableAmount = 0;
-        taxAmount = grossAmountIncTax - grossAmount;
-      } else {
-        rateExTax = rate;
-        rateIncTax = rate;
-        grossAmount = rateExTax * quantity;
-        grossAmountIncTax = grossAmount;
-        taxableAmount = 0;
-        nonTaxableAmount = grossAmount;
-        taxAmount = 0;
-      }
-
-      final proportion = invoiceGrossAmount > 0
-          ? (item.unitPrice * item.quantity) / invoiceGrossAmount
-          : 1.0 / items.length;
-      final itemGlobalDiscount = globalDiscount * proportion;
-      final itemNetAfterAll = item.lineTotal - itemGlobalDiscount;
+      final tax = computeItemTax(
+        rate: item.unitPrice,
+        quantity: item.quantity,
+        discount: item.discountAmount,
+        taxableType: (product?['taxable'] as num?)?.toInt() ?? 0,
+      );
 
       return SalesInvoiceItemRequest(
         refNo: item.productId,
         chalanNumber: product?['chalan_number'] as String? ?? '',
         productId: item.productId,
         name: product?['name'] as String? ?? '',
-        quantity: quantity,
+        quantity: item.quantity,
         unitId: product?['unit_id'] as String? ?? '',
         unitName: product?['unit'] as String? ?? '',
         categoryId: product?['category_id'] as String? ?? '',
-        rate: rateExTax,
-        rateIncludingTax: rateIncTax,
-        grossAmount: grossAmount,
-        grossAmountIncludingTax: grossAmountIncTax,
-        discount: discount,
-        taxable: taxableAmount,
-        nonTaxable: nonTaxableAmount,
-        taxPercent: taxPercent,
-        taxAmount: taxAmount,
-        netAmount: itemNetAfterAll,
+        rate: tax.rateExTax,
+        rateIncludingTax: tax.rateIncTax,
+        grossAmount: tax.grossAmount,
+        grossAmountIncludingTax: tax.grossAmountIncTax,
+        discount: tax.discountExcTax,
+        discountIncludingTax: tax.discountIncludingTax,
+        taxable: tax.taxableAmount,
+        nonTaxable: tax.nonTaxableAmount,
+        taxPercent: kDefaultTaxPercent,
+        taxAmount: tax.taxAmount,
+        netAmount: tax.netAmount,
         salesInvoiceItemTax: [
           SalesInvoiceItemTaxRequest(
-            taxableAmount: taxableAmount,
-            taxAmount: taxAmount,
-            netAmount: itemNetAfterAll,
+            taxableAmount: tax.taxableAmount,
+            taxAmount: tax.taxAmount,
+            netAmount: tax.netAmount,
           ),
         ],
       );
@@ -249,23 +213,43 @@ class SyncRepository {
         0, (sum, item) => sum + item.nonTaxable);
     final totalItemTax = salesInvoiceItems.fold<double>(
         0, (sum, item) => sum + item.taxAmount);
+    final totalDiscountExcTax =
+        salesInvoiceItems.fold<double>(
+            0, (sum, item) => sum + item.discount) +
+        globalDiscount;
+    final totalDiscountIncludingTax =
+        salesInvoiceItems.fold<double>(
+            0, (sum, item) => sum + item.discountIncludingTax) +
+        globalDiscount;
+    final totalGrossAmountExcTax = salesInvoiceItems.fold<double>(
+        0, (sum, item) => sum + item.grossAmount,
+    );
+    final totalGrossAmountIncTax = salesInvoiceItems.fold<double>(
+        0, (sum, item) => sum + item.grossAmountIncludingTax,
+    );
+    final totalNetAmount = totalGrossAmountIncTax - totalDiscountIncludingTax;
+
+    final chalanNumber = items.isNotEmpty
+        ? (productsMap[items.first.productId]?['chalan_number'] as String? ?? '')
+        : '';
 
     final request = SalesInvoiceRequest(
+      chalanNumber: chalanNumber,
       transactionDate: transactionDate,
       customerId: customerId,
       outletId: ApiConfig.emptyGuid,
       totalQuantity: totalQty,
-      totalGrossAmount: invoiceGrossAmount,
-      totalGrossAmountIncludingTax: invoiceGrossAmount + totalItemTax,
-      totalDiscount: totalDiscount,
-      totalDiscountIncludingTax: totalDiscount,
+      totalGrossAmount: totalGrossAmountExcTax,
+      totalGrossAmountIncludingTax: totalGrossAmountIncTax,
+      totalDiscount: totalDiscountExcTax,
+      totalDiscountIncludingTax: totalDiscountIncludingTax,
       totalTaxableAmount: totalTaxable,
       totalNonTaxableAmount: totalNonTaxable,
       totalTax: totalItemTax,
-      totalNetAmount: netAmount + totalItemTax,
-      totalPayableAmount: netAmount + totalItemTax,
+      totalNetAmount: totalNetAmount,
+      totalPayableAmount: totalNetAmount,
       payMode: payModeName,
-      tenderAmount: netAmount + totalItemTax,
+      tenderAmount: totalNetAmount,
       salesInvoiceTax: [
         SalesInvoiceTaxRequest(taxAmount: totalItemTax),
       ],
@@ -274,7 +258,7 @@ class SyncRepository {
         SalesInvoicePaymentRequest(
           payMode: payModeName,
           paymentId: estimate.paymentMode ?? ApiConfig.emptyGuid,
-          amount: estimate.paidAmount > 0 ? estimate.paidAmount : netAmount + totalItemTax,
+          amount: estimate.paidAmount > 0 ? estimate.paidAmount : totalNetAmount,
         ),
       ],
       currencyId: ApiConfig.defaultCurrencyId,
@@ -288,6 +272,12 @@ class SyncRepository {
         {'server_id': response.invoiceId, 'is_synced': 1},
         where: 'id = ?',
         whereArgs: [estimate.id],
+      );
+      await _db.update(
+        'delivery',
+        {'is_synced': 1},
+        where: 'id = ?',
+        whereArgs: [estimate.deliveryId],
       );
       await _db.update(
         'sync_queue',

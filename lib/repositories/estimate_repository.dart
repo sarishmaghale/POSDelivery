@@ -67,8 +67,8 @@ class EstimateRepository {
         await txn.insert('estimate_item', item.toMap());
       }
       final syncEntry = SyncQueue()
-        ..entityType = 'Estimate'
-        ..entityId = estimateId
+        ..entityType = 'Delivery'
+        ..entityId = deliveryId
         ..status = 'Pending'
         ..createdDate = DateTime.now();
       await txn.insert('sync_queue', syncEntry.toMap());
@@ -110,6 +110,21 @@ class EstimateRepository {
           where: 'entity_type = ? AND entity_id = ?',
           whereArgs: ['Estimate', estimateId],
         );
+        final estimateMaps = await _db.query(
+          'estimate',
+          columns: ['delivery_id'],
+          where: 'id = ?',
+          whereArgs: [estimateId],
+        );
+        if (estimateMaps.isNotEmpty) {
+          final deliveryId = estimateMaps.first['delivery_id'] as int;
+          await _db.update(
+            'delivery',
+            {'is_synced': 1},
+            where: 'id = ?',
+            whereArgs: [deliveryId],
+          );
+        }
       } else {
         await _db.update(
           'sync_queue',

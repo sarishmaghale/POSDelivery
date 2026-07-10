@@ -109,14 +109,14 @@ class _DeliveryHistoryScreenState
                         child: ListTile(
                           leading: CircleAvatar(
                             backgroundColor:
-                                theme.colorScheme.primaryContainer,
+                                d.isSynced
+                                    ? Colors.green.shade50
+                                    : Colors.red.shade50,
                             child: d.isSynced
-                                ? Icon(Icons.cloud_done,
-                                    color: theme
-                                        .colorScheme.onPrimaryContainer)
-                                : Icon(Icons.cloud_off,
-                                    color: theme
-                                        .colorScheme.onPrimaryContainer),
+                                ? Icon(Icons.check_circle,
+                                    color: Colors.green.shade700)
+                                : Icon(Icons.cancel,
+                                    color: Colors.red.shade700),
                           ),
                           title: Text(l10n.deliveryNumber(d.id.toString())),
                           subtitle: _subtitle(d),
