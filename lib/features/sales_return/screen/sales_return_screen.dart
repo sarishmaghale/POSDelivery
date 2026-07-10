@@ -22,6 +22,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
   final _rateController = TextEditingController();
   final _discountValueController = TextEditingController();
   String? _previousPendingUnit;
+  double? _previousPendingRate;
 
   @override
   void dispose() {
@@ -42,6 +43,16 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
       _previousPendingUnit = state.pendingUnit;
       if (state.pendingUnit != null && state.pendingUnit != _unitController.text) {
         _unitController.text = state.pendingUnit!;
+      }
+    }
+
+    if (state.pendingRate != _previousPendingRate) {
+      _previousPendingRate = state.pendingRate;
+      final rateText = state.pendingRate > 0
+          ? state.pendingRate.toStringAsFixed(2)
+          : '';
+      if (rateText != _rateController.text) {
+        _rateController.text = rateText;
       }
     }
 
@@ -148,7 +159,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
                         controller: _qtyController,
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
                         inputFormatters: [
-                          FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                          FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
                         ],
                         decoration: InputDecoration(
                           labelText: 'Qty',
@@ -161,7 +172,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
                         },
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 16),
                     Expanded(
                       flex: 2,
                       child: TextField(
@@ -178,14 +189,18 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
                         },
                       ),
                     ),
-                    const SizedBox(width: 8),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
                     Expanded(
                       flex: 2,
                       child: TextField(
                         controller: _rateController,
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
                         inputFormatters: [
-                          FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                          FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
                         ],
                         decoration: InputDecoration(
                           labelText: 'Rate',
@@ -198,7 +213,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
                         },
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 16),
                     FilledButton.tonalIcon(
                       onPressed: state.pendingProduct == null
                           ? null
@@ -217,14 +232,12 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
             ),
           ),
         ),
-        if (state.items.isNotEmpty) ...[
-          const SizedBox(height: 16),
-          _buildItemsTable(state, theme, l10n),
-          const SizedBox(height: 16),
-          _buildTotalsCard(state, theme),
-          const SizedBox(height: 16),
-          _buildDiscountSection(state, theme, l10n),
-        ],
+        const SizedBox(height: 16),
+        _buildItemsSection(state, theme, l10n),
+        const SizedBox(height: 16),
+        _buildTotalsCard(state, theme),
+        const SizedBox(height: 16),
+        _buildHeaderDiscountSection(state, theme, l10n),
         const SizedBox(height: 24),
         Text(
           l10n.additionalDetails,
@@ -268,7 +281,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
         ),
         const SizedBox(height: 24),
         FilledButton.icon(
-          onPressed: state.isSaving || !state.isValid
+          onPressed: state.isSaving
               ? null
               : () => _saveSalesReturn(context),
           icon: state.isSaving
@@ -290,12 +303,28 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
     );
   }
 
-  Widget _buildItemsTable(SalesReturnState state, ThemeData theme, AppLocalizations l10n) {
+  Widget _buildItemsSection(SalesReturnState state, ThemeData theme, AppLocalizations l10n) {
+    if (state.items.isEmpty) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Center(
+            child: Text(
+              'No products added',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          'Added Products',
+          'Added Products (${state.items.length})',
           style: theme.textTheme.titleSmall?.copyWith(
             fontWeight: FontWeight.w600,
             color: theme.colorScheme.onSurfaceVariant,
@@ -309,80 +338,56 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
             physics: const NeverScrollableScrollPhysics(),
             itemCount: state.items.length,
             separatorBuilder: (_, __) => const Divider(height: 1),
-              itemBuilder: (context, index) {
+            itemBuilder: (context, index) {
               final item = state.items[index];
-              final gross = item.quantity * item.rate;
               return ListTile(
-                dense: true,
                 leading: CircleAvatar(
+                  radius: 14,
                   backgroundColor: theme.colorScheme.primaryContainer,
                   child: Text(
                     '${index + 1}',
-                    style: TextStyle(
-                      color: theme.colorScheme.onPrimaryContainer,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w600),
                   ),
                 ),
-                title: Text(
-                  item.productName,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      [
-                        if (item.unit != null) item.unit,
-                        if (item.rate > 0) 'Rate: Rs. ${item.rate.toStringAsFixed(2)}',
-                        'Total: Rs. ${gross.toStringAsFixed(2)}',
-                      ].join('  |  '),
-                      style: theme.textTheme.bodySmall,
-                    ),
-                    if (item.discountAmount > 0)
-                      Text(
-                        'Discount: -Rs. ${item.discountAmount.toStringAsFixed(2)}  |  Net: Rs. ${item.lineTotal.toStringAsFixed(2)}',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.error,
-                        ),
-                      ),
-                  ],
+                title: Text(item.productName, overflow: TextOverflow.ellipsis),
+                subtitle: Text(
+                  'Qty: ${item.quantity.toStringAsFixed(item.quantity == item.quantity.roundToDouble() ? 0 : 1)}'
+                  '${item.unit != null && item.unit!.isNotEmpty ? ' ${item.unit}' : ''}'
+                  '  •  Rs.${item.rate.toStringAsFixed(2)}',
                 ),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    IconButton(
-                      icon: Icon(
-                        Icons.discount_outlined,
-                        color: item.discountAmount > 0
-                            ? theme.colorScheme.primary
-                            : theme.colorScheme.onSurfaceVariant,
-                      ),
-                      onPressed: () => _showItemDiscountDialog(context, index, item),
-                    ),
                     Text(
-                      'Qty: ${item.quantity.toStringAsFixed(item.quantity == item.quantity.roundToDouble() ? 0 : 1)}',
+                      'Rs.${item.lineTotal.toStringAsFixed(2)}',
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.w600,
+                        color: item.discountAmount > 0 ? theme.colorScheme.error : null,
                       ),
                     ),
-                    const SizedBox(width: 8),
                     IconButton(
-                      icon: Icon(
-                        Icons.remove_circle_outline,
-                        color: theme.colorScheme.error,
-                      ),
+                      icon: const Icon(Icons.visibility_outlined),
+                      tooltip: 'View details',
                       onPressed: () {
-                        ref.read(salesReturnProvider.notifier).removeItem(index);
+                        _showItemDetails(context, index, item);
                       },
                     ),
                   ],
                 ),
+                onTap: () => _showItemDetails(context, index, item),
               );
             },
           ),
         ),
       ],
+    );
+  }
+
+  void _showItemDetails(BuildContext context, int index, SalesReturnItem item) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => _ItemDetailSheet(index: index, item: item),
     );
   }
 
@@ -393,13 +398,11 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
         child: Column(
           children: [
             _totalRow('Gross Total', state.grossTotal, theme, null),
-            if (state.totalItemDiscount > 0)
-              _totalRow('Item Discount', -state.totalItemDiscount, theme, theme.colorScheme.error),
-            if (state.discountAmount > 0)
-              _totalRow('Header Discount', -state.discountAmount, theme, theme.colorScheme.error),
+            _totalRow('Item Discount', -state.totalItemDiscount, theme, theme.colorScheme.error),
+            _totalRow('Header Discount', -state.discountAmount, theme, theme.colorScheme.error),
             const Divider(),
             _totalRow('Net Total', state.netTotal, theme,
-                Theme.of(context).colorScheme.primary, bold: true),
+                theme.colorScheme.primary, bold: true),
           ],
         ),
       ),
@@ -420,7 +423,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
             ),
           ),
           Text(
-            'Rs. ${amount.toStringAsFixed(2)}',
+            amount >= 0 ? 'Rs. ${amount.toStringAsFixed(2)}' : '- Rs. ${(-amount).toStringAsFixed(2)}',
             style: (bold ? theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600) : theme.textTheme.bodyMedium)?.copyWith(
               color: color,
               fontWeight: bold ? FontWeight.w600 : null,
@@ -431,7 +434,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
     );
   }
 
-  Widget _buildDiscountSection(SalesReturnState state, ThemeData theme, AppLocalizations l10n) {
+  Widget _buildHeaderDiscountSection(SalesReturnState state, ThemeData theme, AppLocalizations l10n) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -446,72 +449,214 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            DropdownButtonFormField<String?>(
-              isExpanded: true,
-              value: state.discountType,
-              decoration: const InputDecoration(
-                labelText: 'Discount Type',
-                border: OutlineInputBorder(),
-                isDense: true,
-              ),
-              items: const [
-                DropdownMenuItem(value: null, child: Text('None')),
-                DropdownMenuItem(value: 'amount', child: Text('Amount (Rs.)')),
-                DropdownMenuItem(value: 'percent', child: Text('Percent (%)')),
-              ],
-              onChanged: (value) {
-                ref.read(salesReturnProvider.notifier).setDiscountType(value);
-                if (value == null) {
-                  _discountValueController.clear();
-                }
-              },
-            ),
-            if (state.discountType != null) ...[
-              const SizedBox(height: 12),
-              TextField(
-                controller: _discountValueController,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
-                ],
-                decoration: InputDecoration(
-                  labelText: state.discountType == 'percent' ? 'Percent (%)' : 'Amount (Rs.)',
-                  suffixText: state.discountType == 'percent' ? '%' : 'Rs.',
-                  border: const OutlineInputBorder(),
-                  isDense: true,
+            Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: TextField(
+                    controller: _discountValueController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
+                    ],
+                    decoration: InputDecoration(
+                      labelText: 'Value',
+                      hintText: '0',
+                      border: const OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                    onChanged: (value) {
+                      final val = double.tryParse(value) ?? 0;
+                      ref.read(salesReturnProvider.notifier).setDiscountValue(val);
+                    },
+                  ),
                 ),
-                onChanged: (value) {
-                  final val = double.tryParse(value) ?? 0;
-                  ref.read(salesReturnProvider.notifier).setDiscountValue(val);
-                },
-              ),
-            ],
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 2,
+                  child:                   DropdownButtonFormField<String?>(
+                    isExpanded: true,
+                    initialValue: state.discountType,
+                    decoration: const InputDecoration(
+                      labelText: 'Type',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: null, child: Text('None')),
+                      DropdownMenuItem(value: 'amount', child: Text('Amount (Rs.)')),
+                      DropdownMenuItem(value: 'percent', child: Text('Percent (%)')),
+                    ],
+                    onChanged: (value) {
+                      ref.read(salesReturnProvider.notifier).setDiscountType(value);
+                      if (value == null) {
+                        _discountValueController.clear();
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),
     );
   }
 
-  void _showItemDiscountDialog(BuildContext context, int index, SalesReturnItem item) {
-    final typeController = TextEditingController(text: item.discountType ?? '');
-    final valueController = TextEditingController(
-      text: item.discountValue > 0 ? item.discountValue.toString() : '',
-    );
-    String? selectedType = item.discountType;
+  Future<void> _saveSalesReturn(BuildContext context) async {
+    final notifier = ref.read(salesReturnProvider.notifier);
+    final success = await notifier.saveSalesReturn();
 
-    showDialog(
-      context: context,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: Text('Discount - ${item.productName}'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  DropdownButtonFormField<String?>(
+    if (!context.mounted) return;
+
+    if (!success) {
+      final errMsg = ref.read(salesReturnProvider).error;
+      print(errMsg);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errMsg ?? AppLocalizations.of(context)!.failedToSaveSalesReturn),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+    }
+  }
+}
+
+class _ItemDetailSheet extends ConsumerStatefulWidget {
+  final int index;
+  final SalesReturnItem item;
+
+  const _ItemDetailSheet({required this.index, required this.item});
+
+  @override
+  ConsumerState<_ItemDetailSheet> createState() => _ItemDetailSheetState();
+}
+
+class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
+  late final TextEditingController _discCtrl;
+  late final TextEditingController _rateCtrl;
+  late String? _selectedType;
+
+  @override
+  void initState() {
+    super.initState();
+    _discCtrl = TextEditingController(
+      text: widget.item.discountValue > 0 ? widget.item.discountValue.toString() : '',
+    );
+    _rateCtrl = TextEditingController(text: widget.item.rate.toStringAsFixed(2));
+    _selectedType = widget.item.discountType;
+  }
+
+  @override
+  void dispose() {
+    _discCtrl.dispose();
+    _rateCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final state = ref.watch(salesReturnProvider);
+    if (widget.index >= state.items.length) {
+      return const SizedBox.shrink();
+    }
+    final item = state.items[widget.index];
+    final notifier = ref.read(salesReturnProvider.notifier);
+
+    final qtyText = item.quantity
+        .toStringAsFixed(item.quantity == item.quantity.roundToDouble() ? 0 : 1);
+
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: 16,
+          right: 16,
+          top: 8,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    item.productName,
+                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+            const Divider(),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Text('Quantity', style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600)),
+                const SizedBox(width: 12),
+                IconButton(
+                  icon: Icon(Icons.remove_circle_outline, color: theme.colorScheme.error),
+                  onPressed: () {
+                    final willRemove = item.quantity <= 1;
+                    notifier.decrementItemQuantity(widget.index);
+                    if (willRemove) Navigator.of(context).pop();
+                  },
+                ),
+                Text(qtyText, style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600)),
+                IconButton(
+                  icon: Icon(Icons.add_circle_outline, color: theme.colorScheme.primary),
+                  onPressed: () => notifier.incrementItemQuantity(widget.index),
+                ),
+                const Spacer(),
+                Expanded(
+                  child: TextField(
+                    controller: _rateCtrl,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
+                    decoration: const InputDecoration(
+                      labelText: 'Rate',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                    onChanged: (v) => notifier.setItemRate(widget.index, double.tryParse(v) ?? 0),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (item.unit != null && item.unit!.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Text('Unit: ${item.unit}', style: theme.textTheme.bodyMedium),
+              ),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _discCtrl,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
+                    decoration: const InputDecoration(
+                      labelText: 'Discount Value',
+                      hintText: '0',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                    onChanged: (v) => notifier.setItemDiscount(
+                      widget.index, _selectedType, double.tryParse(v) ?? 0,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: DropdownButtonFormField<String?>(
                     isExpanded: true,
-                    value: selectedType,
+                    initialValue: _selectedType,
                     decoration: const InputDecoration(
                       labelText: 'Discount Type',
                       border: OutlineInputBorder(),
@@ -522,72 +667,40 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
                       DropdownMenuItem(value: 'amount', child: Text('Amount (Rs.)')),
                       DropdownMenuItem(value: 'percent', child: Text('Percent (%)')),
                     ],
-                    onChanged: (value) {
-                      setDialogState(() {
-                        selectedType = value;
-                        if (value == null) valueController.clear();
-                      });
+                    onChanged: (v) {
+                      setState(() => _selectedType = v);
+                      notifier.setItemDiscount(widget.index, v, double.tryParse(_discCtrl.text) ?? 0);
                     },
                   ),
-                  if (selectedType != null) ...[
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: valueController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
-                      ],
-                      decoration: InputDecoration(
-                        labelText: selectedType == 'percent' ? 'Percent (%)' : 'Amount (Rs.)',
-                        suffixText: selectedType == 'percent' ? '%' : 'Rs.',
-                        border: const OutlineInputBorder(),
-                        isDense: true,
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 8),
-                  Text(
-                    'Gross: Rs. ${(item.quantity * item.rate).toStringAsFixed(2)}',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Cancel'),
-                ),
-                FilledButton(
-                  onPressed: () {
-                    final val = double.tryParse(valueController.text) ?? 0;
-                    ref.read(salesReturnProvider.notifier).setItemDiscount(
-                      index, selectedType, val,
-                    );
-                    Navigator.pop(ctx);
-                  },
-                  child: const Text('Apply'),
                 ),
               ],
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Future<void> _saveSalesReturn(BuildContext context) async {
-    final success =
-        await ref.read(salesReturnProvider.notifier).saveSalesReturn();
-
-    if (!context.mounted) return;
-
-    if (!success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context)!.failedToSaveSalesReturn),
-          backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Amount: Rs. ${item.lineTotal.toStringAsFixed(2)}',
+                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                ),
+                FilledButton.tonal(
+                  style: FilledButton.styleFrom(foregroundColor: theme.colorScheme.error),
+                  onPressed: () {
+                    notifier.removeItem(widget.index);
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text('Remove'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Done'),
+            ),
+          ],
         ),
-      );
-    }
+      ),
+    );
   }
 }

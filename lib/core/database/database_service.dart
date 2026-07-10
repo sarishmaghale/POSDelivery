@@ -24,7 +24,7 @@ class DatabaseService {
 
       _database = await openDatabase(
         path,
-        version: 10,
+        version: 14,
         onCreate: _createTables,
         onUpgrade: _onUpgrade,
       );
@@ -122,9 +122,92 @@ class DatabaseService {
 
     if (oldVersion < 10) {
       try {
+        await db.execute(
+            'ALTER TABLE sales_return ADD COLUMN discount_type TEXT');
+      } catch (_) {}
+      try {
+        await db.execute(
+            'ALTER TABLE sales_return ADD COLUMN discount_value REAL DEFAULT 0');
+      } catch (_) {}
+      try {
+        await db.execute(
+            'ALTER TABLE sales_return ADD COLUMN discount_amount REAL DEFAULT 0');
+      } catch (_) {}
+      try {
+        await db.execute(
+            'ALTER TABLE sales_return_item ADD COLUMN discount_type TEXT');
+      } catch (_) {}
+      try {
+        await db.execute(
+            'ALTER TABLE sales_return_item ADD COLUMN discount_value REAL DEFAULT 0');
+      } catch (_) {}
+      try {
+        await db.execute(
+            'ALTER TABLE sales_return_item ADD COLUMN discount_amount REAL DEFAULT 0');
+      } catch (_) {}
+      try{
         await db.execute('ALTER TABLE product ADD COLUMN chalan_number TEXT');
+      }catch (_) {}
+    }
+
+    if (oldVersion < 11) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS all_product (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          server_id TEXT NOT NULL UNIQUE,
+          code TEXT,
+          category_id TEXT NOT NULL,
+          name TEXT NOT NULL,
+          japanese_name TEXT,
+          unit_id TEXT,
+          unit TEXT,
+          unit_price TEXT,
+          image_url TEXT
+        )
+      ''');
+    }
+
+    if (oldVersion < 12) {
+      try {
+        await db.execute('ALTER TABLE all_product ADD COLUMN unit_price REAL DEFAULT 0');
       } catch (_) {}
     }
+
+    if (oldVersion < 13) {
+      // Final schema fix: ensure all_product has correct columns (REAL unit_price)
+      try {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS all_product_new (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            server_id TEXT NOT NULL UNIQUE,
+            code TEXT,
+            category_id TEXT NOT NULL,
+            name TEXT NOT NULL,
+            japanese_name TEXT,
+            unit_id TEXT,
+            unit TEXT,
+            unit_price REAL DEFAULT 0,
+            image_url TEXT
+          )
+        ''');
+        await db.execute('''
+          INSERT INTO all_product_new (id, server_id, code, category_id, name, japanese_name, unit_id, unit, unit_price, image_url)
+          SELECT id, server_id, code, category_id, name, japanese_name, unit_id, unit, 
+                 CAST(unit_price AS REAL), image_url
+          FROM all_product
+        ''');
+        await db.execute('DROP TABLE all_product');
+        await db.execute('ALTER TABLE all_product_new RENAME TO all_product');
+      } catch (_) {}
+    }
+
+    // Ensure product table has all required columns (runs on every upgrade)
+    // try {
+    //   await db.execute('ALTER TABLE product ADD COLUMN taxable INTEGER DEFAULT 0');
+    // } catch (_) {}
+    // try {
+    //   await db.execute('ALTER TABLE product ADD COLUMN chalan_number TEXT');
+    // } catch (_) {}
   }
 
   Future<void> _createTables(Database db, int version) async {
@@ -290,6 +373,21 @@ class DatabaseService {
         server_id TEXT NOT NULL UNIQUE,
         name TEXT NOT NULL,
         temp_id INTEGER NOT NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE all_product (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        server_id TEXT NOT NULL UNIQUE,
+        code TEXT,
+        category_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        japanese_name TEXT,
+        unit_id TEXT,
+        unit TEXT,
+        unit_price REAL DEFAULT 0,
+        image_url TEXT
       )
     ''');
   }
