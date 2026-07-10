@@ -161,14 +161,32 @@ class SyncScreen extends ConsumerWidget {
                     ...state.incomingStatus.entries.map(
                       (e) => Padding(
                         padding: const EdgeInsets.symmetric(vertical: 2),
-                        child: Row(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _incomingIcon(e.value.success),
-                            const SizedBox(width: 8),
-                            Text(
-                              e.value.label,
-                              style: theme.textTheme.bodySmall,
+                            Row(
+                              children: [
+                                _incomingIcon(e.value.success),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    e.value.label,
+                                    style: theme.textTheme.bodySmall,
+                                  ),
+                                ),
+                              ],
                             ),
+                            if (e.value.error != null && e.value.success == false)
+                              Padding(
+                                padding: const EdgeInsets.only(left: 22, top: 2),
+                                child: Text(
+                                  e.value.error!,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.error,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ),
                           ],
                         ),
                       ),
