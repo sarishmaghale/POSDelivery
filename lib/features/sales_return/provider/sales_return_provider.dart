@@ -1,9 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../models/customer.dart';
+import '../../../models/payment_mode.dart';
 import '../../../models/product.dart';
 import '../../../models/sales_return.dart';
 import '../../../repositories/customer_repository.dart';
+import '../../../repositories/payment_mode_repository.dart';
 import '../../../repositories/product_repository.dart';
 import '../../../repositories/sales_return_repository.dart';
 
@@ -21,6 +23,8 @@ class SalesReturnState {
   final String? discountType;
   final double discountValue;
   final double discountAmount;
+  final List<PaymentMode> paymentModes;
+  final String? selectedPaymentModeId;
   final bool isLoading;
   final bool isSaving;
   final bool isValid;
@@ -41,6 +45,8 @@ class SalesReturnState {
     this.discountType,
     this.discountValue = 0,
     this.discountAmount = 0,
+    this.paymentModes = const [],
+    this.selectedPaymentModeId,
     this.isLoading = false,
     this.isSaving = false,
     this.isValid=true,
@@ -65,6 +71,7 @@ final salesReturnProvider =
     customerRepo: ref.read(customerRepositoryProvider),
     productRepo: ref.read(productRepositoryProvider),
     salesReturnRepo: ref.read(salesReturnRepositoryProvider),
+    paymentModeRepo: ref.read(paymentModeRepositoryProvider),
   );
 });
 
@@ -72,14 +79,17 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
   final CustomerRepository _customerRepo;
   final ProductRepository _productRepo;
   final SalesReturnRepository _salesReturnRepo;
+  final PaymentModeRepository _paymentModeRepo;
 
   SalesReturnNotifier({
     required CustomerRepository customerRepo,
     required ProductRepository productRepo,
     required SalesReturnRepository salesReturnRepo,
+    required PaymentModeRepository paymentModeRepo,
   })  : _customerRepo = customerRepo,
         _productRepo = productRepo,
         _salesReturnRepo = salesReturnRepo,
+        _paymentModeRepo = paymentModeRepo,
         super(SalesReturnState()) {
     _loadInitialData();
   }
@@ -90,10 +100,12 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
     try {
       final customers = await _customerRepo.getCachedCustomers();
       final products = await _productRepo.getCachedAllProducts();
+      final paymentModes = await _paymentModeRepo.getPaymentModes();
 
       state = SalesReturnState(
         customers: customers,
         products: products,
+        paymentModes: paymentModes,
         isLoading: false,
       );
     } catch (e) {
@@ -101,6 +113,7 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
       state = SalesReturnState(
         customers: await _customerRepo.getCachedCustomers(),
         products: await _productRepo.getCachedAllProducts(),
+        paymentModes: await _paymentModeRepo.getPaymentModes(),
         isLoading: false,
       );
     }
@@ -121,6 +134,8 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
       discountType: state.discountType,
       discountValue: state.discountValue,
       discountAmount: state.discountAmount,
+      paymentModes: state.paymentModes,
+      selectedPaymentModeId: state.selectedPaymentModeId,
     );
   }
 
@@ -139,6 +154,8 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
       discountType: state.discountType,
       discountValue: state.discountValue,
       discountAmount: state.discountAmount,
+      paymentModes: state.paymentModes,
+      selectedPaymentModeId: state.selectedPaymentModeId,
     );
   }
 
@@ -157,6 +174,8 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
       discountType: state.discountType,
       discountValue: state.discountValue,
       discountAmount: state.discountAmount,
+      paymentModes: state.paymentModes,
+      selectedPaymentModeId: state.selectedPaymentModeId,
     );
   }
 
@@ -175,6 +194,8 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
       discountType: state.discountType,
       discountValue: state.discountValue,
       discountAmount: state.discountAmount,
+      paymentModes: state.paymentModes,
+      selectedPaymentModeId: state.selectedPaymentModeId,
     );
   }
 
@@ -193,6 +214,28 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
       discountType: state.discountType,
       discountValue: state.discountValue,
       discountAmount: state.discountAmount,
+      paymentModes: state.paymentModes,
+      selectedPaymentModeId: state.selectedPaymentModeId,
+    );
+  }
+
+  void setPaymentMode(String? serverId) {
+    state = SalesReturnState(
+      selectedCustomer: state.selectedCustomer,
+      pendingProduct: state.pendingProduct,
+      pendingQuantity: state.pendingQuantity,
+      pendingRate: state.pendingRate,
+      pendingUnit: state.pendingUnit,
+      customers: state.customers,
+      products: state.products,
+      items: state.items,
+      reason: state.reason,
+      remarks: state.remarks,
+      discountType: state.discountType,
+      discountValue: state.discountValue,
+      discountAmount: state.discountAmount,
+      paymentModes: state.paymentModes,
+      selectedPaymentModeId: serverId,
     );
   }
 
@@ -225,6 +268,8 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
         discountType: state.discountType,
         discountValue: state.discountValue,
         discountAmount: state.discountAmount,
+        paymentModes: state.paymentModes,
+        selectedPaymentModeId: state.selectedPaymentModeId,
       );
     } else {
       final item = SalesReturnItem()
@@ -249,6 +294,8 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
         discountType: state.discountType,
         discountValue: state.discountValue,
         discountAmount: state.discountAmount,
+        paymentModes: state.paymentModes,
+        selectedPaymentModeId: state.selectedPaymentModeId,
       );
     }
     _recalcHeaderDiscount();
@@ -272,6 +319,8 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
       discountType: state.discountType,
       discountValue: state.discountValue,
       discountAmount: state.discountAmount,
+      paymentModes: state.paymentModes,
+      selectedPaymentModeId: state.selectedPaymentModeId,
     );
     _recalcHeaderDiscount();
   }
@@ -295,6 +344,8 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
       discountType: state.discountType,
       discountValue: state.discountValue,
       discountAmount: state.discountAmount,
+      paymentModes: state.paymentModes,
+      selectedPaymentModeId: state.selectedPaymentModeId,
     );
     _recalcHeaderDiscount();
   }
@@ -322,6 +373,8 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
       discountType: state.discountType,
       discountValue: state.discountValue,
       discountAmount: state.discountAmount,
+      paymentModes: state.paymentModes,
+      selectedPaymentModeId: state.selectedPaymentModeId,
     );
     _recalcHeaderDiscount();
   }
@@ -341,6 +394,8 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
       discountType: state.discountType,
       discountValue: state.discountValue,
       discountAmount: state.discountAmount,
+      paymentModes: state.paymentModes,
+      selectedPaymentModeId: state.selectedPaymentModeId,
     );
   }
 
@@ -359,6 +414,8 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
       discountType: state.discountType,
       discountValue: state.discountValue,
       discountAmount: state.discountAmount,
+      paymentModes: state.paymentModes,
+      selectedPaymentModeId: state.selectedPaymentModeId,
     );
   }
 
@@ -381,6 +438,8 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
         discountType: state.discountType,
         discountValue: state.discountValue,
         discountAmount: amount,
+        paymentModes: state.paymentModes,
+        selectedPaymentModeId: state.selectedPaymentModeId,
       );
     }
   }
@@ -410,6 +469,8 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
       discountAmount: type == null
           ? 0
           : _calcDiscountAmount(type, state.discountValue, state.netTotalBeforeHeaderDiscount),
+      paymentModes: state.paymentModes,
+      selectedPaymentModeId: state.selectedPaymentModeId,
     );
   }
 
@@ -430,6 +491,8 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
       discountType: state.discountType,
       discountValue: value,
       discountAmount: amount,
+      paymentModes: state.paymentModes,
+      selectedPaymentModeId: state.selectedPaymentModeId,
     );
   }
 
@@ -456,6 +519,8 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
       discountType: state.discountType,
       discountValue: state.discountValue,
       discountAmount: state.discountAmount,
+      paymentModes: state.paymentModes,
+      selectedPaymentModeId: state.selectedPaymentModeId,
     );
     _recalcHeaderDiscount();
   }
@@ -485,6 +550,8 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
       discountType: state.discountType,
       discountValue: state.discountValue,
       discountAmount: state.discountAmount,
+      paymentModes: state.paymentModes,
+      selectedPaymentModeId: state.selectedPaymentModeId,
     );
     _recalcHeaderDiscount();
   }
@@ -509,6 +576,8 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
         discountType: state.discountType,
         discountValue: state.discountValue,
         discountAmount: state.discountAmount,
+        paymentModes: state.paymentModes,
+        selectedPaymentModeId: state.selectedPaymentModeId,
         error: validationError,
       );
       return false;
@@ -525,6 +594,8 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
       discountType: state.discountType,
       discountValue: state.discountValue,
       discountAmount: state.discountAmount,
+      paymentModes: state.paymentModes,
+      selectedPaymentModeId: state.selectedPaymentModeId,
       isSaving: true,
     );
 
@@ -537,11 +608,13 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
         discountType: state.discountType,
         discountValue: state.discountValue,
         discountAmount: state.discountAmount,
+        paymentMode: state.selectedPaymentModeId,
       );
 
       state = SalesReturnState(
         customers: state.customers,
         products: state.products,
+        paymentModes: state.paymentModes,
         saved: true,
       );
       return true;
@@ -557,6 +630,8 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
         discountType: state.discountType,
         discountValue: state.discountValue,
         discountAmount: state.discountAmount,
+        paymentModes: state.paymentModes,
+        selectedPaymentModeId: state.selectedPaymentModeId,
         isSaving: false,
         error: e.toString(),
       );
@@ -568,6 +643,7 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
     state = SalesReturnState(
       customers: state.customers,
       products: state.products,
+      paymentModes: state.paymentModes,
     );
   }
 }

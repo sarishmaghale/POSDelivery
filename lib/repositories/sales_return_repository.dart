@@ -37,6 +37,7 @@ class SalesReturnRepository {
     String? discountType,
     double discountValue = 0,
     double discountAmount = 0,
+    String? paymentMode,
   }) async {
     final sr = SalesReturn()
       ..customerId = customerId
@@ -45,6 +46,7 @@ class SalesReturnRepository {
       ..discountType = discountType
       ..discountValue = discountValue
       ..discountAmount = discountAmount
+      ..paymentMode = paymentMode
       ..createdDate = DateTime.now()
       ..isSynced = false;
 

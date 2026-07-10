@@ -258,6 +258,35 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
         _buildHeaderDiscountSection(state, theme, l10n),
         const SizedBox(height: 24),
         Text(
+          l10n.paymentDetails,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: DropdownButtonFormField<String>(
+              initialValue: state.selectedPaymentModeId,
+              decoration: InputDecoration(
+                labelText: l10n.paymentMode,
+                border: const OutlineInputBorder(),
+              ),
+              items: state.paymentModes.map((mode) {
+                return DropdownMenuItem(
+                  value: mode.serverId,
+                  child: Text(mode.name),
+                );
+              }).toList(),
+              onChanged: (value) {
+                ref.read(salesReturnProvider.notifier).setPaymentMode(value);
+              },
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
+        Text(
           l10n.additionalDetails,
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w600,

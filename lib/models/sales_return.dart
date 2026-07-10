@@ -60,6 +60,7 @@ class SalesReturn {
   String? discountType;
   double discountValue = 0;
   double discountAmount = 0;
+  String? paymentMode;
 
   SalesReturn();
 
@@ -85,6 +86,7 @@ class SalesReturn {
       if (discountType != null) 'discount_type': discountType,
       'discount_value': discountValue,
       'discount_amount': discountAmount,
+      if (paymentMode != null) 'payment_mode': paymentMode,
     };
   }
 
@@ -100,6 +102,7 @@ class SalesReturn {
     sr.discountType = map['discount_type'] as String?;
     sr.discountValue = (map['discount_value'] as num?)?.toDouble() ?? 0;
     sr.discountAmount = (map['discount_amount'] as num?)?.toDouble() ?? 0;
+    sr.paymentMode = map['payment_mode'] as String?;
     return sr;
   }
 }
