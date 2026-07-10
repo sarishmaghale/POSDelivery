@@ -214,7 +214,7 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
       state = SalesReturnState(
         selectedCustomer: state.selectedCustomer,
         pendingProduct: state.pendingProduct,
-        pendingQuantity: state.pendingQuantity,
+        pendingQuantity: 1,
         pendingRate: state.pendingRate,
         pendingUnit: state.pendingUnit,
         customers: state.customers,
@@ -238,7 +238,7 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
       state = SalesReturnState(
         selectedCustomer: state.selectedCustomer,
         pendingProduct: state.pendingProduct,
-        pendingQuantity: state.pendingQuantity,
+        pendingQuantity: 1,
         pendingRate: state.pendingRate,
         pendingUnit: state.pendingUnit,
         customers: state.customers,

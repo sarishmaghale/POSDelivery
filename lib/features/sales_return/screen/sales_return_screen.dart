@@ -20,6 +20,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
   final _qtyController = TextEditingController(text: '1');
   final _unitController = TextEditingController();
   final _rateController = TextEditingController();
+  final _rateFocusNode = FocusNode();
   final _discountValueController = TextEditingController();
   String? _previousPendingUnit;
   double? _previousPendingRate;
@@ -29,6 +30,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
     _qtyController.dispose();
     _unitController.dispose();
     _rateController.dispose();
+    _rateFocusNode.dispose();
     _discountValueController.dispose();
     super.dispose();
   }
@@ -48,12 +50,21 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
 
     if (state.pendingRate != _previousPendingRate) {
       _previousPendingRate = state.pendingRate;
-      final rateText = state.pendingRate > 0
-          ? state.pendingRate.toStringAsFixed(2)
-          : '';
-      if (rateText != _rateController.text) {
-        _rateController.text = rateText;
+      if (!_rateFocusNode.hasFocus) {
+        final rateText = state.pendingRate > 0
+            ? state.pendingRate.toStringAsFixed(2)
+            : '';
+        if (rateText != _rateController.text) {
+          _rateController.text = rateText;
+        }
       }
+    }
+
+    final qtyText = state.pendingQuantity.toStringAsFixed(
+      state.pendingQuantity == state.pendingQuantity.roundToDouble() ? 0 : 1,
+    );
+    if (qtyText != _qtyController.text) {
+      _qtyController.text = qtyText;
     }
 
     return Scaffold(
@@ -198,6 +209,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
                       flex: 2,
                       child: TextField(
                         controller: _rateController,
+                        focusNode: _rateFocusNode,
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
                         inputFormatters: [
                           FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
@@ -210,6 +222,12 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
                         onChanged: (value) {
                           final rate = double.tryParse(value) ?? 0;
                           ref.read(salesReturnProvider.notifier).setPendingRate(rate);
+                        },
+                        onEditingComplete: () {
+                          if (_rateController.text.isNotEmpty) {
+                            final rate = double.tryParse(_rateController.text) ?? 0;
+                            _rateController.text = rate.toStringAsFixed(2);
+                          }
                         },
                       ),
                     ),
