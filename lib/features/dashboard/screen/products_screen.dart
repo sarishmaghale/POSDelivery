@@ -60,6 +60,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                     separatorBuilder: (_, __) => const SizedBox(height: 8),
                     itemBuilder: (context, index) {
                       final product = _products[index];
+                      final langCode = Localizations.localeOf(context).languageCode;
                       return Card(
                         child: ListTile(
                           leading: CircleAvatar(
@@ -77,8 +78,8 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                                         child: CircularProgressIndicator(strokeWidth: 2),
                                       ),
                                       errorWidget: (_, __, ___) => Text(
-                                        product.name.isNotEmpty
-                                            ? product.name[0].toUpperCase()
+                                        product.localizedName(langCode).isNotEmpty
+                                            ? product.localizedName(langCode)[0].toUpperCase()
                                             : '?',
                                         style: theme.textTheme.titleMedium?.copyWith(
                                           color: theme.colorScheme.onPrimaryContainer,
@@ -87,15 +88,15 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                                     ),
                                   )
                                 : Text(
-                                    product.name.isNotEmpty
-                                        ? product.name[0].toUpperCase()
+                                    product.localizedName(langCode).isNotEmpty
+                                        ? product.localizedName(langCode)[0].toUpperCase()
                                         : '?',
                                     style: theme.textTheme.titleMedium?.copyWith(
                                       color: theme.colorScheme.onPrimaryContainer,
                                     ),
                                   ),
                           ),
-                          title: Text(product.name),
+                          title: Text(product.localizedName(langCode)),
                           subtitle: Text(
                             'Rs. ${product.unitPrice.toStringAsFixed(2)} · Stock: ${product.stock.toStringAsFixed(0)}',
                           ),

@@ -738,7 +738,7 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'Qty: {qty} × Rs. {price}'**
-  String qtyWithPrice( Object qty,Object price);
+  String qtyWithPrice(Object price, Object qty);
 
   /// No description provided for @itemCount.
   ///

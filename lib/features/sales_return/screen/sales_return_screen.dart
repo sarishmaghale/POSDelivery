@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/providers/locale_provider.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../models/sales_return.dart';
 import '../provider/sales_return_provider.dart';
@@ -218,7 +219,8 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
                       onPressed: state.pendingProduct == null
                           ? null
                           : () {
-                              ref.read(salesReturnProvider.notifier).addItem();
+                              final l = ref.read(localeProvider).languageCode;
+                              ref.read(salesReturnProvider.notifier).addItem(languageCode: l);
                               _qtyController.text = '1';
                               _unitController.clear();
                               _rateController.clear();

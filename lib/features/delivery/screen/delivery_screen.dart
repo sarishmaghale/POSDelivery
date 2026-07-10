@@ -39,6 +39,7 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
     final state = ref.watch(deliveryFormProvider);
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
+    final langCode = Localizations.localeOf(context).languageCode;
 
     final cartItems = state.cart.entries.map((e) {
       final product = state.products
@@ -46,7 +47,7 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
           .firstOrNull;
       return CartItem(
         productId: e.key,
-        productName: product?.name ?? l10n.unknown,
+        productName: product?.localizedName(langCode) ?? l10n.unknown,
         quantity: e.value,
         unitPrice: state.getUnitPrice(e.key),
         discountAmount: state.productDiscounts[e.key] ?? 0,
@@ -78,7 +79,7 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
       ),
       body: state.isLoadingCustomers
           ? const Center(child: CircularProgressIndicator())
-          : _buildBody(state, cartItems, theme, l10n),
+          : _buildBody(state, cartItems, theme, l10n, langCode),
     );
   }
 
@@ -87,11 +88,12 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
     List<CartItem> cartItems,
     ThemeData theme,
     AppLocalizations l10n,
+    String langCode,
   ) {
     if (state.isReadOnly) {
       return _buildReadOnlyView(state, cartItems, theme, l10n);
     }
-    return _buildEditableForm(state, cartItems, theme, l10n);
+    return _buildEditableForm(state, cartItems, theme, l10n, langCode);
   }
 
   Widget _buildReadOnlyView(
@@ -333,6 +335,7 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
     List<CartItem> cartItems,
     ThemeData theme,
     AppLocalizations l10n,
+    String langCode,
   ) {
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -378,7 +381,7 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
               final isSelected =
                   state.selectedCategory?.serverId == cat.serverId;
               return FilterChip(
-                label: Text(cat.name),
+                label: Text(cat.localizedName(langCode)),
                 selected: isSelected,
                 onSelected: (_) => ref
                     .read(deliveryFormProvider.notifier)
@@ -449,7 +452,7 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
             ),
           )
         else
-          _buildProductGrid(context, ref, state, theme, l10n),
+          _buildProductGrid(context, ref, state, theme, l10n, langCode),
       ],
     );
   }
@@ -460,6 +463,7 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
     DeliveryFormState state,
     ThemeData theme,
     AppLocalizations l10n,
+    String langCode,
   ) {
     final products = state.filteredProducts;
     if (products.isEmpty) {
@@ -524,7 +528,7 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      product.name,
+                      product.localizedName(langCode),
                       style: theme.textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),

@@ -25,15 +25,16 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      final langCode = Localizations.localeOf(context).languageCode;
       if (widget.deliveryId != null) {
-        ref.read(estimateProvider.notifier).loadDelivery(widget.deliveryId!);
+        ref.read(estimateProvider.notifier).loadDelivery(widget.deliveryId!, languageCode: langCode);
       } else {
-        _initFromDeliveryForm(ref);
+        _initFromDeliveryForm(ref, langCode);
       }
     });
   }
 
-  void _initFromDeliveryForm(WidgetRef ref) {
+  void _initFromDeliveryForm(WidgetRef ref, String langCode) {
     final deliveryForm = ref.read(deliveryFormProvider);
     if (deliveryForm.cart.isEmpty) {
       context.go('/delivery');
@@ -45,7 +46,7 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
       final product = products.where((p) => p.serverId == e.key).firstOrNull;
       return EstimateItemView(
         productId: e.key,
-        productName: product?.name ?? AppLocalizations.of(context)!.unknown,
+        productName: product?.localizedName(langCode) ?? AppLocalizations.of(context)!.unknown,
         quantity: e.value,
         unitPrice: deliveryForm.getUnitPrice(e.key),
         discountAmount: deliveryForm.productDiscounts[e.key] ?? 0,

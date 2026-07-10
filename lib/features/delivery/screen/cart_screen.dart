@@ -14,6 +14,7 @@ class CartScreen extends ConsumerWidget {
     final state = ref.watch(deliveryFormProvider);
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
+    final langCode = Localizations.localeOf(context).languageCode;
 
     final cartItems = state.cart.entries.map((e) {
       final product = state.products
@@ -21,7 +22,7 @@ class CartScreen extends ConsumerWidget {
           .firstOrNull;
       return CartItem(
         productId: e.key,
-        productName: product?.name ?? l10n.unknown,
+        productName: product?.localizedName(langCode) ?? l10n.unknown,
         quantity: e.value,
         unitPrice: state.getUnitPrice(e.key),
         discountAmount: state.productDiscounts[e.key] ?? 0,

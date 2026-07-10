@@ -24,6 +24,7 @@ class CategoryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final langCode = Localizations.localeOf(context).languageCode;
     return Card(
       child: InkWell(
         onTap: onTap,
@@ -47,7 +48,7 @@ class CategoryCard extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               Text(
-                category.name,
+                category.localizedName(langCode),
                 style: theme.textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.w600,
                 ),

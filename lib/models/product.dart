@@ -62,6 +62,13 @@ class Product {
     return product;
   }
 
+  String localizedName(String languageCode) {
+    if (languageCode == 'ne' && japaneseName != null && japaneseName!.isNotEmpty) {
+      return japaneseName!;
+    }
+    return name;
+  }
+
   String? get firstImageUrl =>
       productImages.isNotEmpty ? productImages.first : imageUrl;
 }

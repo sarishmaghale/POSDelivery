@@ -194,7 +194,7 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
     );
   }
 
-  void addItem() {
+  void addItem({String languageCode = 'en'}) {
     final product = state.pendingProduct;
     if (product == null || state.pendingQuantity <= 0) return;
 
@@ -223,7 +223,7 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
     } else {
       final item = SalesReturnItem()
         ..productId = product.serverId
-        ..productName = product.name
+        ..productName = product.localizedName(languageCode)
         ..quantity = state.pendingQuantity
         ..rate = state.pendingRate
         ..unitId = product.unitId

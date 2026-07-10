@@ -235,7 +235,7 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
     state = EstimateState(pendingDeliveries: pending);
   }
 
-  Future<void> loadDelivery(int deliveryId) async {
+  Future<void> loadDelivery(int deliveryId, {String languageCode = 'en'}) async {
     state = EstimateState(isLoadingDelivery: true);
 
     final delivery = await _deliveryRepo.getDeliveryById(deliveryId);
@@ -263,7 +263,7 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
           : (product?.unitPrice ?? 0);
       return EstimateItemView(
         productId: item.productId,
-        productName: product?.name ?? 'Unknown',
+        productName: product?.localizedName(languageCode) ?? 'Unknown',
         quantity: item.quantity,
         unitPrice: price,
         taxableType: product?.taxable ?? 0,
