@@ -63,6 +63,7 @@
   "invoiceSavedSuccessfully": "इन्भ्वाइस सफलतापूर्वक सुरक्षित भयो",
   "backToDashboard": "ड्यासबोर्डमा फर्कनुहोस्",
   "grossAmount": "कुल रकम",
+  "tax": "कर",
   "discount": "छुट",
   "discountType": "छुट प्रकार",
   "none": "कुनै पनि होइन",

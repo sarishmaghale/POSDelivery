@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_config.dart';
+import '../../../core/utils/tax_calculator.dart';
 import '../../../dto/sales_invoice_request.dart';
 import '../../../models/customer.dart';
 import '../../../models/delivery.dart';
@@ -19,16 +20,37 @@ class EstimateItemView {
   final double quantity;
   final double unitPrice;
   final double discountAmount;
-  double get grossAmount => quantity * unitPrice;
-  double get lineTotal => grossAmount - discountAmount;
+  final int taxableType;
+  final double taxPercent;
 
-  EstimateItemView({
+  const EstimateItemView({
     required this.productId,
     required this.productName,
     required this.quantity,
     required this.unitPrice,
     this.discountAmount = 0,
+    this.taxableType = 0,
+    this.taxPercent = kDefaultTaxPercent,
   });
+
+  ItemTaxBreakdown get tax => computeItemTax(
+        rate: unitPrice,
+        quantity: quantity,
+        discount: discountAmount,
+        taxableType: taxableType,
+        taxPercent: taxPercent,
+      );
+
+  /// Ex-tax gross (used for storage/invoice line totals).
+  double get grossAmount => quantity * unitPrice;
+  double get lineTotal => grossAmount - discountAmount;
+
+  /// Tax-inclusive values shown on the billing screen.
+  double get rateExTax => tax.rateExTax;
+  double get rateIncTax => tax.rateIncTax;
+  double get grossAmountIncTax => tax.grossAmountIncTax;
+  double get taxAmount => tax.taxAmount;
+  double get netAmount => tax.netAmount;
 }
 
 class EstimateState {
@@ -79,7 +101,13 @@ class EstimateState {
   double get totalProductDiscount =>
       items.fold<double>(0, (sum, item) => sum + item.discountAmount);
 
-  double get netTotal => grossTotal - discountAmount;
+  /// Tax-inclusive net amount to be paid (matches the saved invoice payload).
+  double get netTotal =>
+      items.fold<double>(0, (sum, item) => sum + item.netAmount) -
+      discountAmount;
+
+  double get totalTax =>
+      items.fold<double>(0, (sum, item) => sum + item.taxAmount);
 
   List<Customer> get filteredCustomers {
     if (customerSearchQuery.isEmpty) return [];
@@ -238,6 +266,7 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
         productName: product?.name ?? 'Unknown',
         quantity: item.quantity,
         unitPrice: price,
+        taxableType: product?.taxable ?? 0,
       );
     }).toList();
 
@@ -467,88 +496,46 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
         0,
         (sum, item) => sum + item.quantity,
       );
-      final invoiceGrossAmount = state.totalGrossAmount;
-      final totalProductDiscount = state.totalProductDiscount;
       final globalDiscount = state.discountAmount;
-      final totalDiscount = totalProductDiscount + globalDiscount;
-      final netAmount = invoiceGrossAmount - totalDiscount;
 
-      final totalGross = state.totalGrossAmount;
       final productsMap = <String, Product>{
         for (final p in await _productRepo.getCachedProducts()) p.serverId: p,
       };
       final salesInvoiceItems = state.items.map((item) {
         final product = productsMap[item.productId];
-        final proportion = totalGross > 0
-            ? item.grossAmount / totalGross
-            : 1.0 / state.items.length;
-        final itemGlobalDiscount = globalDiscount * proportion;
-        final itemNetAfterAll = item.lineTotal - itemGlobalDiscount;
-
-        final taxableType = product?.taxable ?? 0;
-        final rate = item.unitPrice;
-        final quantity = item.quantity;
-        final discount = item.discountAmount;
-        const taxPercent = 13.0;
-
-        double rateIncTax;
-        double grossAmount;
-        double grossAmountIncTax;
-        double taxableAmount;
-        double nonTaxableAmount;
-        double taxAmount;
-
-        double rateExTax;
-        if (taxableType == 0) {
-          rateExTax = rate;
-          rateIncTax = rate * (1 + taxPercent / 100);
-          grossAmount = rateExTax * quantity;
-          grossAmountIncTax = rateIncTax * quantity;
-          taxableAmount = grossAmount;
-          nonTaxableAmount = 0;
-          taxAmount = grossAmountIncTax - grossAmount;
-        } else if (taxableType == 1) {
-          rateIncTax = rate;
-          rateExTax = rate / (1 + taxPercent / 100);
-          grossAmountIncTax = rateIncTax * quantity;
-          grossAmount = rateExTax * quantity;
-          taxableAmount = grossAmount;
-          nonTaxableAmount = 0;
-          taxAmount = grossAmountIncTax - grossAmount;
-        } else {
-          rateExTax = rate;
-          rateIncTax = rate;
-          grossAmount = rateExTax * quantity;
-          grossAmountIncTax = grossAmount;
-          taxableAmount = 0;
-          nonTaxableAmount = grossAmount;
-          taxAmount = 0;
-        }
+        final tax = computeItemTax(
+          rate: item.unitPrice,
+          quantity: item.quantity,
+          discount: item.discountAmount,
+          taxableType: product?.taxable ?? 0,
+          taxPercent: kDefaultTaxPercent,
+        );
 
         return SalesInvoiceItemRequest(
           refNo: item.productId,
           chalanNumber: product?.chalanNumber ?? '',
           productId: item.productId,
           name: item.productName,
-          quantity: quantity,
+          quantity: item.quantity,
           unitId: product?.unitId ?? '',
           unitName: product?.unit ?? '',
           categoryId: product?.categoryId ?? '',
-          rate: rateExTax,
-          rateIncludingTax: rateIncTax,
-          grossAmount: grossAmount,
-          grossAmountIncludingTax: grossAmountIncTax,
-          discount: discount,
-          taxable: taxableAmount,
-          nonTaxable: nonTaxableAmount,
-          taxPercent: taxPercent,
-          taxAmount: taxAmount,
-          netAmount: itemNetAfterAll,
+          rate: tax.rateExTax,
+          rateIncludingTax: tax.rateIncTax,
+          grossAmount: tax.grossAmount,
+          grossAmountIncludingTax: tax.grossAmountIncTax,
+          discount: tax.discountExcTax,
+          discountIncludingTax: tax.discountIncludingTax,
+          taxable: tax.taxableAmount,
+          nonTaxable: tax.nonTaxableAmount,
+          taxPercent: kDefaultTaxPercent,
+          taxAmount: tax.taxAmount,
+          netAmount: tax.netAmount,
           salesInvoiceItemTax: [
             SalesInvoiceItemTaxRequest(
-              taxableAmount: taxableAmount,
-              taxAmount: taxAmount,
-              netAmount: itemNetAfterAll,
+              taxableAmount: tax.taxableAmount,
+              taxAmount: tax.taxAmount,
+              netAmount: tax.netAmount,
             ),
           ],
         );
@@ -568,24 +555,44 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
         0,
         (sum, item) => sum + item.taxAmount,
       );
-
+      final totalDiscountExcTax =
+          salesInvoiceItems.fold<double>(
+            0,
+            (sum, item) => sum + item.discount,
+          ) +
+          globalDiscount;
+      final totalDiscountIncludingTax =
+          salesInvoiceItems.fold<double>(
+            0,
+            (sum, item) => sum + item.discountIncludingTax,
+          ) +
+          globalDiscount;
+      final totalgrossAmountExcTax = salesInvoiceItems.fold<double>(
+        0,
+        (sum, item) => sum + item.grossAmount,
+      );
+      final totalgrossAmountIncTax = salesInvoiceItems.fold<double>(
+        0,
+        (sum, item) => sum + item.grossAmountIncludingTax,
+      );
+      final totalNetAmount = totalgrossAmountIncTax - totalDiscountIncludingTax;
       final salesInvoiceRequest = SalesInvoiceRequest(
         transactionDate: transactionDate,
         customerId: state.customer!.serverId,
         customerName: state.customer!.name,
         outletId: ApiConfig.emptyGuid,
         totalQuantity: totalQty,
-        totalGrossAmount: invoiceGrossAmount,
-        totalGrossAmountIncludingTax: invoiceGrossAmount + totalItemTax,
-        totalDiscount: totalDiscount,
-        totalDiscountIncludingTax: totalDiscount,
+        totalGrossAmount: totalgrossAmountExcTax,
+        totalGrossAmountIncludingTax: totalgrossAmountIncTax,
+        totalDiscount: totalDiscountExcTax,
+        totalDiscountIncludingTax: totalDiscountIncludingTax,
         totalTaxableAmount: totalTaxable,
         totalNonTaxableAmount: totalNonTaxable,
         totalTax: totalItemTax,
-        totalNetAmount: netAmount + totalItemTax,
-        totalPayableAmount: netAmount + totalItemTax,
+        totalNetAmount: totalNetAmount,
+        totalPayableAmount: totalNetAmount,
         payMode: payModeName,
-        tenderAmount: netAmount + totalItemTax,
+        tenderAmount: totalNetAmount,
         chalanNumber: chalanNumber,
         salesInvoiceTax: [SalesInvoiceTaxRequest(taxAmount: totalItemTax)],
         salesInvoiceItem: salesInvoiceItems,
@@ -593,9 +600,7 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
           SalesInvoicePaymentRequest(
             payMode: payModeName,
             paymentId: payModeId,
-            amount: state.paidAmount > 0
-                ? state.paidAmount
-                : netAmount + totalItemTax,
+            amount: state.paidAmount > 0 ? state.paidAmount : totalNetAmount,
           ),
         ],
         currencyId: ApiConfig.defaultCurrencyId,

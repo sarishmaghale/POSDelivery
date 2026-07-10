@@ -3,7 +3,6 @@ import 'package:sqflite/sqflite.dart';
 
 import '../core/database/providers.dart';
 import '../models/delivery.dart';
-import '../models/sync_queue.dart';
 
 final deliveryRepositoryProvider = Provider<DeliveryRepository>((ref) {
   return DeliveryRepository(
@@ -50,17 +49,10 @@ class DeliveryRepository {
       final existingSync = await txn.query('sync_queue',
           where: 'entity_type = ? AND entity_id = ?',
           whereArgs: ['Delivery', deliveryId]);
-      if (existingSync.isEmpty) {
-        final syncEntry = SyncQueue()
-          ..entityType = 'Delivery'
-          ..entityId = deliveryId
-          ..status = 'Pending'
-          ..createdDate = DateTime.now();
-        await txn.insert('sync_queue', syncEntry.toMap());
-      } else {
+      if (existingSync.isNotEmpty) {
         await txn.update(
           'sync_queue',
-          {'status': 'Pending'},
+          {'status': 'Synced'},
           where: 'entity_type = ? AND entity_id = ?',
           whereArgs: ['Delivery', deliveryId],
         );
@@ -87,12 +79,6 @@ class DeliveryRepository {
         item.deliveryId = deliveryId;
         await txn.insert('delivery_item', item.toMap());
       }
-      final syncEntry = SyncQueue()
-        ..entityType = 'Delivery'
-        ..entityId = deliveryId
-        ..status = 'Pending'
-        ..createdDate = DateTime.now();
-      await txn.insert('sync_queue', syncEntry.toMap());
       return deliveryId;
     });
     delivery.id = id;

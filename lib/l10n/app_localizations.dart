@@ -446,6 +446,12 @@ abstract class AppLocalizations {
   /// **'Gross Amount'**
   String get grossAmount;
 
+  /// No description provided for @tax.
+  ///
+  /// In en, this message translates to:
+  /// **'Tax'**
+  String get tax;
+
   /// No description provided for @discount.
   ///
   /// In en, this message translates to:
@@ -732,7 +738,7 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'Qty: {qty} × Rs. {price}'**
-  String qtyWithPrice(Object price, Object qty);
+  String qtyWithPrice( Object qty,Object price);
 
   /// No description provided for @itemCount.
   ///

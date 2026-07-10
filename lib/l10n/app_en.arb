@@ -67,6 +67,7 @@
   "invoiceSavedSuccessfully": "Invoice Saved Successfully",
   "backToDashboard": "Back to Dashboard",
   "grossAmount": "Gross Amount",
+  "tax": "Tax",
   "discount": "Discount",
   "discountType": "Discount Type",
   "none": "None",

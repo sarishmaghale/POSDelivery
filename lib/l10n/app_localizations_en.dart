@@ -187,6 +187,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get grossAmount => 'Gross Amount';
 
   @override
+  String get tax => 'Tax';
+
+  @override
   String get discount => 'Discount';
 
   @override

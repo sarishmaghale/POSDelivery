@@ -187,6 +187,9 @@ class AppLocalizationsNe extends AppLocalizations {
   String get grossAmount => 'कुल रकम';
 
   @override
+  String get tax => 'कर';
+
+  @override
   String get discount => 'छुट';
 
   @override
@@ -330,7 +333,7 @@ class AppLocalizationsNe extends AppLocalizations {
   String get paid => 'भुक्तान गरिएको:';
 
   @override
-  String qtyWithPrice(Object price, Object qty) {
+  String qtyWithPrice(Object qty, Object price ) {
     return 'मात्रा: $qty × रु. $price';
   }
 
