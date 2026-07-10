@@ -333,7 +333,7 @@ class AppLocalizationsNe extends AppLocalizations {
   String get paid => 'भुक्तान गरिएको:';
 
   @override
-  String qtyWithPrice(Object qty, Object price ) {
+  String qtyWithPrice(Object price, Object qty) {
     return 'मात्रा: $qty × रु. $price';
   }
 
