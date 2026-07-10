@@ -12,8 +12,6 @@ import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'features/sync/provider/sync_provider.dart';
 import 'l10n/app_localizations.dart';
-import 'models/product.dart';
-import 'repositories/product_repository.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -71,10 +69,6 @@ class _PosDeliveryAppState extends ConsumerState<PosDeliveryApp> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(syncProvider);
-      ref.read(productRepositoryProvider).refreshAllProducts().catchError((e) {
-        print('[ERROR] Failed to load all products: $e');
-        return <Product>[];
-      });
     });
   }
 

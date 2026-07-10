@@ -12,8 +12,9 @@ import '../../../repositories/sync_repository.dart';
 class SyncStatus {
   final String label;
   final bool? success; // null = pending, true = ok, false = failed
+  final String? error;
 
-  const SyncStatus({required this.label, this.success});
+  const SyncStatus({required this.label, this.success, this.error});
 }
 
 class SyncState {
@@ -90,24 +91,31 @@ class SyncNotifier extends StateNotifier<SyncState> {
       syncedCount: state.syncedCount,
       lastSyncTime: state.lastSyncTime,
       isSyncing: true,
-      incomingStatus: {
+incomingStatus: {
         'categories': const SyncStatus(label: 'Categories', success: null),
-        'products': const SyncStatus(label: 'Products', success: null),
+        'assignedProducts': const SyncStatus(label: 'Assigned Products', success: null),
+        'allProducts': const SyncStatus(label: 'All Products', success: null),
         'customers': const SyncStatus(label: 'Customers', success: null),
         'paymentModes': const SyncStatus(label: 'Payment Modes', success: null),
       },
     );
 
     final results = await _syncFromServer();
-    final allOk = results.values.every((s) => s == true);
+    final allOk = results.entries.where((e) => e.key.endsWith('_error')).isEmpty &&
+        results['categories'] == true &&
+        results['assignedProducts'] == true &&
+        results['allProducts'] == true &&
+        results['customers'] == true &&
+        results['paymentModes'] == true;
 
     if (!allOk) {
       state = SyncState(
-        incomingStatus: {
-          'categories': SyncStatus(label: 'Categories', success: results['categories']),
-          'products': SyncStatus(label: 'Products', success: results['products']),
-          'customers': SyncStatus(label: 'Customers', success: results['customers']),
-          'paymentModes': SyncStatus(label: 'Payment Modes', success: results['paymentModes']),
+incomingStatus: {
+          'categories': SyncStatus(label: 'Categories', success: results['categories'], error: results['categories_error']),
+          'assignedProducts': SyncStatus(label: 'Assigned Products', success: results['assignedProducts'], error: results['assignedProducts_error']),
+          'allProducts': SyncStatus(label: 'All Products', success: results['allProducts'], error: results['allProducts_error']),
+          'customers': SyncStatus(label: 'Customers', success: results['customers'], error: results['customers_error']),
+          'paymentModes': SyncStatus(label: 'Payment Modes', success: results['paymentModes'], error: results['paymentModes_error']),
         },
         isSyncing: true,
       );
@@ -135,18 +143,19 @@ class SyncNotifier extends StateNotifier<SyncState> {
           ? (queueSyncOk ? null : 'Some bills failed to push to server.')
           : 'Some data failed to sync from server. Local data preserved.',
       incomingStatus: {
-        'categories': SyncStatus(label: 'Categories', success: results['categories']),
-        'products': SyncStatus(label: 'Products', success: results['products']),
-        'customers': SyncStatus(label: 'Customers', success: results['customers']),
-        'paymentModes': SyncStatus(label: 'Payment Modes', success: results['paymentModes']),
+        'categories': SyncStatus(label: 'Categories', success: results['categories'], error: results['categories_error']),
+        'assignedProducts': SyncStatus(label: 'Assigned Products', success: results['assignedProducts'], error: results['assignedProducts_error']),
+        'allProducts': SyncStatus(label: 'All Products', success: results['allProducts'], error: results['allProducts_error']),
+        'customers': SyncStatus(label: 'Customers', success: results['customers'], error: results['customers_error']),
+        'paymentModes': SyncStatus(label: 'Payment Modes', success: results['paymentModes'], error: results['paymentModes_error']),
       },
     );
 
     return allOk;
   }
 
-  Future<Map<String, bool>> _syncFromServer() async {
-    final results = <String, bool>{};
+  Future<Map<String, dynamic>> _syncFromServer() async {
+    final results = <String, dynamic>{};
 
     final now = DateTime.now();
     final transactionDate =
@@ -165,8 +174,9 @@ class SyncNotifier extends StateNotifier<SyncState> {
       if (catUrls.isNotEmpty) {
         ImagePrefetchService().prefetchImages(catUrls);
       }
-    } catch (_) {
+    } catch (e) {
       results['categories'] = false;
+      results['categories_error'] = e.toString();
     }
 
     try {
@@ -174,7 +184,7 @@ class SyncNotifier extends StateNotifier<SyncState> {
         customerId: ApiConfig.defaultCustomerId,
         transactionDate: transactionDate,
       );
-      results['products'] = true;
+      results['assignedProducts'] = true;
       final prodUrls = products
           .where((p) => p.firstImageUrl != null && p.firstImageUrl!.isNotEmpty)
           .map((p) => p.firstImageUrl!)
@@ -182,22 +192,35 @@ class SyncNotifier extends StateNotifier<SyncState> {
       if (prodUrls.isNotEmpty) {
         ImagePrefetchService().prefetchImages(prodUrls);
       }
-    } catch (_) {
-      results['products'] = false;
+    } catch (e) {
+      print('[Sync] Assigned Products error: $e');
+      results['assignedProducts'] = false;
+      results['assignedProducts_error'] = e.toString();
+    }
+
+    try {
+      await _productRepo.refreshAllProducts();
+      results['allProducts'] = true;
+    } catch (e) {
+      print('[Sync] All Products error: $e');
+      results['allProducts'] = false;
+      results['allProducts_error'] = e.toString();
     }
 
     try {
       await _customerRepo.refreshCustomers();
       results['customers'] = true;
-    } catch (_) {
+    } catch (e) {
       results['customers'] = false;
+      results['customers_error'] = e.toString();
     }
 
     try {
       await _paymentModeRepo.refreshPaymentModes();
       results['paymentModes'] = true;
-    } catch (_) {
+    } catch (e) {
       results['paymentModes'] = false;
+      results['paymentModes_error'] = e.toString();
     }
 
     return results;
