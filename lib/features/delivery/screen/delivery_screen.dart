@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/utils/extensions.dart';
+import '../../../core/utils/tax_calculator.dart';
 import '../../../l10n/app_localizations.dart';
 import '../models/cart_item.dart';
 import '../provider/delivery_provider.dart';
@@ -109,6 +110,30 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
             ? delivery.paymentMode
             : null);
 
+    final itemsWithTax = cartItems.map((item) {
+      final product = state.products
+          .where((p) => p.serverId == item.productId)
+          .firstOrNull;
+      final tax = computeItemTax(
+        rate: item.unitPrice,
+        quantity: item.quantity,
+        discount: item.discountAmount,
+        taxableType: product?.taxable ?? 0,
+      );
+      return (item: item, tax: tax);
+    }).toList();
+
+    final totalGrossIncTax = itemsWithTax.fold<double>(
+        0, (sum, e) => sum + e.tax.grossAmountIncTax);
+    final totalDiscountIncTax = itemsWithTax.fold<double>(
+        0, (sum, e) => sum + e.tax.discountIncludingTax);
+    final totalTax = itemsWithTax.fold<double>(
+        0, (sum, e) => sum + e.tax.taxAmount);
+    final globalDiscountIncTax = state.discountAmount > 0
+        ? state.discountAmount
+        : 0.0;
+    final netTotal = totalGrossIncTax - totalDiscountIncTax - globalDiscountIncTax;
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -198,8 +223,8 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
           ),
         ),
         const SizedBox(height: 12),
-        ...cartItems.map(
-          (item) => Card(
+        ...itemsWithTax.map(
+          (e) => Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
@@ -209,22 +234,25 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          item.productName,
+                          e.item.productName,
                           style: theme.textTheme.titleSmall?.copyWith(
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Qty: ${item.quantity.toStringAsFixed(0)} × Rs. ${item.unitPrice.toStringAsFixed(2)}',
+                          l10n.qtyWithPrice(
+                            e.tax.rateIncTax.toStringAsFixed(2),
+                            e.item.quantity.toStringAsFixed(0),
+                          ),
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
                         ),
-                        if (item.discountAmount > 0) ...[
+                        if (e.item.discountAmount > 0) ...[
                           const SizedBox(height: 2),
                           Text(
-                            'Discount: -Rs. ${item.discountAmount.toStringAsFixed(2)}',
+                            'Discount: -Rs. ${e.item.discountAmount.toStringAsFixed(2)}',
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: theme.colorScheme.error,
                             ),
@@ -234,7 +262,7 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
                     ),
                   ),
                   Text(
-                    'Rs. ${item.lineTotal.toStringAsFixed(2)}',
+                    'Rs. ${e.tax.netAmount.toStringAsFixed(2)}',
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -244,55 +272,110 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
             ),
           ),
         ),
-        if (state.discountAmount > 0) ...[
-          const SizedBox(height: 8),
-          Card(
-            color: theme.colorScheme.errorContainer,
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Global Discount',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.onErrorContainer,
-                    ),
-                  ),
-                  Text(
-                    '- Rs. ${state.discountAmount.toStringAsFixed(2)}',
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.onErrorContainer,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
         const SizedBox(height: 16),
         Card(
-          color: theme.colorScheme.primaryContainer,
+          color: theme.colorScheme.surfaceContainerHighest,
           child: Padding(
             padding: const EdgeInsets.all(20),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Column(
               children: [
-                Text(
-                  l10n.total,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.onPrimaryContainer,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      l10n.grossAmount,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    Text(
+                      'Rs. ${totalGrossIncTax.toStringAsFixed(2)}',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
-                Text(
-                  'Rs. ${state.estimatedTotal.toStringAsFixed(2)}',
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.onPrimaryContainer,
+                if (totalDiscountIncTax > 0) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Product Discount',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.error,
+                        ),
+                      ),
+                      Text(
+                        '- Rs. ${totalDiscountIncTax.toStringAsFixed(2)}',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: theme.colorScheme.error,
+                        ),
+                      ),
+                    ],
                   ),
+                ],
+                if (globalDiscountIncTax > 0) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        l10n.discount,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.error,
+                        ),
+                      ),
+                      Text(
+                        '- Rs. ${globalDiscountIncTax.toStringAsFixed(2)}',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: theme.colorScheme.error,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+                if (totalTax > 0) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        l10n.tax,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      Text(
+                        'Rs. ${totalTax.toStringAsFixed(2)}',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+                const Divider(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      l10n.totalAmount,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      'Rs. ${netTotal.toStringAsFixed(2)}',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -381,6 +464,18 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
               final isSelected =
                   state.selectedCategory?.serverId == cat.serverId;
               return FilterChip(
+                avatar: cat.firstImageUrl != null
+                    ? ClipOval(
+                        child: CachedNetworkImage(
+                          imageUrl: cat.firstImageUrl!,
+                          width: 24,
+                          height: 24,
+                          fit: BoxFit.cover,
+                          placeholder: (_, __) => const SizedBox.shrink(),
+                          errorWidget: (_, __, ___) => const SizedBox.shrink(),
+                        ),
+                      )
+                    : null,
                 label: Text(cat.localizedName(langCode)),
                 selected: isSelected,
                 onSelected: (_) => ref

@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'product_unit.dart';
+
 class Product {
   int? id;
   late String serverId;
@@ -16,6 +18,7 @@ class Product {
   String? description;
   int taxable = 0;
   String? chalanNumber;
+  List<ProductUnit> units = [];
 
   Product();
 
@@ -37,6 +40,7 @@ class Product {
       'description': description,
       'taxable': taxable,
       'chalan_number': chalanNumber,
+      'units_json': units.isNotEmpty ? jsonEncode(units.map((u) => u.toJson()).toList()) : null,
     };
   }
 
@@ -58,6 +62,12 @@ class Product {
     final imagesRaw = map['product_images'] as String?;
     if (imagesRaw != null && imagesRaw.isNotEmpty) {
       product.productImages = (jsonDecode(imagesRaw) as List).cast<String>();
+    }
+    final unitsRaw = map['units_json'] as String?;
+    if (unitsRaw != null && unitsRaw.isNotEmpty) {
+      product.units = (jsonDecode(unitsRaw) as List)
+          .map((e) => ProductUnit.fromJson(e as Map<String, dynamic>))
+          .toList();
     }
     return product;
   }

@@ -78,7 +78,7 @@ class EstimateRepository {
 
     final isOnline = await _networkChecker.isConnected;
     if (isOnline && salesInvoiceRequest != null) {
-      await _syncSalesInvoice(salesInvoiceRequest, id);
+      await _syncSalesInvoice(salesInvoiceRequest, id, deliveryId);
     }
 
     return estimate;
@@ -87,12 +87,13 @@ class EstimateRepository {
   Future<void> _syncSalesInvoice(
     SalesInvoiceRequest request,
     int estimateId,
+    int deliveryId,
   ) async {
     await _db.update(
       'sync_queue',
       {'status': 'Syncing'},
       where: 'entity_type = ? AND entity_id = ?',
-      whereArgs: ['Estimate', estimateId],
+      whereArgs: ['Delivery', deliveryId],
     );
 
     try {
@@ -108,29 +109,20 @@ class EstimateRepository {
           'sync_queue',
           {'status': 'Synced'},
           where: 'entity_type = ? AND entity_id = ?',
-          whereArgs: ['Estimate', estimateId],
+          whereArgs: ['Delivery', deliveryId],
         );
-        final estimateMaps = await _db.query(
-          'estimate',
-          columns: ['delivery_id'],
+        await _db.update(
+          'delivery',
+          {'is_synced': 1},
           where: 'id = ?',
-          whereArgs: [estimateId],
+          whereArgs: [deliveryId],
         );
-        if (estimateMaps.isNotEmpty) {
-          final deliveryId = estimateMaps.first['delivery_id'] as int;
-          await _db.update(
-            'delivery',
-            {'is_synced': 1},
-            where: 'id = ?',
-            whereArgs: [deliveryId],
-          );
-        }
       } else {
         await _db.update(
           'sync_queue',
           {'status': 'Failed'},
           where: 'entity_type = ? AND entity_id = ?',
-          whereArgs: ['Estimate', estimateId],
+          whereArgs: ['Delivery', deliveryId],
         );
       }
     } catch (_) {
@@ -138,7 +130,7 @@ class EstimateRepository {
         'sync_queue',
         {'status': 'Failed'},
         where: 'entity_type = ? AND entity_id = ?',
-        whereArgs: ['Estimate', estimateId],
+        whereArgs: ['Delivery', deliveryId],
       );
     }
   }

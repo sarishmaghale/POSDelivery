@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../../models/product_unit.dart';
 import '../models/cart_item.dart';
 import '../provider/delivery_provider.dart';
 
@@ -26,6 +27,8 @@ class CartScreen extends ConsumerWidget {
         quantity: e.value,
         unitPrice: state.getUnitPrice(e.key),
         discountAmount: state.productDiscounts[e.key] ?? 0,
+        selectedUnitId: state.getSelectedUnitId(e.key) ?? product?.unitId,
+        selectedUnitName: state.getSelectedUnitName(e.key) ?? product?.unit,
       );
     }).toList();
 
@@ -59,12 +62,19 @@ class CartScreen extends ConsumerWidget {
                     itemCount: cartItems.length,
                     itemBuilder: (context, index) {
                       final item = cartItems[index];
+                      final units = state.getProductUnits(item.productId);
                       return _CartItemCard(
                         item: item,
+                        units: units,
                         onQuantityChanged: (qty) {
                           ref
                               .read(deliveryFormProvider.notifier)
                               .updateCartQuantity(item.productId, qty);
+                        },
+                        onUnitChanged: (unitId) {
+                          ref
+                              .read(deliveryFormProvider.notifier)
+                              .setSelectedUnit(item.productId, unitId);
                         },
                         onUnitPriceChanged: (price) {
                           ref
@@ -146,14 +156,18 @@ class CartScreen extends ConsumerWidget {
 
 class _CartItemCard extends StatefulWidget {
   final CartItem item;
+  final List<ProductUnit> units;
   final ValueChanged<double> onQuantityChanged;
+  final ValueChanged<String> onUnitChanged;
   final ValueChanged<double> onUnitPriceChanged;
   final ValueChanged<double> onDiscountChanged;
   final VoidCallback onRemove;
 
   const _CartItemCard({
     required this.item,
+    this.units = const [],
     required this.onQuantityChanged,
+    required this.onUnitChanged,
     required this.onUnitPriceChanged,
     required this.onDiscountChanged,
     required this.onRemove,
@@ -281,6 +295,31 @@ class _CartItemCardState extends State<_CartItemCard> {
                   ),
                 ),
                 const Spacer(),
+                if (widget.units.length > 1)
+                  Container(
+                    margin: const EdgeInsets.only(right: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: theme.colorScheme.outline),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        key: ValueKey(widget.item.selectedUnitId ?? widget.units.first.unitId),
+                        value: widget.item.selectedUnitId ?? widget.units.first.unitId,
+                        isDense: true,
+                        items: widget.units.map((u) {
+                          return DropdownMenuItem(
+                            value: u.unitId,
+                            child: Text(u.unitName, style: const TextStyle(fontSize: 13)),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          if (value != null) widget.onUnitChanged(value);
+                        },
+                      ),
+                    ),
+                  ),
                 SizedBox(
                   width: 80,
                   child: Focus(

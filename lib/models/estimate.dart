@@ -60,6 +60,8 @@ class EstimateItem {
   late double unitPrice;
   late double lineTotal;
   double discountAmount = 0;
+  String? unitId;
+  String? unitName;
 
   EstimateItem();
 
@@ -72,6 +74,8 @@ class EstimateItem {
       'unit_price': unitPrice,
       'line_total': lineTotal,
       'discount_amount': discountAmount,
+      'unit_id': unitId,
+      'unit_name': unitName,
     };
   }
 
@@ -84,6 +88,8 @@ class EstimateItem {
     item.unitPrice = (map['unit_price'] as num).toDouble();
     item.lineTotal = (map['line_total'] as num).toDouble();
     item.discountAmount = (map['discount_amount'] as num?)?.toDouble() ?? 0;
+    item.unitId = map['unit_id'] as String?;
+    item.unitName = map['unit_name'] as String?;
     return item;
   }
 }

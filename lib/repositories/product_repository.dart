@@ -2,10 +2,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite/sqflite.dart';
 
+import 'dart:convert';
+
 import '../core/database/providers.dart';
 import '../core/network/api_service.dart';
 import '../core/network/providers.dart';
 import '../models/product.dart';
+import '../models/product_unit.dart';
 
 final productRepositoryProvider = Provider<ProductRepository>((ref) {
   return ProductRepository(
@@ -64,6 +67,13 @@ class ProductRepository {
       p.unitId = json['BaseUnitId']?.toString();
       p.unit = json['BaseUnitName']?.toString();
       p.unitPrice = (json['Rate'] as num?)?.toDouble() ?? 0;
+
+      final unitsRaw = json['Units'] as List?;
+      if (unitsRaw != null) {
+        p.units = unitsRaw
+            .map((e) => ProductUnit.fromJson(e as Map<String, dynamic>))
+            .toList();
+      }
       return p;
     }).toList();
 
@@ -81,6 +91,7 @@ class ProductRepository {
             'unit': p.unit,
             'unit_price':p.unitPrice,
             'image_url': p.imageUrl,
+            'units_json': p.units.isNotEmpty ? jsonEncode(p.units.map((u) => u.toJson()).toList()) : null,
           }, conflictAlgorithm: ConflictAlgorithm.replace);
         }
       });
@@ -102,6 +113,12 @@ class ProductRepository {
       p.unit = map['unit'] as String?;
       p.imageUrl = map['image_url'] as String?;
       p.unitPrice = (map['unit_price'] as num?)?.toDouble() ?? 0;
+      final unitsRaw = map['units_json'] as String?;
+      if (unitsRaw != null && unitsRaw.isNotEmpty) {
+        p.units = (jsonDecode(unitsRaw) as List)
+            .map((e) => ProductUnit.fromJson(e as Map<String, dynamic>))
+            .toList();
+      }
       return p;
     }).toList();
   }
@@ -129,6 +146,13 @@ class ProductRepository {
       if (baseUnit != null) {
         p.unitId = baseUnit['UnitId'] as String?;
         p.unit = baseUnit['UnitName'] as String?;
+      }
+
+      final unitsRaw = json['Units'] as List?;
+      if (unitsRaw != null) {
+        p.units = unitsRaw
+            .map((e) => ProductUnit.fromJson(e as Map<String, dynamic>))
+            .toList();
       }
 
       final rawImages = json['ImagePaths'] as List?;

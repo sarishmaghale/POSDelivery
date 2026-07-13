@@ -37,6 +37,8 @@ class DeliveryItem {
   late String productId;
   late double quantity;
   late double unitPrice;
+  String? unitId;
+  String? unit;
 
   DeliveryItem();
 
@@ -47,6 +49,8 @@ class DeliveryItem {
       'product_id': productId,
       'quantity': quantity,
       'unit_price': unitPrice,
+      'unit_id': unitId,
+      'unit': unit,
     };
   }
 
@@ -57,6 +61,8 @@ class DeliveryItem {
     item.productId = map['product_id'] as String;
     item.quantity = (map['quantity'] as num).toDouble();
     item.unitPrice = (map['unit_price'] as num?)?.toDouble() ?? 0;
+    item.unitId = map['unit_id'] as String?;
+    item.unit = map['unit'] as String?;
     return item;
   }
 }

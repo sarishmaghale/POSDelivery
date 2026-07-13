@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../delivery/provider/delivery_provider.dart';
+import '../../sync/provider/sync_provider.dart';
 import '../provider/estimate_provider.dart';
 
 class EstimateScreen extends ConsumerStatefulWidget {
@@ -51,6 +52,8 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
         unitPrice: deliveryForm.getUnitPrice(e.key),
         discountAmount: deliveryForm.productDiscounts[e.key] ?? 0,
         taxableType: product?.taxable ?? 0,
+        unitId: deliveryForm.getSelectedUnitId(e.key) ?? product?.unitId,
+        unitName: deliveryForm.getSelectedUnitName(e.key) ?? product?.unit,
       );
     }).toList();
 
@@ -307,8 +310,8 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
                         const SizedBox(height: 4),
                         Text(
                           l10n.qtyWithPrice(
-                            item.quantity.toStringAsFixed(0),
                             item.rateIncTax.toStringAsFixed(2),
+                            item.quantity.toStringAsFixed(0),
                           ),
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
@@ -615,6 +618,7 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
 
     if (success) {
       ref.read(deliveryFormProvider.notifier).resetForm();
+      ref.read(syncProvider.notifier).refresh();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(AppLocalizations.of(context)!.invoiceSavedSuccessfully),
