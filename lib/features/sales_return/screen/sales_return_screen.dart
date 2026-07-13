@@ -24,7 +24,6 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
   final _rateController = TextEditingController();
   final _rateFocusNode = FocusNode();
   final _discountValueController = TextEditingController();
-  final _volumeDiscountController = TextEditingController();
   String? _previousPendingUnit;
   double? _previousPendingRate;
 
@@ -35,7 +34,6 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
     _rateController.dispose();
     _rateFocusNode.dispose();
     _discountValueController.dispose();
-    _volumeDiscountController.dispose();
     super.dispose();
   }
 
@@ -67,7 +65,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
     final qtyText = state.pendingQuantity.toStringAsFixed(
       state.pendingQuantity == state.pendingQuantity.roundToDouble() ? 0 : 1,
     );
-    if (qtyText != _qtyController.text) {
+    if (qtyText != _qtyController.text && _qtyController.text.isNotEmpty) {
       _qtyController.text = qtyText;
     }
 
@@ -113,7 +111,6 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
               _unitController.clear();
               _rateController.clear();
               _discountValueController.clear();
-              _volumeDiscountController.clear();
             },
             child: Text(l10n.newSalesReturn),
           ),
@@ -258,11 +255,9 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
         const SizedBox(height: 16),
         _buildItemsSection(state, theme, l10n),
         const SizedBox(height: 16),
-        _buildVolumeDiscountSection(state, theme, l10n),
+        _buildHeaderDiscountSection(state, theme, l10n),
         const SizedBox(height: 16),
         _buildTotalsCard(state, theme, l10n),
-        const SizedBox(height: 16),
-        _buildHeaderDiscountSection(state, theme, l10n),
         const SizedBox(height: 24),
         Text(
           l10n.additionalDetails,
@@ -424,9 +419,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
           children: [
             _totalRow('Gross Total', state.grossTotal, theme, null),
             _totalRow('Item Discount', -state.totalItemDiscount, theme, theme.colorScheme.error),
-            _totalRow('Header Discount', -state.discountAmount, theme, theme.colorScheme.error),
-            if (state.volumeDiscount > 0)
-              _totalRow('Volume Discount', -state.volumeDiscount, theme, theme.colorScheme.error),
+            _totalRow('Volume Discount', -state.discountAmount, theme, theme.colorScheme.error),
             const Divider(),
             _totalRow('Net Total', state.netTotal, theme,
                 theme.colorScheme.primary, bold: true),
@@ -486,7 +479,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Header Discount',
+              'Volume Discount',
               style: theme.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w600,
                 color: theme.colorScheme.onSurfaceVariant,
@@ -527,7 +520,6 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
                       isDense: true,
                     ),
                     items: const [
-                      DropdownMenuItem(value: null, child: Text('None')),
                       DropdownMenuItem(value: 'amount', child: Text('Amount (Rs.)')),
                       DropdownMenuItem(value: 'percent', child: Text('Percent (%)')),
                     ],
@@ -540,45 +532,6 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
                   ),
                 ),
               ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildVolumeDiscountSection(SalesReturnState state, ThemeData theme, AppLocalizations l10n) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              l10n.volumeDiscount,
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _volumeDiscountController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
-              ],
-              decoration: InputDecoration(
-                labelText: 'Rs.',
-                hintText: '0',
-                prefixText: 'Rs. ',
-                border: const OutlineInputBorder(),
-                isDense: true,
-              ),
-              onChanged: (value) {
-                final val = double.tryParse(value) ?? 0;
-                ref.read(salesReturnProvider.notifier).setVolumeDiscount(val);
-              },
             ),
           ],
         ),
@@ -633,6 +586,8 @@ class _PaymentEntryRow extends ConsumerStatefulWidget {
 
 class _PaymentEntryRowState extends ConsumerState<_PaymentEntryRow> {
   late final TextEditingController _amountController;
+  late final FocusNode _amountFocusNode;
+  bool _isTyping = false;
 
   @override
   void initState() {
@@ -640,15 +595,30 @@ class _PaymentEntryRowState extends ConsumerState<_PaymentEntryRow> {
     _amountController = TextEditingController(
       text: widget.payment.amount > 0 ? widget.payment.amount.toStringAsFixed(2) : '',
     );
+    _amountFocusNode = FocusNode();
+    _amountFocusNode.addListener(() {
+      if (!_amountFocusNode.hasFocus) {
+        _isTyping = false;
+        final current = double.tryParse(_amountController.text) ?? 0;
+        if (current > 0) {
+          final maxAllowed = widget.payment.amount + ref.read(salesReturnProvider).remainingAmount;
+          final clamped = current > maxAllowed ? maxAllowed : current;
+          _amountController.text = clamped.toStringAsFixed(2);
+          ref.read(salesReturnProvider.notifier)
+              .updatePaymentEntryAmount(widget.index, clamped);
+        }
+      } else {
+        _isTyping = true;
+      }
+    });
   }
 
   @override
   void didUpdateWidget(covariant _PaymentEntryRow oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.payment.amount != oldWidget.payment.amount) {
-      final currentText = _amountController.text;
+    if (!_isTyping && widget.payment.amount != oldWidget.payment.amount) {
       final newText = widget.payment.amount > 0 ? widget.payment.amount.toStringAsFixed(2) : '';
-      if (currentText != newText) {
+      if (_amountController.text != newText) {
         _amountController.text = newText;
       }
     }
@@ -657,6 +627,7 @@ class _PaymentEntryRowState extends ConsumerState<_PaymentEntryRow> {
   @override
   void dispose() {
     _amountController.dispose();
+    _amountFocusNode.dispose();
     super.dispose();
   }
 
@@ -697,6 +668,7 @@ class _PaymentEntryRowState extends ConsumerState<_PaymentEntryRow> {
             flex: 2,
             child: TextField(
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              focusNode: _amountFocusNode,
               inputFormatters: [
                 FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
               ],
@@ -708,9 +680,17 @@ class _PaymentEntryRowState extends ConsumerState<_PaymentEntryRow> {
               ),
               controller: _amountController,
               onChanged: (value) {
-                final amount = double.tryParse(value) ?? 0;
+                final parsed = double.tryParse(value);
+                if (parsed == null) {
+                  ref.read(salesReturnProvider.notifier)
+                      .updatePaymentEntryAmount(widget.index, 0);
+                  return;
+                }
+                final maxAllowed = widget.payment.amount +
+                    ref.read(salesReturnProvider).remainingAmount;
+                final clamped = parsed > maxAllowed ? maxAllowed : parsed;
                 ref.read(salesReturnProvider.notifier)
-                    .updatePaymentEntryAmount(widget.index, amount);
+                    .updatePaymentEntryAmount(widget.index, clamped);
               },
             ),
           ),

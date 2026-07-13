@@ -24,7 +24,6 @@ class SalesReturnState {
   final String? discountType;
   final double discountValue;
   final double discountAmount;
-  final double volumeDiscount;
   final List<PaymentMode> paymentModes;
   final List<PaymentEntry> paymentEntries;
   final bool isLoading;
@@ -47,7 +46,6 @@ class SalesReturnState {
     this.discountType,
     this.discountValue = 0,
     this.discountAmount = 0,
-    this.volumeDiscount = 0,
     this.paymentModes = const [],
     this.paymentEntries = const [],
     this.isLoading = false,
@@ -65,7 +63,7 @@ class SalesReturnState {
 
   double get netTotalBeforeHeaderDiscount => grossTotal - totalItemDiscount;
 
-  double get netTotal => netTotalBeforeHeaderDiscount - discountAmount - volumeDiscount;
+  double get netTotal => netTotalBeforeHeaderDiscount - discountAmount;
 
   double get totalPaidAmount =>
       paymentEntries.fold<double>(0, (sum, e) => sum + e.amount);
@@ -141,7 +139,6 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
     String? discountType,
     double? discountValue,
     double? discountAmount,
-    double? volumeDiscount,
     List<PaymentMode>? paymentModes,
     List<PaymentEntry>? paymentEntries,
     bool? isLoading,
@@ -164,7 +161,6 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
       discountType: discountType ?? state.discountType,
       discountValue: discountValue ?? state.discountValue,
       discountAmount: discountAmount ?? state.discountAmount,
-      volumeDiscount: volumeDiscount ?? state.volumeDiscount,
       paymentModes: paymentModes ?? state.paymentModes,
       paymentEntries: paymentEntries ?? state.paymentEntries,
       isLoading: isLoading ?? state.isLoading,
@@ -346,10 +342,6 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
     );
   }
 
-  void setVolumeDiscount(double value) {
-    state = _copyWithAll(volumeDiscount: value);
-  }
-
   void setItemRate(int index, double rate) {
     if (index < 0 || index >= state.items.length) return;
     final updated = [...state.items];
@@ -419,7 +411,6 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
         discountType: state.discountType,
         discountValue: state.discountValue,
         discountAmount: state.discountAmount,
-        volumeDiscount: state.volumeDiscount,
         paymentMode: payMode,
         paymentEntries: state.paymentEntries,
       );

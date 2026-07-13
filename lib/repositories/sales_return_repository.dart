@@ -38,7 +38,6 @@ class SalesReturnRepository {
     String? discountType,
     double discountValue = 0,
     double discountAmount = 0,
-    double volumeDiscount = 0,
     String? paymentMode,
     List<PaymentEntry> paymentEntries = const [],
   }) async {
