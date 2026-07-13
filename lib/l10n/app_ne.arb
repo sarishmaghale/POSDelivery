@@ -123,5 +123,10 @@
   "estimateNumber": "अनुमान #{id}",
   "statusLabel": "स्थिति: {status}",
   "deliveryShort": "डेलिभरी",
-  "receipt": "रसिद"
+  "receipt": "रसिद",
+  "amount": "रकम",
+  "remaining": "बाँकी:",
+  "addPayment": "भुक्तानी थप्नुहोस्",
+  "makePayment": "भुक्तानी गर्नुहोस्",
+  "volumeDiscount": "भोल्युम छुट"
 }

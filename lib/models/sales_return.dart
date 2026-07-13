@@ -1,3 +1,5 @@
+import 'payment_entry.dart';
+
 class SalesReturnItem {
   int? id;
   int? salesReturnId;
@@ -61,6 +63,7 @@ class SalesReturn {
   double discountValue = 0;
   double discountAmount = 0;
   String? paymentMode;
+  List<PaymentEntry> paymentEntries = [];
 
   SalesReturn();
 
@@ -87,6 +90,7 @@ class SalesReturn {
       'discount_value': discountValue,
       'discount_amount': discountAmount,
       if (paymentMode != null) 'payment_mode': paymentMode,
+      'payment_entries': PaymentEntry.listToJson(paymentEntries),
     };
   }
 
@@ -103,6 +107,7 @@ class SalesReturn {
     sr.discountValue = (map['discount_value'] as num?)?.toDouble() ?? 0;
     sr.discountAmount = (map['discount_amount'] as num?)?.toDouble() ?? 0;
     sr.paymentMode = map['payment_mode'] as String?;
+    sr.paymentEntries = PaymentEntry.listFromJson(map['payment_entries'] as String?);
     return sr;
   }
 }

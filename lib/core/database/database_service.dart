@@ -24,7 +24,7 @@ class DatabaseService {
 
       _database = await openDatabase(
         path,
-        version: 15,
+        version: 16,
         onCreate: _createTables,
         onUpgrade: _onUpgrade,
       );
@@ -214,6 +214,12 @@ class DatabaseService {
         await db.execute('ALTER TABLE sales_return ADD COLUMN payment_mode TEXT');
       } catch (_) {}
     }
+
+    if (oldVersion < 16) {
+      try {
+        await db.execute('ALTER TABLE sales_return ADD COLUMN payment_entries TEXT');
+      } catch (_) {}
+    }
   }
 
   Future<void> _createTables(Database db, int version) async {
@@ -344,7 +350,8 @@ class DatabaseService {
           discount_type TEXT,
           discount_value REAL DEFAULT 0,
           discount_amount REAL DEFAULT 0,
-          payment_mode TEXT
+          payment_mode TEXT,
+          payment_entries TEXT
         )
       ''');
 

@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../models/customer.dart';
+import '../../../models/payment_entry.dart';
 import '../../../models/payment_mode.dart';
 import '../../../models/product.dart';
 import '../../../models/sales_return.dart';
@@ -23,8 +24,9 @@ class SalesReturnState {
   final String? discountType;
   final double discountValue;
   final double discountAmount;
+  final double volumeDiscount;
   final List<PaymentMode> paymentModes;
-  final String? selectedPaymentModeId;
+  final List<PaymentEntry> paymentEntries;
   final bool isLoading;
   final bool isSaving;
   final bool isValid;
@@ -45,8 +47,9 @@ class SalesReturnState {
     this.discountType,
     this.discountValue = 0,
     this.discountAmount = 0,
+    this.volumeDiscount = 0,
     this.paymentModes = const [],
-    this.selectedPaymentModeId,
+    this.paymentEntries = const [],
     this.isLoading = false,
     this.isSaving = false,
     this.isValid=true,
@@ -62,7 +65,12 @@ class SalesReturnState {
 
   double get netTotalBeforeHeaderDiscount => grossTotal - totalItemDiscount;
 
-  double get netTotal => netTotalBeforeHeaderDiscount - discountAmount;
+  double get netTotal => netTotalBeforeHeaderDiscount - discountAmount - volumeDiscount;
+
+  double get totalPaidAmount =>
+      paymentEntries.fold<double>(0, (sum, e) => sum + e.amount);
+
+  double get remainingAmount => netTotal - totalPaidAmount;
 }
 
 final salesReturnProvider =
@@ -119,124 +127,113 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
     }
   }
 
-  void selectCustomer(Customer? customer) {
-    state = SalesReturnState(
-      selectedCustomer: customer,
-      pendingProduct: state.pendingProduct,
-      pendingQuantity: state.pendingQuantity,
-      pendingRate: state.pendingRate,
-      pendingUnit: state.pendingUnit,
-      customers: state.customers,
-      products: state.products,
-      items: state.items,
-      reason: state.reason,
-      remarks: state.remarks,
-      discountType: state.discountType,
-      discountValue: state.discountValue,
-      discountAmount: state.discountAmount,
-      paymentModes: state.paymentModes,
-      selectedPaymentModeId: state.selectedPaymentModeId,
+  SalesReturnState _copyWithAll({
+    Customer? selectedCustomer,
+    Product? pendingProduct,
+    double? pendingQuantity,
+    double? pendingRate,
+    String? pendingUnit,
+    List<Customer>? customers,
+    List<Product>? products,
+    List<SalesReturnItem>? items,
+    String? reason,
+    String? remarks,
+    String? discountType,
+    double? discountValue,
+    double? discountAmount,
+    double? volumeDiscount,
+    List<PaymentMode>? paymentModes,
+    List<PaymentEntry>? paymentEntries,
+    bool? isLoading,
+    bool? isSaving,
+    bool? isValid,
+    bool? saved,
+    String? error,
+  }) {
+    return SalesReturnState(
+      selectedCustomer: selectedCustomer ?? state.selectedCustomer,
+      pendingProduct: pendingProduct ?? state.pendingProduct,
+      pendingQuantity: pendingQuantity ?? state.pendingQuantity,
+      pendingRate: pendingRate ?? state.pendingRate,
+      pendingUnit: pendingUnit ?? state.pendingUnit,
+      customers: customers ?? state.customers,
+      products: products ?? state.products,
+      items: items ?? state.items,
+      reason: reason ?? state.reason,
+      remarks: remarks ?? state.remarks,
+      discountType: discountType ?? state.discountType,
+      discountValue: discountValue ?? state.discountValue,
+      discountAmount: discountAmount ?? state.discountAmount,
+      volumeDiscount: volumeDiscount ?? state.volumeDiscount,
+      paymentModes: paymentModes ?? state.paymentModes,
+      paymentEntries: paymentEntries ?? state.paymentEntries,
+      isLoading: isLoading ?? state.isLoading,
+      isSaving: isSaving ?? state.isSaving,
+      isValid: isValid ?? state.isValid,
+      saved: saved ?? state.saved,
+      error: error,
     );
   }
 
+  void selectCustomer(Customer? customer) {
+    state = _copyWithAll(selectedCustomer: customer);
+  }
+
   void setPendingProduct(Product? product) {
-    state = SalesReturnState(
-      selectedCustomer: state.selectedCustomer,
+    state = _copyWithAll(
       pendingProduct: product,
-      pendingQuantity: state.pendingQuantity,
       pendingRate: product?.unitPrice ?? 0,
       pendingUnit: product?.unit,
-      customers: state.customers,
-      products: state.products,
-      items: state.items,
-      reason: state.reason,
-      remarks: state.remarks,
-      discountType: state.discountType,
-      discountValue: state.discountValue,
-      discountAmount: state.discountAmount,
-      paymentModes: state.paymentModes,
-      selectedPaymentModeId: state.selectedPaymentModeId,
     );
   }
 
   void setPendingQuantity(double qty) {
-    state = SalesReturnState(
-      selectedCustomer: state.selectedCustomer,
-      pendingProduct: state.pendingProduct,
-      pendingQuantity: qty,
-      pendingRate: state.pendingRate,
-      pendingUnit: state.pendingUnit,
-      customers: state.customers,
-      products: state.products,
-      items: state.items,
-      reason: state.reason,
-      remarks: state.remarks,
-      discountType: state.discountType,
-      discountValue: state.discountValue,
-      discountAmount: state.discountAmount,
-      paymentModes: state.paymentModes,
-      selectedPaymentModeId: state.selectedPaymentModeId,
-    );
+    state = _copyWithAll(pendingQuantity: qty);
   }
 
   void setPendingRate(double rate) {
-    state = SalesReturnState(
-      selectedCustomer: state.selectedCustomer,
-      pendingProduct: state.pendingProduct,
-      pendingQuantity: state.pendingQuantity,
-      pendingRate: rate,
-      pendingUnit: state.pendingUnit,
-      customers: state.customers,
-      products: state.products,
-      items: state.items,
-      reason: state.reason,
-      remarks: state.remarks,
-      discountType: state.discountType,
-      discountValue: state.discountValue,
-      discountAmount: state.discountAmount,
-      paymentModes: state.paymentModes,
-      selectedPaymentModeId: state.selectedPaymentModeId,
-    );
+    state = _copyWithAll(pendingRate: rate);
   }
 
   void setPendingUnit(String? unit) {
-    state = SalesReturnState(
-      selectedCustomer: state.selectedCustomer,
-      pendingProduct: state.pendingProduct,
-      pendingQuantity: state.pendingQuantity,
-      pendingRate: state.pendingRate,
-      pendingUnit: unit,
-      customers: state.customers,
-      products: state.products,
-      items: state.items,
-      reason: state.reason,
-      remarks: state.remarks,
-      discountType: state.discountType,
-      discountValue: state.discountValue,
-      discountAmount: state.discountAmount,
-      paymentModes: state.paymentModes,
-      selectedPaymentModeId: state.selectedPaymentModeId,
-    );
+    state = _copyWithAll(pendingUnit: unit);
   }
 
-  void setPaymentMode(String? serverId) {
-    state = SalesReturnState(
-      selectedCustomer: state.selectedCustomer,
-      pendingProduct: state.pendingProduct,
-      pendingQuantity: state.pendingQuantity,
-      pendingRate: state.pendingRate,
-      pendingUnit: state.pendingUnit,
-      customers: state.customers,
-      products: state.products,
-      items: state.items,
-      reason: state.reason,
-      remarks: state.remarks,
-      discountType: state.discountType,
-      discountValue: state.discountValue,
-      discountAmount: state.discountAmount,
-      paymentModes: state.paymentModes,
-      selectedPaymentModeId: serverId,
-    );
+  void addPaymentEntry() {
+    final updated = [
+      ...state.paymentEntries,
+      PaymentEntry(amount: state.remainingAmount > 0 ? state.remainingAmount : 0),
+    ];
+    state = _copyWithAll(paymentEntries: updated);
+  }
+
+  void removePaymentEntry(int index) {
+    final updated = [...state.paymentEntries]..removeAt(index);
+    state = _copyWithAll(paymentEntries: updated);
+  }
+
+  void updatePaymentEntryMode(int index, String? serverId, String? name) {
+    final updated = [...state.paymentEntries];
+    if (index >= 0 && index < updated.length) {
+      updated[index] = PaymentEntry(
+        paymentModeId: serverId,
+        paymentModeName: name,
+        amount: updated[index].amount,
+      );
+    }
+    state = _copyWithAll(paymentEntries: updated);
+  }
+
+  void updatePaymentEntryAmount(int index, double amount) {
+    final updated = [...state.paymentEntries];
+    if (index >= 0 && index < updated.length) {
+      updated[index] = PaymentEntry(
+        paymentModeId: updated[index].paymentModeId,
+        paymentModeName: updated[index].paymentModeName,
+        amount: amount,
+      );
+    }
+    state = _copyWithAll(paymentEntries: updated);
   }
 
   void addItem() {
@@ -254,22 +251,9 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
       final updated = [...state.items];
       final existing = updated[existingIndex];
       existing.quantity += state.pendingQuantity;
-      state = SalesReturnState(
-        selectedCustomer: state.selectedCustomer,
-        pendingProduct: state.pendingProduct,
+      state = _copyWithAll(
         pendingQuantity: 1,
-        pendingRate: state.pendingRate,
-        pendingUnit: state.pendingUnit,
-        customers: state.customers,
-        products: state.products,
         items: updated,
-        reason: state.reason,
-        remarks: state.remarks,
-        discountType: state.discountType,
-        discountValue: state.discountValue,
-        discountAmount: state.discountAmount,
-        paymentModes: state.paymentModes,
-        selectedPaymentModeId: state.selectedPaymentModeId,
       );
     } else {
       final item = SalesReturnItem()
@@ -280,22 +264,9 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
         ..unitId = product.unitId
         ..unit = state.pendingUnit;
 
-      state = SalesReturnState(
-        selectedCustomer: state.selectedCustomer,
-        pendingProduct: state.pendingProduct,
+      state = _copyWithAll(
         pendingQuantity: 1,
-        pendingRate: state.pendingRate,
-        pendingUnit: state.pendingUnit,
-        customers: state.customers,
-        products: state.products,
         items: [...state.items, item],
-        reason: state.reason,
-        remarks: state.remarks,
-        discountType: state.discountType,
-        discountValue: state.discountValue,
-        discountAmount: state.discountAmount,
-        paymentModes: state.paymentModes,
-        selectedPaymentModeId: state.selectedPaymentModeId,
       );
     }
     _recalcHeaderDiscount();
@@ -305,23 +276,7 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
     final updated = [...state.items];
     updated.removeAt(index);
 
-    state = SalesReturnState(
-      selectedCustomer: state.selectedCustomer,
-      pendingProduct: state.pendingProduct,
-      pendingQuantity: state.pendingQuantity,
-      pendingRate: state.pendingRate,
-      pendingUnit: state.pendingUnit,
-      customers: state.customers,
-      products: state.products,
-      items: updated,
-      reason: state.reason,
-      remarks: state.remarks,
-      discountType: state.discountType,
-      discountValue: state.discountValue,
-      discountAmount: state.discountAmount,
-      paymentModes: state.paymentModes,
-      selectedPaymentModeId: state.selectedPaymentModeId,
-    );
+    state = _copyWithAll(items: updated);
     _recalcHeaderDiscount();
   }
 
@@ -330,23 +285,7 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
     final updated = [...state.items];
     updated[index].quantity += 1;
 
-    state = SalesReturnState(
-      selectedCustomer: state.selectedCustomer,
-      pendingProduct: state.pendingProduct,
-      pendingQuantity: state.pendingQuantity,
-      pendingRate: state.pendingRate,
-      pendingUnit: state.pendingUnit,
-      customers: state.customers,
-      products: state.products,
-      items: updated,
-      reason: state.reason,
-      remarks: state.remarks,
-      discountType: state.discountType,
-      discountValue: state.discountValue,
-      discountAmount: state.discountAmount,
-      paymentModes: state.paymentModes,
-      selectedPaymentModeId: state.selectedPaymentModeId,
-    );
+    state = _copyWithAll(items: updated);
     _recalcHeaderDiscount();
   }
 
@@ -359,64 +298,16 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
       updated[index].quantity -= 1;
     }
 
-    state = SalesReturnState(
-      selectedCustomer: state.selectedCustomer,
-      pendingProduct: state.pendingProduct,
-      pendingQuantity: state.pendingQuantity,
-      pendingRate: state.pendingRate,
-      pendingUnit: state.pendingUnit,
-      customers: state.customers,
-      products: state.products,
-      items: updated,
-      reason: state.reason,
-      remarks: state.remarks,
-      discountType: state.discountType,
-      discountValue: state.discountValue,
-      discountAmount: state.discountAmount,
-      paymentModes: state.paymentModes,
-      selectedPaymentModeId: state.selectedPaymentModeId,
-    );
+    state = _copyWithAll(items: updated);
     _recalcHeaderDiscount();
   }
 
   void setReason(String? reason) {
-    state = SalesReturnState(
-      selectedCustomer: state.selectedCustomer,
-      pendingProduct: state.pendingProduct,
-      pendingQuantity: state.pendingQuantity,
-      pendingRate: state.pendingRate,
-      pendingUnit: state.pendingUnit,
-      customers: state.customers,
-      products: state.products,
-      items: state.items,
-      reason: reason,
-      remarks: state.remarks,
-      discountType: state.discountType,
-      discountValue: state.discountValue,
-      discountAmount: state.discountAmount,
-      paymentModes: state.paymentModes,
-      selectedPaymentModeId: state.selectedPaymentModeId,
-    );
+    state = _copyWithAll(reason: reason);
   }
 
   void setRemarks(String? remarks) {
-    state = SalesReturnState(
-      selectedCustomer: state.selectedCustomer,
-      pendingProduct: state.pendingProduct,
-      pendingQuantity: state.pendingQuantity,
-      pendingRate: state.pendingRate,
-      pendingUnit: state.pendingUnit,
-      customers: state.customers,
-      products: state.products,
-      items: state.items,
-      reason: state.reason,
-      remarks: remarks,
-      discountType: state.discountType,
-      discountValue: state.discountValue,
-      discountAmount: state.discountAmount,
-      paymentModes: state.paymentModes,
-      selectedPaymentModeId: state.selectedPaymentModeId,
-    );
+    state = _copyWithAll(remarks: remarks);
   }
 
   void _recalcHeaderDiscount() {
@@ -424,23 +315,7 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
     final amount = _calcDiscountAmount(
         state.discountType, state.discountValue, netBeforeHeader);
     if (amount != state.discountAmount) {
-      state = SalesReturnState(
-        selectedCustomer: state.selectedCustomer,
-        pendingProduct: state.pendingProduct,
-        pendingQuantity: state.pendingQuantity,
-        pendingRate: state.pendingRate,
-        pendingUnit: state.pendingUnit,
-        customers: state.customers,
-        products: state.products,
-        items: state.items,
-        reason: state.reason,
-        remarks: state.remarks,
-        discountType: state.discountType,
-        discountValue: state.discountValue,
-        discountAmount: amount,
-        paymentModes: state.paymentModes,
-        selectedPaymentModeId: state.selectedPaymentModeId,
-      );
+      state = _copyWithAll(discountAmount: amount);
     }
   }
 
@@ -453,47 +328,26 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
   }
 
   void setDiscountType(String? type) {
-    state = SalesReturnState(
-      selectedCustomer: state.selectedCustomer,
-      pendingProduct: state.pendingProduct,
-      pendingQuantity: state.pendingQuantity,
-      pendingRate: state.pendingRate,
-      pendingUnit: state.pendingUnit,
-      customers: state.customers,
-      products: state.products,
-      items: state.items,
-      reason: state.reason,
-      remarks: state.remarks,
+    state = _copyWithAll(
       discountType: type,
       discountValue: type == null ? 0 : state.discountValue,
       discountAmount: type == null
           ? 0
           : _calcDiscountAmount(type, state.discountValue, state.netTotalBeforeHeaderDiscount),
-      paymentModes: state.paymentModes,
-      selectedPaymentModeId: state.selectedPaymentModeId,
     );
   }
 
   void setDiscountValue(double value) {
     final amount = _calcDiscountAmount(
         state.discountType, value, state.netTotalBeforeHeaderDiscount);
-    state = SalesReturnState(
-      selectedCustomer: state.selectedCustomer,
-      pendingProduct: state.pendingProduct,
-      pendingQuantity: state.pendingQuantity,
-      pendingRate: state.pendingRate,
-      pendingUnit: state.pendingUnit,
-      customers: state.customers,
-      products: state.products,
-      items: state.items,
-      reason: state.reason,
-      remarks: state.remarks,
-      discountType: state.discountType,
+    state = _copyWithAll(
       discountValue: value,
       discountAmount: amount,
-      paymentModes: state.paymentModes,
-      selectedPaymentModeId: state.selectedPaymentModeId,
     );
+  }
+
+  void setVolumeDiscount(double value) {
+    state = _copyWithAll(volumeDiscount: value);
   }
 
   void setItemRate(int index, double rate) {
@@ -505,23 +359,8 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
     item.discountAmount = item.discountType == null
         ? 0
         : _calcDiscountAmount(item.discountType, item.discountValue, gross);
-    state = SalesReturnState(
-      selectedCustomer: state.selectedCustomer,
-      pendingProduct: state.pendingProduct,
-      pendingQuantity: state.pendingQuantity,
-      pendingRate: state.pendingRate,
-      pendingUnit: state.pendingUnit,
-      customers: state.customers,
-      products: state.products,
-      items: updated,
-      reason: state.reason,
-      remarks: state.remarks,
-      discountType: state.discountType,
-      discountValue: state.discountValue,
-      discountAmount: state.discountAmount,
-      paymentModes: state.paymentModes,
-      selectedPaymentModeId: state.selectedPaymentModeId,
-    );
+
+    state = _copyWithAll(items: updated);
     _recalcHeaderDiscount();
   }
 
@@ -536,70 +375,42 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
         ? 0
         : _calcDiscountAmount(type, value, gross);
 
-    state = SalesReturnState(
-      selectedCustomer: state.selectedCustomer,
-      pendingProduct: state.pendingProduct,
-      pendingQuantity: state.pendingQuantity,
-      pendingRate: state.pendingRate,
-      pendingUnit: state.pendingUnit,
-      customers: state.customers,
-      products: state.products,
-      items: updated,
-      reason: state.reason,
-      remarks: state.remarks,
-      discountType: state.discountType,
-      discountValue: state.discountValue,
-      discountAmount: state.discountAmount,
-      paymentModes: state.paymentModes,
-      selectedPaymentModeId: state.selectedPaymentModeId,
-    );
+    state = _copyWithAll(items: updated);
     _recalcHeaderDiscount();
   }
 
   String? validate() {
     if (state.selectedCustomer == null) return 'Please select a customer';
     if (state.items.isEmpty) return 'Please select at least one product';
+    if (state.paymentEntries.isNotEmpty) {
+      for (final entry in state.paymentEntries) {
+        if (entry.paymentModeId == null || entry.paymentModeId!.isEmpty) {
+          return 'Please select a payment mode for all entries';
+        }
+      }
+    }
     return null;
   }
 
   Future<bool> saveSalesReturn() async {
     final validationError = validate();
     if (validationError != null) {
-      state = SalesReturnState(
-        selectedCustomer: state.selectedCustomer,
-        pendingUnit: state.pendingUnit,
-        customers: state.customers,
-        products: state.products,
-        items: state.items,
-        reason: state.reason,
-        remarks: state.remarks,
-        discountType: state.discountType,
-        discountValue: state.discountValue,
-        discountAmount: state.discountAmount,
-        paymentModes: state.paymentModes,
-        selectedPaymentModeId: state.selectedPaymentModeId,
-        error: validationError,
-      );
+      state = _copyWithAll(error: validationError);
       return false;
     }
 
-    state = SalesReturnState(
-      selectedCustomer: state.selectedCustomer,
-      pendingUnit: state.pendingUnit,
-      customers: state.customers,
-      products: state.products,
-      items: state.items,
-      reason: state.reason,
-      remarks: state.remarks,
-      discountType: state.discountType,
-      discountValue: state.discountValue,
-      discountAmount: state.discountAmount,
-      paymentModes: state.paymentModes,
-      selectedPaymentModeId: state.selectedPaymentModeId,
-      isSaving: true,
-    );
+    state = _copyWithAll(isSaving: true);
 
     try {
+      final String? payMode;
+      if (state.paymentEntries.isEmpty) {
+        payMode = null;
+      } else if (state.paymentEntries.length == 1) {
+        payMode = state.paymentEntries.first.paymentModeName;
+      } else {
+        payMode = 'Mix';
+      }
+
       await _salesReturnRepo.saveSalesReturn(
         customerId: state.selectedCustomer!.serverId,
         items: state.items,
@@ -608,30 +419,18 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
         discountType: state.discountType,
         discountValue: state.discountValue,
         discountAmount: state.discountAmount,
-        paymentMode: state.selectedPaymentModeId,
+        volumeDiscount: state.volumeDiscount,
+        paymentMode: payMode,
+        paymentEntries: state.paymentEntries,
       );
 
-      state = SalesReturnState(
-        customers: state.customers,
-        products: state.products,
-        paymentModes: state.paymentModes,
+      state = _copyWithAll(
         saved: true,
+        isSaving: false,
       );
       return true;
     } catch (e) {
-      state = SalesReturnState(
-        selectedCustomer: state.selectedCustomer,
-        pendingUnit: state.pendingUnit,
-        customers: state.customers,
-        products: state.products,
-        items: state.items,
-        reason: state.reason,
-        remarks: state.remarks,
-        discountType: state.discountType,
-        discountValue: state.discountValue,
-        discountAmount: state.discountAmount,
-        paymentModes: state.paymentModes,
-        selectedPaymentModeId: state.selectedPaymentModeId,
+      state = _copyWithAll(
         isSaving: false,
         error: e.toString(),
       );

@@ -5,6 +5,7 @@ import '../core/database/providers.dart';
 import '../core/network/api_service.dart';
 import '../core/network/network_checker.dart';
 import '../core/network/providers.dart';
+import '../models/payment_entry.dart';
 import '../models/sales_return.dart';
 import '../models/sync_queue.dart';
 
@@ -37,7 +38,9 @@ class SalesReturnRepository {
     String? discountType,
     double discountValue = 0,
     double discountAmount = 0,
+    double volumeDiscount = 0,
     String? paymentMode,
+    List<PaymentEntry> paymentEntries = const [],
   }) async {
     final sr = SalesReturn()
       ..customerId = customerId
@@ -47,6 +50,7 @@ class SalesReturnRepository {
       ..discountValue = discountValue
       ..discountAmount = discountAmount
       ..paymentMode = paymentMode
+      ..paymentEntries = paymentEntries
       ..createdDate = DateTime.now()
       ..isSynced = false;
 
