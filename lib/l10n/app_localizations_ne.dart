@@ -367,4 +367,19 @@ class AppLocalizationsNe extends AppLocalizations {
 
   @override
   String get receipt => 'रसिद';
+
+  @override
+  String get amount => 'रकम';
+
+  @override
+  String get remaining => 'बाँकी:';
+
+  @override
+  String get addPayment => 'भुक्तानी थप्नुहोस्';
+
+  @override
+  String get makePayment => 'भुक्तानी गर्नुहोस्';
+
+  @override
+  String get volumeDiscount => 'भोल्युम छुट';
 }

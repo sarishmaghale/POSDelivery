@@ -24,7 +24,7 @@ class DatabaseService {
 
       _database = await openDatabase(
         path,
-        version: 14,
+        version: 16,
         onCreate: _createTables,
         onUpgrade: _onUpgrade,
       );
@@ -208,6 +208,18 @@ class DatabaseService {
     // try {
     //   await db.execute('ALTER TABLE product ADD COLUMN chalan_number TEXT');
     // } catch (_) {}
+
+    if (oldVersion < 15) {
+      try {
+        await db.execute('ALTER TABLE sales_return ADD COLUMN payment_mode TEXT');
+      } catch (_) {}
+    }
+
+    if (oldVersion < 16) {
+      try {
+        await db.execute('ALTER TABLE sales_return ADD COLUMN payment_entries TEXT');
+      } catch (_) {}
+    }
   }
 
   Future<void> _createTables(Database db, int version) async {
@@ -335,14 +347,16 @@ class DatabaseService {
         remarks TEXT,
         created_date TEXT NOT NULL,
         is_synced INTEGER DEFAULT 0,
-        discount_type TEXT,
-        discount_value REAL DEFAULT 0,
-        discount_amount REAL DEFAULT 0
-      )
-    ''');
+          discount_type TEXT,
+          discount_value REAL DEFAULT 0,
+          discount_amount REAL DEFAULT 0,
+          payment_mode TEXT,
+          payment_entries TEXT
+        )
+      ''');
 
-    await db.execute('''
-      CREATE TABLE sales_return_item (
+      await db.execute('''
+        CREATE TABLE sales_return_item (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         sales_return_id INTEGER NOT NULL,
         product_id TEXT NOT NULL,

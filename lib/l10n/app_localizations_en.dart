@@ -367,4 +367,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get receipt => 'Receipt';
+
+  @override
+  String get amount => 'Amount';
+
+  @override
+  String get remaining => 'Remaining:';
+
+  @override
+  String get addPayment => 'Add Payment';
+
+  @override
+  String get makePayment => 'Make Payment';
+
+  @override
+  String get volumeDiscount => 'Volume Discount';
 }

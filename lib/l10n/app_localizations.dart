@@ -781,6 +781,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Receipt'**
   String get receipt;
+
+  /// No description provided for @amount.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount'**
+  String get amount;
+
+  /// No description provided for @remaining.
+  ///
+  /// In en, this message translates to:
+  /// **'Remaining:'**
+  String get remaining;
+
+  /// No description provided for @addPayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Payment'**
+  String get addPayment;
+
+  /// No description provided for @makePayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Make Payment'**
+  String get makePayment;
+
+  /// No description provided for @volumeDiscount.
+  ///
+  /// In en, this message translates to:
+  /// **'Volume Discount'**
+  String get volumeDiscount;
 }
 
 class _AppLocalizationsDelegate

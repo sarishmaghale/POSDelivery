@@ -127,5 +127,10 @@
   "estimateNumber": "Estimate #{id}",
   "statusLabel": "Status: {status}",
   "deliveryShort": "Delivery",
-  "receipt": "Receipt"
+  "receipt": "Receipt",
+  "amount": "Amount",
+  "remaining": "Remaining:",
+  "addPayment": "Add Payment",
+  "makePayment": "Make Payment",
+  "volumeDiscount": "Volume Discount"
 }
