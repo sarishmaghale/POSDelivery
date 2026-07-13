@@ -316,7 +316,7 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
   }
 
   double _calcDiscountAmount(String? type, double value, double netBeforeHeader) {
-    if (value <= 0 || netBeforeHeader <= 0) return 0;
+    if (type == null || value <= 0 || netBeforeHeader <= 0) return 0;
     if (type == 'percent') {
       return netBeforeHeader * (value / 100);
     }

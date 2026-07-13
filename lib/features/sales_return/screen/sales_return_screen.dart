@@ -282,19 +282,6 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
                     );
                   },
                 ),
-                const SizedBox(height: 16),
-                TextField(
-                  maxLines: 2,
-                  decoration: InputDecoration(
-                    labelText: l10n.remarksOptional,
-                    border: const OutlineInputBorder(),
-                  ),
-                  onChanged: (value) {
-                    ref.read(salesReturnProvider.notifier).setRemarks(
-                      value.isEmpty ? null : value,
-                    );
-                  },
-                ),
               ],
             ),
           ),
