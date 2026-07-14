@@ -1,5 +1,6 @@
 import '../../dto/sales_invoice_request.dart';
 import '../../dto/sales_invoice_response.dart';
+import '../../dto/sales_return_request.dart';
 
 abstract class ApiService {
    Future<List<Map<String, dynamic>>> fetchAllProducts();
@@ -16,4 +17,5 @@ abstract class ApiService {
 
   Future<SalesInvoiceResponse> createSalesInvoice(SalesInvoiceRequest request);
   Future<bool> createSalesReturn(Map<String, dynamic> data);
+  Future<bool> createSalesReturnV2(SalesReturnRequest request);
 }

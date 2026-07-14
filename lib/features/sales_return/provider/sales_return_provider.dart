@@ -1,5 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/network/api_config.dart';
+import '../../../core/network/api_service.dart';
+import '../../../core/network/providers.dart';
+import '../../../core/utils/tax_calculator.dart';
+import '../../../dto/sales_invoice_request.dart';
+import '../../../dto/sales_return_request.dart';
 import '../../../models/customer.dart';
 import '../../../models/payment_entry.dart';
 import '../../../models/payment_mode.dart';
@@ -9,6 +15,7 @@ import '../../../repositories/customer_repository.dart';
 import '../../../repositories/payment_mode_repository.dart';
 import '../../../repositories/product_repository.dart';
 import '../../../repositories/sales_return_repository.dart';
+import '../../location/location_provider.dart';
 
 class SalesReturnState {
   final Customer? selectedCustomer;
@@ -78,6 +85,8 @@ final salesReturnProvider =
     productRepo: ref.read(productRepositoryProvider),
     salesReturnRepo: ref.read(salesReturnRepositoryProvider),
     paymentModeRepo: ref.read(paymentModeRepositoryProvider),
+    apiService: ref.read(apiServiceProvider),
+    locationState: ref.read(locationStateProvider),
   );
 });
 
@@ -86,12 +95,16 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
   final ProductRepository _productRepo;
   final SalesReturnRepository _salesReturnRepo;
   final PaymentModeRepository _paymentModeRepo;
+  final ApiService _apiService;
+  final LocationState _locationState;
 
   SalesReturnNotifier({
     required this._customerRepo,
     required ProductRepository productRepo,
     required this._salesReturnRepo,
     required this._paymentModeRepo,
+    required this._apiService,
+    required this._locationState,
   })  : _productRepo = productRepo,
         super(SalesReturnState()) {
     _loadInitialData();
@@ -391,32 +404,205 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
     state = _copyWithAll(isSaving: true);
 
     try {
-      final String? payMode;
-      if (state.paymentEntries.isEmpty) {
-        payMode = null;
-      } else if (state.paymentEntries.length == 1) {
-        payMode = state.paymentEntries.first.paymentModeName;
-      } else {
-        payMode = 'Mix';
+      // Build product map for tax calculations
+      final productsMap = <String, Product>{
+        for (final p in state.products) p.serverId: p,
+      };
+
+      // Calculate item-level tax breakdown using tax_calculator
+      final salesInvoiceItems = <SalesInvoiceItemRequest>[];
+      double totalQty = 0;
+      double totalGrossAmount = 0;
+      double totalGrossAmountIncTax = 0;
+      double totalDiscountExcTax = 0;
+      double totalDiscountIncTax = 0;
+      double totalTaxableAmount = 0;
+      double totalNonTaxableAmount = 0;
+      double totalTaxAmount = 0;
+      double totalNetAmount = 0;
+
+      for (final item in state.items) {
+        final product = productsMap[item.productId];
+        final taxableType = product?.taxable ?? 0;
+
+        final tax = computeItemTax(
+          rate: item.rate,
+          quantity: item.quantity,
+          discount: item.discountAmount,
+          taxableType: taxableType,
+          taxPercent: kDefaultTaxPercent,
+        );
+
+        final itemRequest = SalesInvoiceItemRequest(
+          sku: product?.code,
+          hasSerialNumber: false,
+          serialNumber: '',
+          refNo: item.productId,
+          chalanNumber: product?.chalanNumber ?? '',
+          lotNo: '',
+          productId: item.productId,
+          name: item.productName,
+          quantity: item.quantity,
+          unitId: item.unitId ?? product?.unitId ?? '',
+          unitName: item.unit ?? product?.unit ?? '',
+          categoryId: product?.categoryId ?? '',
+          groupId: product?.categoryId ?? '00000000-0000-0000-0000-000000000000',
+          rate: tax.rateExTax,
+          rateIncludingTax: tax.rateIncTax,
+          grossAmount: tax.grossAmount,
+          grossAmountIncludingTax: tax.grossAmountIncTax,
+          discountPercent: 0,
+          discount: tax.discountExcTax,
+          discountIncludingTax: tax.discountIncludingTax,
+          discountType: 'Product',
+          offerId: '',
+          isCombo: false,
+          isMaintainBatchLotNo: false,
+          isNonConversableUnit: false,
+          taxable: tax.taxableAmount,
+          nonTaxable: tax.nonTaxableAmount,
+          taxPercent: kDefaultTaxPercent,
+          taxAmount: tax.taxAmount,
+          netAmount: tax.netAmount,
+          salesInvoiceItemTax: [
+            SalesInvoiceItemTaxRequest(
+              taxOrder: 1,
+              name: 'VAT SALES',
+              taxType: 'Percent',
+              tax: kDefaultTaxPercent,
+              taxableAmount: tax.taxableAmount,
+              taxAmount: tax.taxAmount,
+              netAmount: tax.netAmount,
+            ),
+          ],
+          barcode: '',
+          hsCode: '',
+          attribute1: '',
+          attribute2: '',
+        );
+
+        salesInvoiceItems.add(itemRequest);
+
+        totalQty += item.quantity;
+        totalGrossAmount += tax.grossAmount;
+        totalGrossAmountIncTax += tax.grossAmountIncTax;
+        totalDiscountExcTax += tax.discountExcTax;
+        totalDiscountIncTax += tax.discountIncludingTax;
+        totalTaxableAmount += tax.taxableAmount;
+        totalNonTaxableAmount += tax.nonTaxableAmount;
+        totalTaxAmount += tax.taxAmount;
+        totalNetAmount += tax.netAmount;
       }
 
-      await _salesReturnRepo.saveSalesReturn(
+      // Add header discount to totals
+      totalDiscountExcTax += state.discountAmount;
+      totalDiscountIncTax += state.discountAmount;
+      totalNetAmount -= state.discountAmount;
+
+      // Build payment entries
+      final salesInvoicePayments = <SalesInvoicePaymentRequest>[];
+      for (final entry in state.paymentEntries) {
+        final payModeName = entry.paymentModeName ?? 'Cash';
+        final payModeId = entry.paymentModeId ?? ApiConfig.emptyGuid;
+        salesInvoicePayments.add(SalesInvoicePaymentRequest(
+          payMode: payModeName,
+          paymentId: payModeId,
+          amount: entry.amount,
+        ));
+      }
+
+      // Determine payMode for header (use first payment mode or 'Mix')
+      String payModeHeader = 'Cash';
+      if (state.paymentEntries.isNotEmpty) {
+        if (state.paymentEntries.length == 1) {
+          payModeHeader = state.paymentEntries.first.paymentModeName ?? 'Cash';
+        } else {
+          payModeHeader = 'Mix';
+        }
+      }
+
+      // Get current date time
+      final now = DateTime.now();
+      final transactionDate =
+          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')} '
+          '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
+
+      // Get delivery boy ID from location provider
+      final deliveryBoyId = _locationState.driverId ?? 'C3C7C7AA-7F7D-4EE2-8440-122DF4E6CB54';
+
+      // Build the request
+      final request = SalesReturnRequest(
+        transactionDate: transactionDate,
+        transactionDateBS: '', // Will be filled by server if needed
+        type: 'Return',
+        isReturn: true,
+        isSettled: true,
         customerId: state.selectedCustomer!.serverId,
-        items: state.items,
-        reason: state.reason,
-        remarks: state.remarks,
-        discountType: state.discountType,
-        discountValue: state.discountValue,
-        discountAmount: state.discountAmount,
-        paymentMode: payMode,
-        paymentEntries: state.paymentEntries,
+        customerName: state.selectedCustomer!.name,
+        remarks: state.reason ?? state.remarks ?? '',
+        outletId: ApiConfig.emptyGuid, // Using empty GUID like in billing
+        totalQuantity: totalQty,
+        totalGrossAmount: totalGrossAmount,
+        totalGrossAmountIncludingTax: totalGrossAmountIncTax,
+        totalDiscount: totalDiscountExcTax,
+        totalDiscountIncludingTax: totalDiscountIncTax,
+        totalTaxableAmount: totalTaxableAmount,
+        totalNonTaxableAmount: totalNonTaxableAmount,
+        totalTax: totalTaxAmount,
+        totalNetAmount: totalNetAmount,
+        totalPayableAmount: totalNetAmount,
+        currencyName: 'NRs',
+        payMode: payModeHeader,
+        tenderAmount: totalNetAmount,
+        changeAmount: 0,
+        salesInvoiceTax: [
+          SalesInvoiceTaxRequest(
+            taxOrder: 1,
+            name: 'VAT SALES',
+            taxAmount: totalTaxAmount,
+          ),
+        ],
+        salesInvoiceItem: salesInvoiceItems,
+        salesInvoicePayment: salesInvoicePayments,
+        currencyId: ApiConfig.defaultCurrencyId,
+        volumeDiscount: state.discountAmount,
+        deliveryBoyId: deliveryBoyId,
       );
 
-      state = _copyWithAll(
-        saved: true,
-        isSaving: false,
-      );
-      return true;
+      // Send to API
+      final success = await _apiService.createSalesReturnV2(request);
+
+      if (success) {
+        // Also save locally
+        final String? payMode;
+        if (state.paymentEntries.isEmpty) {
+          payMode = null;
+        } else if (state.paymentEntries.length == 1) {
+          payMode = state.paymentEntries.first.paymentModeName;
+        } else {
+          payMode = 'Mix';
+        }
+
+        await _salesReturnRepo.saveSalesReturn(
+          customerId: state.selectedCustomer!.serverId,
+          items: state.items,
+          reason: state.reason,
+          remarks: state.remarks,
+          discountType: state.discountType,
+          discountValue: state.discountValue,
+          discountAmount: state.discountAmount,
+          paymentMode: payMode,
+          paymentEntries: state.paymentEntries,
+        );
+
+        state = _copyWithAll(
+          saved: true,
+          isSaving: false,
+        );
+        return true;
+      } else {
+        throw Exception('Failed to save sales return to server');
+      }
     } catch (e) {
       state = _copyWithAll(
         isSaving: false,
