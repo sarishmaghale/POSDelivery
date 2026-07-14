@@ -18,10 +18,9 @@ class CustomerRepository {
   final Database _db;
 
   CustomerRepository({
-    required ApiService apiService,
+    required this._apiService,
     required Database db,
-  })  : _apiService = apiService,
-        _db = db;
+  })  : _db = db;
 
   static String _getField(Map<String, dynamic> json, List<String> keys) {
     for (final key in keys) {

@@ -362,7 +362,7 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: state.categories.length + 1,
-            separatorBuilder: (_, __) => const SizedBox(width: 8),
+            separatorBuilder: (_, _) => const SizedBox(width: 8),
             itemBuilder: (context, index) {
               if (index == 0) {
                 final isSelected = state.selectedCategory == null;
@@ -510,9 +510,9 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
                       ? CachedNetworkImage(
                           imageUrl: product.firstImageUrl!,
                           fit: BoxFit.cover,
-                          placeholder: (_, __) =>
+                          placeholder: (_, _) =>
                               _buildShimmerPlaceholder(theme),
-                          errorWidget: (_, __, ___) =>
+                          errorWidget: (_, _, _) =>
                               _buildPlaceholderIcon(theme),
                         )
                       : _buildPlaceholderIcon(theme),

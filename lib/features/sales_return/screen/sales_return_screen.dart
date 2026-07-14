@@ -85,7 +85,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: [
+        children : [
           Icon(
             Icons.check_circle,
             size: 72,
@@ -344,7 +344,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: state.items.length,
-            separatorBuilder: (_, __) => const Divider(height: 1),
+            separatorBuilder: (_, _) => const Divider(height: 1),
             itemBuilder: (context, index) {
               final item = state.items[index];
               return ListTile(
@@ -754,7 +754,7 @@ class _PaymentModalSheet extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
+                color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Column(

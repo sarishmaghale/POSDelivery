@@ -18,9 +18,8 @@ class ProductRepository {
   final ApiService _apiService;
   final Database _db;
 
-  ProductRepository({required ApiService apiService, required Database db})
-    : _apiService = apiService,
-      _db = db;
+  ProductRepository({required this._apiService, required Database db})
+    : _db = db;
 
   Future<List<Product>> getProducts({
     required String customerId,

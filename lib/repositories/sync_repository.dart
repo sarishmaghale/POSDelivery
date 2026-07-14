@@ -26,12 +26,10 @@ class SyncRepository {
   final NetworkChecker _networkChecker;
 
   SyncRepository({
-    required ApiService apiService,
+    required this._apiService,
     required Database db,
-    required NetworkChecker networkChecker,
-  })  : _apiService = apiService,
-        _db = db,
-        _networkChecker = networkChecker;
+    required this._networkChecker,
+  })  : _db = db;
 
   Future<List<SyncQueue>> getPendingQueue() async {
     final maps = await _db.rawQuery(

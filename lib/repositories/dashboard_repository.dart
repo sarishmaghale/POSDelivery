@@ -17,8 +17,8 @@ class DashboardRepository {
   final Database _db;
 
   DashboardRepository({
-    required Database db,
-  })  : _db = db;
+    required this._db,
+  });
 
   Future<Driver?> getDriver() async {
     final maps = await _db.query('driver', limit: 1);

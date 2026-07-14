@@ -142,16 +142,12 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
   final EstimateRepository _estimateRepo;
 
   EstimateNotifier({
-    required DeliveryRepository deliveryRepo,
+    required this._deliveryRepo,
     required CustomerRepository customerRepo,
-    required ProductRepository productRepo,
-    required PaymentModeRepository paymentModeRepo,
-    required EstimateRepository estimateRepo,
-  }) : _deliveryRepo = deliveryRepo,
-       _customerRepo = customerRepo,
-       _productRepo = productRepo,
-       _paymentModeRepo = paymentModeRepo,
-       _estimateRepo = estimateRepo,
+    required this._productRepo,
+    required this._paymentModeRepo,
+    required this._estimateRepo,
+  }) : _customerRepo = customerRepo,
        super(EstimateState(isLoadingDelivery: true));
 
   void initializeFromDeliveryForm({

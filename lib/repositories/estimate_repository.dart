@@ -23,12 +23,10 @@ class EstimateRepository {
   final NetworkChecker _networkChecker;
 
   EstimateRepository({
-    required ApiService apiService,
+    required this._apiService,
     required Database db,
-    required NetworkChecker networkChecker,
-  }) : _apiService = apiService,
-       _db = db,
-       _networkChecker = networkChecker;
+    required this._networkChecker,
+  }) : _db = db;
 
   Future<Estimate> saveEstimate({
     required int deliveryId,

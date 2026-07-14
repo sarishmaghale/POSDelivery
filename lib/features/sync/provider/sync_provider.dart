@@ -59,16 +59,12 @@ class SyncNotifier extends StateNotifier<SyncState> {
   final PaymentModeRepository _paymentModeRepo;
 
   SyncNotifier({
-    required SyncRepository syncRepo,
+    required this._syncRepo,
     required CategoryRepository categoryRepo,
-    required ProductRepository productRepo,
-    required CustomerRepository customerRepo,
-    required PaymentModeRepository paymentModeRepo,
-  })  : _syncRepo = syncRepo,
-        _categoryRepo = categoryRepo,
-        _productRepo = productRepo,
-        _customerRepo = customerRepo,
-        _paymentModeRepo = paymentModeRepo,
+    required this._productRepo,
+    required this._customerRepo,
+    required this._paymentModeRepo,
+  })  : _categoryRepo = categoryRepo,
         super(SyncState()) {
     refresh();
   }

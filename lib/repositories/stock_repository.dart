@@ -15,8 +15,8 @@ class StockRepository {
   final Database _db;
 
   StockRepository({
-    required Database db,
-  })  : _db = db;
+    required this._db,
+  });
 
   Future<void> saveStock(List<DriverStock> stockList) async {
     final batch = _db.batch();

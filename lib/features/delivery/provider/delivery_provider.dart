@@ -120,18 +120,13 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
   final CustomerRepository _customerRepo;
 
   DeliveryFormNotifier({
-    required CategoryRepository categoryRepo,
+    required this._categoryRepo,
     required ProductRepository productRepo,
-    required PaymentModeRepository paymentModeRepo,
-    required DeliveryRepository deliveryRepo,
-    required EstimateRepository estimateRepo,
-    required CustomerRepository customerRepo,
-  })  : _categoryRepo = categoryRepo,
-        _productRepo = productRepo,
-        _paymentModeRepo = paymentModeRepo,
-        _deliveryRepo = deliveryRepo,
-        _estimateRepo = estimateRepo,
-        _customerRepo = customerRepo,
+    required this._paymentModeRepo,
+    required this._deliveryRepo,
+    required this._estimateRepo,
+    required this._customerRepo,
+  })  : _productRepo = productRepo,
         super(DeliveryFormState()) {
     _loadInitialData();
   }

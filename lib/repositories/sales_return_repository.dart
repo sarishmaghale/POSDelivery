@@ -23,12 +23,10 @@ class SalesReturnRepository {
   final NetworkChecker _networkChecker;
 
   SalesReturnRepository({
-    required ApiService apiService,
+    required this._apiService,
     required Database db,
-    required NetworkChecker networkChecker,
-  })  : _apiService = apiService,
-        _db = db,
-        _networkChecker = networkChecker;
+    required this._networkChecker,
+  })  : _db = db;
 
   Future<SalesReturn> saveSalesReturn({
     required String customerId,

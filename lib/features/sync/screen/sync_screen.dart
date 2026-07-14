@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/utils/extensions.dart';
 import '../../../l10n/app_localizations.dart';
 import '../provider/sync_provider.dart';
 import '../widgets/sync_status_tile.dart';

@@ -88,14 +88,11 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
   final PaymentModeRepository _paymentModeRepo;
 
   SalesReturnNotifier({
-    required CustomerRepository customerRepo,
+    required this._customerRepo,
     required ProductRepository productRepo,
-    required SalesReturnRepository salesReturnRepo,
-    required PaymentModeRepository paymentModeRepo,
-  })  : _customerRepo = customerRepo,
-        _productRepo = productRepo,
-        _salesReturnRepo = salesReturnRepo,
-        _paymentModeRepo = paymentModeRepo,
+    required this._salesReturnRepo,
+    required this._paymentModeRepo,
+  })  : _productRepo = productRepo,
         super(SalesReturnState()) {
     _loadInitialData();
   }
