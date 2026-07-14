@@ -124,6 +124,8 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
         paymentModes: paymentModes,
         isLoading: false,
       );
+
+      _refreshProductsInBackground();
     } catch (e) {
       print('[SalesReturn] loadInitialData error: $e');
       state = SalesReturnState(
@@ -132,6 +134,16 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
         paymentModes: await _paymentModeRepo.getPaymentModes(),
         isLoading: false,
       );
+    }
+  }
+
+  Future<void> _refreshProductsInBackground() async {
+    try {
+      final products = await _productRepo.refreshAllProducts();
+      if (!mounted) return;
+      state = _copyWithAll(products: products);
+    } catch (e) {
+      print('[SalesReturn] background product refresh failed: $e');
     }
   }
 
@@ -268,7 +280,8 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
         ..quantity = state.pendingQuantity
         ..rate = state.pendingRate
         ..unitId = product.unitId
-        ..unit = state.pendingUnit;
+        ..unit = state.pendingUnit
+        ..taxable = product.taxable ?? 0;
 
       state = _copyWithAll(
         pendingQuantity: 1,
@@ -424,7 +437,7 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
 
       for (final item in state.items) {
         final product = productsMap[item.productId];
-        final taxableType = product?.taxable ?? 2;
+        final taxableType = item.taxable;
 
         final tax = computeItemTax(
           rate: item.rate,
