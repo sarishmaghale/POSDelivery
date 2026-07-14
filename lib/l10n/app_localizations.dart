@@ -588,7 +588,7 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'Reason (Optional)'**
-  String get reasonOptional;
+  String get reason;
 
   /// No description provided for @saveSalesReturn.
   ///

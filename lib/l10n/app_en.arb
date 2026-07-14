@@ -92,7 +92,7 @@
   "products": "Products",
   "quantity": "Quantity",
   "additionalDetails": "Additional Details",
-  "reasonOptional": "Reason (Optional)",
+  "reason": "Reason",
   "saveSalesReturn": "Save Sales Return",
   "selectProduct": "Select Product",
   "failedToSaveSalesReturn": "Failed to save sales return",

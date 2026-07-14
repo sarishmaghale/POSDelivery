@@ -384,12 +384,13 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
   String? validate() {
     if (state.selectedCustomer == null) return 'Please select a customer';
     if (state.items.isEmpty) return 'Please select at least one product';
-    if (state.paymentEntries.isNotEmpty) {
-      for (final entry in state.paymentEntries) {
-        if (entry.paymentModeId == null || entry.paymentModeId!.isEmpty) {
-          return 'Please select a payment mode for all entries';
-        }
+    if (state.reason == null || state.reason!.trim().isEmpty) return 'Please enter a return reason';
+    if (state.paymentEntries.isEmpty) return 'Please add at least one payment entry';
+    for (final entry in state.paymentEntries) {
+      if (entry.paymentModeId == null || entry.paymentModeId!.isEmpty) {
+        return 'Please select a payment mode for all entries';
       }
+      if (entry.amount <= 0) return 'Payment amount must be greater than 0';
     }
     return null;
   }

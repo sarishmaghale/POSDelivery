@@ -88,7 +88,7 @@
   "products": "उत्पादनहरू",
   "quantity": "मात्रा",
   "additionalDetails": "अतिरिक्त विवरण",
-  "reasonOptional": "कारण (वैकल्पिक)",
+  "reason": "कारण",
   "saveSalesReturn": "सेल्स रिटर्न सुरक्षित गर्नुहोस्",
   "selectProduct": "उत्पादन चयन गर्नुहोस्",
   "failedToSaveSalesReturn": "सेल्स रिटर्न सुरक्षित गर्न असफल भयो",

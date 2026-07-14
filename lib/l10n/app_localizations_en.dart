@@ -256,7 +256,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get additionalDetails => 'Additional Details';
 
   @override
-  String get reasonOptional => 'Reason (Optional)';
+  String get reason => 'Reason';
 
   @override
   String get saveSalesReturn => 'Save Sales Return';

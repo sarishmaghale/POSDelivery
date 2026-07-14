@@ -256,7 +256,7 @@ class AppLocalizationsNe extends AppLocalizations {
   String get additionalDetails => 'अतिरिक्त विवरण';
 
   @override
-  String get reasonOptional => 'कारण (वैकल्पिक)';
+  String get reason => 'कारण';
 
   @override
   String get saveSalesReturn => 'सेल्स रिटर्न सुरक्षित गर्नुहोस्';

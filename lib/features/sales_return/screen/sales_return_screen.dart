@@ -275,7 +275,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
               children: [
                 TextField(
                   decoration: InputDecoration(
-                    labelText: l10n.reasonOptional,
+                    labelText: l10n.reason,
                     border: const OutlineInputBorder(),
                   ),
                   onChanged: (value) {
