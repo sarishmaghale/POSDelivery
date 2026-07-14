@@ -24,7 +24,7 @@ class DatabaseService {
 
       _database = await openDatabase(
         path,
-        version: 15,
+        version: 16,
         onCreate: _createTables,
         onUpgrade: _onUpgrade,
       );
@@ -123,31 +123,37 @@ class DatabaseService {
     if (oldVersion < 10) {
       try {
         await db.execute(
-            'ALTER TABLE sales_return ADD COLUMN discount_type TEXT');
+          'ALTER TABLE sales_return ADD COLUMN discount_type TEXT',
+        );
       } catch (_) {}
       try {
         await db.execute(
-            'ALTER TABLE sales_return ADD COLUMN discount_value REAL DEFAULT 0');
+          'ALTER TABLE sales_return ADD COLUMN discount_value REAL DEFAULT 0',
+        );
       } catch (_) {}
       try {
         await db.execute(
-            'ALTER TABLE sales_return ADD COLUMN discount_amount REAL DEFAULT 0');
+          'ALTER TABLE sales_return ADD COLUMN discount_amount REAL DEFAULT 0',
+        );
       } catch (_) {}
       try {
         await db.execute(
-            'ALTER TABLE sales_return_item ADD COLUMN discount_type TEXT');
+          'ALTER TABLE sales_return_item ADD COLUMN discount_type TEXT',
+        );
       } catch (_) {}
       try {
         await db.execute(
-            'ALTER TABLE sales_return_item ADD COLUMN discount_value REAL DEFAULT 0');
+          'ALTER TABLE sales_return_item ADD COLUMN discount_value REAL DEFAULT 0',
+        );
       } catch (_) {}
       try {
         await db.execute(
-            'ALTER TABLE sales_return_item ADD COLUMN discount_amount REAL DEFAULT 0');
+          'ALTER TABLE sales_return_item ADD COLUMN discount_amount REAL DEFAULT 0',
+        );
       } catch (_) {}
-      try{
+      try {
         await db.execute('ALTER TABLE product ADD COLUMN chalan_number TEXT');
-      }catch (_) {}
+      } catch (_) {}
     }
 
     if (oldVersion < 11) {
@@ -169,7 +175,9 @@ class DatabaseService {
 
     if (oldVersion < 12) {
       try {
-        await db.execute('ALTER TABLE all_product ADD COLUMN unit_price REAL DEFAULT 0');
+        await db.execute(
+          'ALTER TABLE all_product ADD COLUMN unit_price REAL DEFAULT 0',
+        );
       } catch (_) {}
     }
 
@@ -219,6 +227,18 @@ class DatabaseService {
       } catch (_) {}
       try {
         await db.execute('ALTER TABLE estimate_item ADD COLUMN unit_name TEXT');
+      } catch (_) {}
+      try {
+        await db.execute(
+          'ALTER TABLE sales_return ADD COLUMN payment_mode TEXT',
+        );
+      } catch (_) {}
+    }
+    if (oldVersion < 16) {
+      try {
+        await db.execute(
+          'ALTER TABLE sales_return ADD COLUMN payment_entries TEXT',
+        );
       } catch (_) {}
     }
   }
@@ -353,14 +373,16 @@ class DatabaseService {
         remarks TEXT,
         created_date TEXT NOT NULL,
         is_synced INTEGER DEFAULT 0,
-        discount_type TEXT,
-        discount_value REAL DEFAULT 0,
-        discount_amount REAL DEFAULT 0
-      )
-    ''');
+          discount_type TEXT,
+          discount_value REAL DEFAULT 0,
+          discount_amount REAL DEFAULT 0,
+          payment_mode TEXT,
+          payment_entries TEXT
+        )
+      ''');
 
     await db.execute('''
-      CREATE TABLE sales_return_item (
+        CREATE TABLE sales_return_item (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         sales_return_id INTEGER NOT NULL,
         product_id TEXT NOT NULL,

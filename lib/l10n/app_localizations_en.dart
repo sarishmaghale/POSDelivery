@@ -333,7 +333,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get paid => 'Paid:';
 
   @override
-  String qtyWithPrice(Object price, Object qty) {
+  String qtyWithPrice(Object qty, Object price) {
     return 'Qty: $qty × Rs. $price';
   }
 
@@ -367,4 +367,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get receipt => 'Receipt';
+
+  @override
+  String get addPayment => 'addPayment';
+
+  @override
+  String get makePayment => 'makePayment';
 }
