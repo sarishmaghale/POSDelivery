@@ -584,10 +584,10 @@ abstract class AppLocalizations {
   /// **'Additional Details'**
   String get additionalDetails;
 
-  /// No description provided for @reasonOptional.
+  /// No description provided for @reason.
   ///
   /// In en, this message translates to:
-  /// **'Reason (Optional)'**
+  /// **'Reason'**
   String get reason;
 
   /// No description provided for @saveSalesReturn.

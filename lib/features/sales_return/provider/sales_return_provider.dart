@@ -424,7 +424,7 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
 
       for (final item in state.items) {
         final product = productsMap[item.productId];
-        final taxableType = product?.taxable ?? 0;
+        final taxableType = product?.taxable ?? 2;
 
         final tax = computeItemTax(
           rate: item.rate,
