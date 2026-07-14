@@ -6,6 +6,7 @@ import '../../../models/customer.dart';
 import '../../../models/delivery.dart';
 import '../../../models/payment_mode.dart';
 import '../../../models/product.dart';
+import '../../../models/product_unit.dart';
 import '../../../repositories/category_repository.dart';
 import '../../../repositories/customer_repository.dart';
 import '../../../repositories/delivery_repository.dart';
@@ -23,6 +24,7 @@ class DeliveryFormState {
   final Map<String, double> cart;
   final Map<String, double> customPrices;
   final Map<String, double> productDiscounts;
+  final Map<String, String> selectedUnitIds;
   final String? customerName;
   final String productSearchQuery;
   final int? editingDeliveryId;
@@ -46,6 +48,7 @@ class DeliveryFormState {
     this.cart = const {},
     this.customPrices = const {},
     this.productDiscounts = const {},
+    this.selectedUnitIds = const {},
     this.customerName,
     this.productSearchQuery = '',
     this.editingDeliveryId,
@@ -70,9 +73,7 @@ class DeliveryFormState {
   List<Product> get filteredProducts {
     if (productSearchQuery.isEmpty) return displayedProducts.take(6).toList();
     final query = productSearchQuery.toLowerCase();
-    return products
-        .where((p) => p.name.toLowerCase().contains(query))
-        .toList();
+    return products.where((p) => p.name.toLowerCase().contains(query)).toList();
   }
 
   bool get isValid => cart.values.any((q) => q > 0);
@@ -95,21 +96,66 @@ class DeliveryFormState {
   }
 
   double getRemainingQuantity(String productId) {
-    return products.where((p) => p.serverId == productId).firstOrNull?.stock ?? 0;
+    return products.where((p) => p.serverId == productId).firstOrNull?.stock ??
+        0;
+  }
+
+  List<ProductUnit> getProductUnits(String productId) {
+    final product = products.where((p) => p.serverId == productId).firstOrNull;
+    if (product == null) return [];
+    final allUnits = <ProductUnit>[];
+    final seen = <String>{};
+    void addUnit(ProductUnit u) {
+      if (u.unitId.isEmpty) return;
+      if (seen.add(u.unitId)) allUnits.add(u);
+    }
+
+    if (product.unitId != null && product.unitId!.isNotEmpty) {
+      addUnit(ProductUnit(
+        unitId: product.unitId!,
+        unitName: product.unit ?? product.unitId!,
+      ));
+    }
+    for (final u in product.units) {
+      addUnit(u);
+    }
+    return allUnits;
+  }
+
+  String? getSelectedUnitName(String productId) {
+    final unitId = selectedUnitIds[productId];
+    if (unitId == null) {
+      final product = products
+          .where((p) => p.serverId == productId)
+          .firstOrNull;
+      return product?.unit;
+    }
+    final product = products.where((p) => p.serverId == productId).firstOrNull;
+    if (product == null) return null;
+    return product.units.where((u) => u.unitId == unitId).firstOrNull?.unitName;
+  }
+
+  String? getSelectedUnitId(String productId) {
+    final stored = selectedUnitIds[productId];
+    if (stored != null) return stored;
+    final product = products.where((p) => p.serverId == productId).firstOrNull;
+    return product?.unitId;
   }
 }
 
 final deliveryFormProvider =
-    StateNotifierProvider.autoDispose<DeliveryFormNotifier, DeliveryFormState>((ref) {
-  return DeliveryFormNotifier(
-    categoryRepo: ref.read(categoryRepositoryProvider),
-    productRepo: ref.read(productRepositoryProvider),
-    paymentModeRepo: ref.read(paymentModeRepositoryProvider),
-    deliveryRepo: ref.read(deliveryRepositoryProvider),
-    estimateRepo: ref.read(estimateRepositoryProvider),
-    customerRepo: ref.read(customerRepositoryProvider),
-  );
-});
+    StateNotifierProvider.autoDispose<DeliveryFormNotifier, DeliveryFormState>((
+      ref,
+    ) {
+      return DeliveryFormNotifier(
+        categoryRepo: ref.read(categoryRepositoryProvider),
+        productRepo: ref.read(productRepositoryProvider),
+        paymentModeRepo: ref.read(paymentModeRepositoryProvider),
+        deliveryRepo: ref.read(deliveryRepositoryProvider),
+        estimateRepo: ref.read(estimateRepositoryProvider),
+        customerRepo: ref.read(customerRepositoryProvider),
+      );
+    });
 
 class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
   final CategoryRepository _categoryRepo;
@@ -190,6 +236,7 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
       cart: state.cart,
       customPrices: state.customPrices,
       productDiscounts: state.productDiscounts,
+      selectedUnitIds: state.selectedUnitIds,
       customerName: state.customerName,
       productSearchQuery: state.productSearchQuery,
       editingDeliveryId: state.editingDeliveryId,
@@ -234,30 +281,39 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
         try {
           final customers = await _customerRepo.getCachedCustomers();
           final customer = customers.cast<Customer?>().firstWhere(
-                (c) => c?.serverId == delivery.customerId,
-                orElse: () => null,
-              );
+            (c) => c?.serverId == delivery.customerId,
+            orElse: () => null,
+          );
           customerName = customer?.name;
         } catch (_) {}
       }
 
       final selectedPaymentMode = paymentModes.cast<PaymentMode?>().firstWhere(
-            (m) => m?.serverId == delivery.paymentMode,
-            orElse: () => null,
-          );
+        (m) => m?.serverId == delivery.paymentMode,
+        orElse: () => null,
+      );
 
       final cart = <String, double>{};
       final customPrices = <String, double>{};
+      final selectedUnitIds = <String, String>{};
       for (final item in items) {
         cart[item.productId] = (cart[item.productId] ?? 0) + item.quantity;
         if (item.unitPrice > 0) {
           customPrices[item.productId] = item.unitPrice;
         }
+        final product = products.where((p) => p.serverId == item.productId).firstOrNull;
+        if (item.unitId != null && product != null && item.unitId != product.unitId) {
+          selectedUnitIds[item.productId] = item.unitId!;
+        }
       }
 
-      final existingEstimates = await _estimateRepo.getEstimatesByDelivery(deliveryId);
+      final existingEstimates = await _estimateRepo.getEstimatesByDelivery(
+        deliveryId,
+      );
       final isReadOnly = existingEstimates.isNotEmpty;
-      final paidAmount = existingEstimates.isNotEmpty ? existingEstimates.first.paidAmount : 0.0;
+      final paidAmount = existingEstimates.isNotEmpty
+          ? existingEstimates.first.paidAmount
+          : 0.0;
 
       String? discountType;
       double discountValue = 0;
@@ -268,7 +324,9 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
         discountType = estimate.discountType;
         discountValue = estimate.discountValue;
         discountAmount = estimate.discountAmount;
-        final estimateItems = await _estimateRepo.getEstimateItems(estimate.id!);
+        final estimateItems = await _estimateRepo.getEstimateItems(
+          estimate.id!,
+        );
         for (final ei in estimateItems) {
           if (ei.discountAmount > 0) {
             productDiscounts[ei.productId] = ei.discountAmount;
@@ -287,6 +345,7 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
         selectedPaymentMode: selectedPaymentMode,
         customPrices: customPrices,
         productDiscounts: productDiscounts,
+        selectedUnitIds: selectedUnitIds,
         cart: cart,
         discountType: discountType,
         discountValue: discountValue,
@@ -356,6 +415,35 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
       cart: state.cart,
       customPrices: updated,
       productDiscounts: state.productDiscounts,
+      selectedUnitIds: state.selectedUnitIds,
+      productSearchQuery: state.productSearchQuery,
+    );
+  }
+
+  void setSelectedUnit(String productId, String unitId) {
+    final updated = Map<String, String>.from(state.selectedUnitIds);
+    final product = state.products
+        .where((p) => p.serverId == productId)
+        .firstOrNull;
+    if (product == null) return;
+    final unit = product.units.where((u) => u.unitId == unitId).firstOrNull;
+    if (unit == null && unitId != (product.unitId ?? '')) return;
+    if (unitId == (product.unitId ?? '')) {
+      updated.remove(productId);
+    } else {
+      updated[productId] = unitId;
+    }
+    state = DeliveryFormState(
+      delivery: state.delivery,
+      selectedCategory: state.selectedCategory,
+      categories: state.categories,
+      products: state.products,
+      paymentModes: state.paymentModes,
+      selectedPaymentMode: state.selectedPaymentMode,
+      cart: state.cart,
+      customPrices: state.customPrices,
+      productDiscounts: state.productDiscounts,
+      selectedUnitIds: updated,
       productSearchQuery: state.productSearchQuery,
     );
   }
@@ -376,6 +464,7 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
         cart: state.cart,
         customPrices: state.customPrices,
         productDiscounts: state.productDiscounts,
+        selectedUnitIds: state.selectedUnitIds,
         productSearchQuery: state.productSearchQuery,
         stockError: 'Entered quantity exceeds today\'s available stock.',
       );
@@ -391,6 +480,9 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
       paymentModes: state.paymentModes,
       selectedPaymentMode: state.selectedPaymentMode,
       cart: updated,
+      customPrices: state.customPrices,
+      productDiscounts: state.productDiscounts,
+      selectedUnitIds: state.selectedUnitIds,
       productSearchQuery: state.productSearchQuery,
     );
   }
@@ -408,6 +500,7 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
         cart: state.cart,
         customPrices: state.customPrices,
         productDiscounts: state.productDiscounts,
+        selectedUnitIds: state.selectedUnitIds,
         productSearchQuery: state.productSearchQuery,
         stockError: 'Entered quantity exceeds today\'s available stock.',
       );
@@ -427,6 +520,9 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
       paymentModes: state.paymentModes,
       selectedPaymentMode: state.selectedPaymentMode,
       cart: updated,
+      customPrices: state.customPrices,
+      productDiscounts: state.productDiscounts,
+      selectedUnitIds: state.selectedUnitIds,
       productSearchQuery: state.productSearchQuery,
     );
   }
@@ -434,6 +530,8 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
   void removeFromCart(String productId) {
     final updated = Map<String, double>.from(state.cart)..remove(productId);
     final updatedDiscounts = Map<String, double>.from(state.productDiscounts)
+      ..remove(productId);
+    final updatedUnits = Map<String, String>.from(state.selectedUnitIds)
       ..remove(productId);
     state = DeliveryFormState(
       delivery: state.delivery,
@@ -445,6 +543,7 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
       cart: updated,
       customPrices: state.customPrices,
       productDiscounts: updatedDiscounts,
+      selectedUnitIds: updatedUnits,
       productSearchQuery: state.productSearchQuery,
     );
   }
@@ -466,6 +565,7 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
       cart: state.cart,
       customPrices: state.customPrices,
       productDiscounts: updated,
+      selectedUnitIds: state.selectedUnitIds,
       productSearchQuery: state.productSearchQuery,
     );
   }
@@ -531,6 +631,7 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
       cart: state.cart,
       customPrices: state.customPrices,
       productDiscounts: state.productDiscounts,
+      selectedUnitIds: state.selectedUnitIds,
       isSaving: true,
     );
 
@@ -540,13 +641,17 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
         item.productId = e.key;
         item.quantity = e.value;
         item.unitPrice = state.getUnitPrice(e.key);
+        item.unitId = state.getSelectedUnitId(e.key);
+        item.unit = state.getSelectedUnitName(e.key);
         return item;
       }).toList();
 
       Delivery delivery;
 
       if (state.editingDeliveryId != null) {
-        final oldItems = await _deliveryRepo.getDeliveryItems(state.editingDeliveryId!);
+        final oldItems = await _deliveryRepo.getDeliveryItems(
+          state.editingDeliveryId!,
+        );
         for (final oldItem in oldItems) {
           await _productRepo.restoreStock(oldItem.productId, oldItem.quantity);
         }
@@ -587,6 +692,7 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
         cart: state.cart,
         customPrices: state.customPrices,
         productDiscounts: state.productDiscounts,
+        selectedUnitIds: state.selectedUnitIds,
         isSaving: false,
       );
       return DeliveryResult(success: false, error: e.toString());

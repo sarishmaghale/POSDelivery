@@ -5,11 +5,24 @@ import '../../../l10n/app_localizations.dart';
 import '../provider/sync_provider.dart';
 import '../widgets/sync_status_tile.dart';
 
-class SyncScreen extends ConsumerWidget {
+class SyncScreen extends ConsumerStatefulWidget {
   const SyncScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SyncScreen> createState() => _SyncScreenState();
+}
+
+class _SyncScreenState extends ConsumerState<SyncScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(syncProvider.notifier).refresh();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(syncProvider);
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;

@@ -16,6 +16,7 @@ class CategoryDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final langCode = Localizations.localeOf(context).languageCode;
     return DropdownButtonFormField<Category>(
       initialValue: selectedCategory,
       decoration: const InputDecoration(
@@ -25,7 +26,7 @@ class CategoryDropdown extends StatelessWidget {
       items: categories.map((category) {
         return DropdownMenuItem(
           value: category,
-          child: Text(category.name),
+          child: Text(category.localizedName(langCode)),
         );
       }).toList(),
       onChanged: onChanged,

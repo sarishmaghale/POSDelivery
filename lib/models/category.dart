@@ -41,6 +41,13 @@ class Category {
     return category;
   }
 
+  String localizedName(String languageCode) {
+    if (languageCode == 'ne' && japaneseName != null && japaneseName!.isNotEmpty) {
+      return japaneseName!;
+    }
+    return name;
+  }
+
   String? get firstImageUrl =>
       imageList.isNotEmpty ? imageList.first : imageUrl;
 }

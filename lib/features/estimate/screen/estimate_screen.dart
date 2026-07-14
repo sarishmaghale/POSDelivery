@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../delivery/provider/delivery_provider.dart';
+import '../../sync/provider/sync_provider.dart';
 import '../provider/estimate_provider.dart';
 
 class EstimateScreen extends ConsumerStatefulWidget {
@@ -25,15 +26,16 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      final langCode = Localizations.localeOf(context).languageCode;
       if (widget.deliveryId != null) {
-        ref.read(estimateProvider.notifier).loadDelivery(widget.deliveryId!);
+        ref.read(estimateProvider.notifier).loadDelivery(widget.deliveryId!, languageCode: langCode);
       } else {
-        _initFromDeliveryForm(ref);
+        _initFromDeliveryForm(ref, langCode);
       }
     });
   }
 
-  void _initFromDeliveryForm(WidgetRef ref) {
+  void _initFromDeliveryForm(WidgetRef ref, String langCode) {
     final deliveryForm = ref.read(deliveryFormProvider);
     if (deliveryForm.cart.isEmpty) {
       context.go('/delivery');
@@ -45,11 +47,13 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
       final product = products.where((p) => p.serverId == e.key).firstOrNull;
       return EstimateItemView(
         productId: e.key,
-        productName: product?.name ?? AppLocalizations.of(context)!.unknown,
+        productName: product?.localizedName(langCode) ?? AppLocalizations.of(context)!.unknown,
         quantity: e.value,
         unitPrice: deliveryForm.getUnitPrice(e.key),
         discountAmount: deliveryForm.productDiscounts[e.key] ?? 0,
         taxableType: product?.taxable ?? 0,
+        unitId: deliveryForm.getSelectedUnitId(e.key) ?? product?.unitId,
+        unitName: deliveryForm.getSelectedUnitName(e.key) ?? product?.unit,
       );
     }).toList();
 
@@ -306,8 +310,8 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
                         const SizedBox(height: 4),
                         Text(
                           l10n.qtyWithPrice(
-                            item.quantity.toStringAsFixed(0),
                             item.rateIncTax.toStringAsFixed(2),
+                            item.quantity.toStringAsFixed(0),
                           ),
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
@@ -614,6 +618,7 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
 
     if (success) {
       ref.read(deliveryFormProvider.notifier).resetForm();
+      ref.read(syncProvider.notifier).refresh();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(AppLocalizations.of(context)!.invoiceSavedSuccessfully),

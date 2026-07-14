@@ -62,14 +62,15 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                     separatorBuilder: (_, _) => const SizedBox(height: 8),
                     itemBuilder: (context, index) {
                       final cat = _categories[index];
+                      final langCode = Localizations.localeOf(context).languageCode;
                       return Card(
                         child: ListTile(
                           leading: CircleAvatar(
                             backgroundColor: theme.colorScheme.primaryContainer,
-                            child: cat.firstImageUrl != null
+                            child: cat.imageUrl != null && cat.imageUrl!.isNotEmpty
                                 ? ClipOval(
                                     child: CachedNetworkImage(
-                                      imageUrl: cat.firstImageUrl!,
+                                      imageUrl: cat.imageUrl!,
                                       width: 40,
                                       height: 40,
                                       fit: BoxFit.cover,
@@ -78,9 +79,9 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                                         height: 16,
                                         child: CircularProgressIndicator(strokeWidth: 2),
                                       ),
-                                      errorWidget: (_, _, _) => Text(
-                                        cat.name.isNotEmpty
-                                            ? cat.name[0].toUpperCase()
+                                      errorWidget: (_, __, ___) => Text(
+                                        cat.localizedName(langCode).isNotEmpty
+                                            ? cat.localizedName(langCode)[0].toUpperCase()
                                             : '?',
                                         style: theme.textTheme.titleMedium?.copyWith(
                                           color: theme.colorScheme.onPrimaryContainer,
@@ -89,18 +90,15 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                                     ),
                                   )
                                 : Text(
-                                    cat.name.isNotEmpty
-                                        ? cat.name[0].toUpperCase()
+                                    cat.localizedName(langCode).isNotEmpty
+                                        ? cat.localizedName(langCode)[0].toUpperCase()
                                         : '?',
                                     style: theme.textTheme.titleMedium?.copyWith(
                                       color: theme.colorScheme.onPrimaryContainer,
                                     ),
                                   ),
                           ),
-                          title: Text(cat.name),
-                          subtitle: cat.japaneseName != null
-                              ? Text(cat.japaneseName!)
-                              : null,
+                          title: Text(cat.localizedName(langCode)),
                         ),
                       );
                     },

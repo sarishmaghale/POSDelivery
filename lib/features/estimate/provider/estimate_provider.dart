@@ -22,6 +22,8 @@ class EstimateItemView {
   final double discountAmount;
   final int taxableType;
   final double taxPercent;
+  final String? unitId;
+  final String? unitName;
 
   const EstimateItemView({
     required this.productId,
@@ -31,15 +33,17 @@ class EstimateItemView {
     this.discountAmount = 0,
     this.taxableType = 0,
     this.taxPercent = kDefaultTaxPercent,
+    this.unitId,
+    this.unitName,
   });
 
   ItemTaxBreakdown get tax => computeItemTax(
-        rate: unitPrice,
-        quantity: quantity,
-        discount: discountAmount,
-        taxableType: taxableType,
-        taxPercent: taxPercent,
-      );
+    rate: unitPrice,
+    quantity: quantity,
+    discount: discountAmount,
+    taxableType: taxableType,
+    taxPercent: taxPercent,
+  );
 
   /// Ex-tax gross (used for storage/invoice line totals).
   double get grossAmount => quantity * unitPrice;
@@ -231,7 +235,10 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
     state = EstimateState(pendingDeliveries: pending);
   }
 
-  Future<void> loadDelivery(int deliveryId) async {
+  Future<void> loadDelivery(
+    int deliveryId, {
+    String languageCode = 'en',
+  }) async {
     state = EstimateState(isLoadingDelivery: true);
 
     final delivery = await _deliveryRepo.getDeliveryById(deliveryId);
@@ -259,10 +266,12 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
           : (product?.unitPrice ?? 0);
       return EstimateItemView(
         productId: item.productId,
-        productName: product?.name ?? 'Unknown',
+        productName: product?.localizedName(languageCode) ?? 'Unknown',
         quantity: item.quantity,
         unitPrice: price,
         taxableType: product?.taxable ?? 0,
+        unitId: item.unitId ?? product?.unitId,
+        unitName: item.unit ?? product?.unit,
       );
     }).toList();
 
@@ -451,6 +460,8 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
         di.productId = item.productId;
         di.quantity = item.quantity;
         di.unitPrice = item.unitPrice;
+        di.unitId = item.unitId;
+        di.unit = item.unitName;
         return di;
       }).toList();
 
@@ -467,6 +478,8 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
         eItem.unitPrice = item.unitPrice;
         eItem.lineTotal = item.lineTotal;
         eItem.discountAmount = item.discountAmount;
+        eItem.unitId = item.unitId;
+        eItem.unitName = item.unitName;
         return eItem;
       }).toList();
 
@@ -513,8 +526,8 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
           productId: item.productId,
           name: item.productName,
           quantity: item.quantity,
-          unitId: product?.unitId ?? '',
-          unitName: product?.unit ?? '',
+          unitId: item.unitId ?? product?.unitId ?? '',
+          unitName: item.unitName ?? product?.unit ?? '',
           categoryId: product?.categoryId ?? '',
           rate: tax.rateExTax,
           rateIncludingTax: tax.rateIncTax,
@@ -600,6 +613,7 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
           ),
         ],
         currencyId: ApiConfig.defaultCurrencyId,
+        volumeDiscount: globalDiscount,
       );
 
       await _estimateRepo.saveEstimate(

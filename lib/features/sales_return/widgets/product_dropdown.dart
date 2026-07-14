@@ -102,6 +102,7 @@ class _SearchProductFieldState extends State<SearchProductField> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final langCode = Localizations.localeOf(context).languageCode;
 
     return TapRegion(
       onTapOutside: (_) {
@@ -175,8 +176,8 @@ class _SearchProductFieldState extends State<SearchProductField> {
                           : null,
                       child: product.firstImageUrl == null
                           ? Text(
-                              product.name.isNotEmpty
-                                  ? product.name[0].toUpperCase()
+                              product.localizedName(langCode).isNotEmpty
+                                  ? product.localizedName(langCode)[0].toUpperCase()
                                   : '?',
                               style: TextStyle(
                                 color: theme.colorScheme.onSecondaryContainer,
@@ -185,7 +186,7 @@ class _SearchProductFieldState extends State<SearchProductField> {
                             )
                           : null,
                     ),
-                    title: Text(product.name),
+                    title: Text(product.localizedName(langCode)),
                     subtitle: Text(
                       'Rs. ${product.unitPrice.toStringAsFixed(2)}${product.unit != null ? ' / ${product.unit}' : ''}',
                     ),
