@@ -75,6 +75,7 @@ class _PosDeliveryAppState extends ConsumerState<PosDeliveryApp> {
   @override
   Widget build(BuildContext context) {
     final locale = ref.watch(localeProvider);
+    final router = ref.watch(appRouterProvider);
     return MaterialApp.router(
       title: 'POS Delivery',
       debugShowCheckedModeBanner: false,
@@ -87,7 +88,7 @@ class _PosDeliveryAppState extends ConsumerState<PosDeliveryApp> {
         GlobalCupertinoLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
       ],
-      routerConfig: appRouterProvider,
+      routerConfig: router,
     );
   }
 }

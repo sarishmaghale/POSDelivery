@@ -22,6 +22,16 @@ class RealApiService implements ApiService {
     ));
   }
 
+  @override
+  void updateConfig({String? baseUrl, String? token}) {
+    if (baseUrl != null) {
+      _dio.options.baseUrl = baseUrl;
+    }
+    if (token != null) {
+      _dio.options.headers['Authorization'] = 'Bearer $token';
+    }
+  }
+
   Future<List<Map<String, dynamic>>> _fetchList(String endpoint) async {
     final response = await _dio.get(endpoint);
     final body = response.data as Map<String, dynamic>;

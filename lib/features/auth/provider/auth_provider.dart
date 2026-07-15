@@ -1,0 +1,373 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/auth/auth_storage.dart';
+import '../../../core/network/providers.dart';
+import '../../../repositories/auth_repository.dart';
+import '../models/selection_option.dart';
+
+enum AuthStatus { uninitialized, unauthenticated, authenticated }
+
+class AuthState {
+  final AuthStatus status;
+  final bool isLoading;
+  final String? error;
+  final String? baseUrl;
+  final String? companyCode;
+  final String? tempToken;
+  final String? finalToken;
+  final List<SelectionOption>? companies;
+  final List<SelectionOption>? branches;
+  final List<SelectionOption>? departments;
+  final List<SelectionOption>? fiscalYears;
+
+  const AuthState({
+    this.status = AuthStatus.uninitialized,
+    this.isLoading = false,
+    this.error,
+    this.baseUrl,
+    this.companyCode,
+    this.tempToken,
+    this.finalToken,
+    this.companies,
+    this.branches,
+    this.departments,
+    this.fiscalYears,
+  });
+
+  AuthState copyWith({
+    AuthStatus? status,
+    bool? isLoading,
+    String? error,
+    String? baseUrl,
+    String? companyCode,
+    String? tempToken,
+    String? finalToken,
+    List<SelectionOption>? companies,
+    List<SelectionOption>? branches,
+    List<SelectionOption>? departments,
+    List<SelectionOption>? fiscalYears,
+  }) {
+    return AuthState(
+      status: status ?? this.status,
+      isLoading: isLoading ?? this.isLoading,
+      error: error,
+      baseUrl: baseUrl ?? this.baseUrl,
+      companyCode: companyCode ?? this.companyCode,
+      tempToken: tempToken ?? this.tempToken,
+      finalToken: finalToken ?? this.finalToken,
+      companies: companies ?? this.companies,
+      branches: branches ?? this.branches,
+      departments: departments ?? this.departments,
+      fiscalYears: fiscalYears ?? this.fiscalYears,
+    );
+  }
+}
+
+final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
+  return AuthNotifier(ref);
+});
+
+class AuthNotifier extends StateNotifier<AuthState> {
+  final Ref _ref;
+  final AuthRepository _authRepo = AuthRepository();
+
+  AuthNotifier(this._ref) : super(const AuthState()) {
+    _init();
+  }
+
+  Future<void> _init() async {
+    final hasAuth = await hasSavedAuth();
+    if (hasAuth) {
+      final token = await getSavedToken();
+      final baseUrl = await getSavedBaseUrl();
+      if (token != null && baseUrl != null) {
+        _applyAuthConfig(baseUrl, token);
+        state = AuthState(
+          status: AuthStatus.authenticated,
+          finalToken: token,
+          baseUrl: baseUrl,
+        );
+        return;
+      }
+    }
+    state = const AuthState(status: AuthStatus.unauthenticated);
+  }
+
+  Future<void> login({
+    required String companyCode,
+    required String username,
+    required String password,
+  }) async {
+    state = state.copyWith(
+      isLoading: true,
+      error: null,
+      companyCode: companyCode,
+    );
+
+    try {
+      final companyData = await _authRepo.getCompanyUrl(companyCode);
+      final website = companyData['Website'] as String?;
+      if (website == null || website.isEmpty) {
+        throw Exception('Invalid company URL');
+      }
+      final baseUrl = website.endsWith('/') ? website.substring(0, website.length - 1) : website;
+
+      final step1Data = await _authRepo.step1(
+        baseUrl: baseUrl,
+        username: username,
+        password: password,
+      );
+      final token1 = step1Data['Token'] as String?;
+      if (token1 == null || token1.isEmpty) {
+        throw Exception('Invalid token received');
+      }
+
+      final companies = AuthRepository.parseOptions(step1Data['Companies'] as List<dynamic>?);
+
+      if (companies.isEmpty) {
+        throw Exception('No companies available');
+      }
+
+      if (companies.length == 1) {
+        await _proceedAfterCompany(
+          baseUrl: baseUrl,
+          token: token1,
+          companyId: companies.first.id,
+        );
+        return;
+      }
+
+      state = state.copyWith(
+        isLoading: false,
+        status: AuthStatus.unauthenticated,
+        baseUrl: baseUrl,
+        tempToken: token1,
+        companies: companies,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString().replaceFirst('Exception: ', ''),
+      );
+    }
+  }
+
+  Future<void> selectCompany(String companyId) async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      await _proceedAfterCompany(
+        baseUrl: state.baseUrl!,
+        token: state.tempToken!,
+        companyId: companyId,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString().replaceFirst('Exception: ', ''),
+      );
+    }
+  }
+
+  Future<void> _proceedAfterCompany({
+    required String baseUrl,
+    required String token,
+    required String companyId,
+  }) async {
+    final step2Data = await _authRepo.step2(
+      baseUrl: baseUrl,
+      token: token,
+      companyId: companyId,
+    );
+    final token2 = step2Data['Token'] as String?;
+    if (token2 == null || token2.isEmpty) {
+      throw Exception('Invalid token received');
+    }
+
+    final branches = AuthRepository.parseOptions(step2Data['Branches'] as List<dynamic>?);
+
+    if (branches.isEmpty) {
+      throw Exception('No branches available');
+    }
+
+    if (branches.length == 1) {
+      await _proceedAfterBranch(
+        baseUrl: baseUrl,
+        token: token2,
+        branchId: branches.first.id,
+      );
+      return;
+    }
+
+    state = state.copyWith(
+      isLoading: false,
+      tempToken: token2,
+      branches: branches,
+      companies: null,
+    );
+  }
+
+  Future<void> selectBranch(String branchId) async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      await _proceedAfterBranch(
+        baseUrl: state.baseUrl!,
+        token: state.tempToken!,
+        branchId: branchId,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString().replaceFirst('Exception: ', ''),
+      );
+    }
+  }
+
+  Future<void> _proceedAfterBranch({
+    required String baseUrl,
+    required String token,
+    required String branchId,
+  }) async {
+    final step3Data = await _authRepo.step3(
+      baseUrl: baseUrl,
+      token: token,
+      branchId: branchId,
+    );
+    final token3 = step3Data['Token'] as String?;
+    if (token3 == null || token3.isEmpty) {
+      throw Exception('Invalid token received');
+    }
+
+    final departments = AuthRepository.parseOptions(step3Data['Departments'] as List<dynamic>?);
+
+    if (departments.isEmpty) {
+      throw Exception('No departments available');
+    }
+
+    if (departments.length == 1) {
+      await _proceedAfterDepartment(
+        baseUrl: baseUrl,
+        token: token3,
+        departmentId: departments.first.id,
+      );
+      return;
+    }
+
+    state = state.copyWith(
+      isLoading: false,
+      tempToken: token3,
+      departments: departments,
+      branches: null,
+    );
+  }
+
+  Future<void> selectDepartment(String departmentId) async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      await _proceedAfterDepartment(
+        baseUrl: state.baseUrl!,
+        token: state.tempToken!,
+        departmentId: departmentId,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString().replaceFirst('Exception: ', ''),
+      );
+    }
+  }
+
+  Future<void> _proceedAfterDepartment({
+    required String baseUrl,
+    required String token,
+    required String departmentId,
+  }) async {
+    final step4Data = await _authRepo.step4(
+      baseUrl: baseUrl,
+      token: token,
+      departmentId: departmentId,
+    );
+    final token4 = step4Data['Token'] as String?;
+    if (token4 == null || token4.isEmpty) {
+      throw Exception('Invalid token received');
+    }
+
+    final fiscalYears = AuthRepository.parseOptions(step4Data['Departments'] as List<dynamic>?);
+
+    if (fiscalYears.isEmpty) {
+      throw Exception('No fiscal years available');
+    }
+
+    if (fiscalYears.length == 1) {
+      await _finishLogin(
+        baseUrl: baseUrl,
+        token: token4,
+        fiscalYearId: fiscalYears.first.id,
+      );
+      return;
+    }
+
+    state = state.copyWith(
+      isLoading: false,
+      tempToken: token4,
+      fiscalYears: fiscalYears,
+      departments: null,
+    );
+  }
+
+  Future<void> selectFiscalYear(String fiscalYearId) async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      await _finishLogin(
+        baseUrl: state.baseUrl!,
+        token: state.tempToken!,
+        fiscalYearId: fiscalYearId,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString().replaceFirst('Exception: ', ''),
+      );
+    }
+  }
+
+  Future<void> _finishLogin({
+    required String baseUrl,
+    required String token,
+    required String fiscalYearId,
+  }) async {
+    final step5Data = await _authRepo.step5(
+      baseUrl: baseUrl,
+      token: token,
+      fiscalYearId: fiscalYearId,
+    );
+    final finalToken = step5Data['Token'] as String?;
+    if (finalToken == null || finalToken.isEmpty) {
+      throw Exception('Invalid token received');
+    }
+
+    await saveAuthData(token: finalToken, baseUrl: baseUrl);
+    _applyAuthConfig(baseUrl, finalToken);
+
+    state = AuthState(
+      status: AuthStatus.authenticated,
+      baseUrl: baseUrl,
+      finalToken: finalToken,
+    );
+  }
+
+  void _applyAuthConfig(String baseUrl, String token) {
+    _ref.read(apiServiceProvider).updateConfig(baseUrl: baseUrl, token: token);
+    final dio = _ref.read(dioProvider);
+    dio.options.baseUrl = baseUrl;
+    dio.options.headers['Authorization'] = 'Bearer $token';
+  }
+
+  Future<void> logout() async {
+    await clearAuthData();
+    state = const AuthState(status: AuthStatus.unauthenticated);
+  }
+
+  void clearError() {
+    state = state.copyWith(error: null);
+  }
+}

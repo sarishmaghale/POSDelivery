@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/auth/provider/auth_provider.dart';
+import '../../features/auth/screen/login_screen.dart';
 import '../../features/dashboard/screen/categories_screen.dart';
 import '../../features/dashboard/screen/customers_screen.dart';
 import '../../features/dashboard/screen/dashboard_screen.dart';
@@ -17,20 +20,36 @@ import '../../l10n/app_localizations.dart';
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
 
-final appRouterProvider = GoRouter(
-  navigatorKey: _rootNavigatorKey,
-  initialLocation: '/dashboard',
-  routes: [
-    ShellRoute(
-      navigatorKey: _shellNavigatorKey,
-      builder: (context, state, child) => AppShell(child: child),
-      routes: [
-        GoRoute(
-          path: '/dashboard',
-          pageBuilder: (context, state) => const NoTransitionPage(
-            child: DashboardScreen(),
+final appRouterProvider = Provider<GoRouter>((ref) {
+  final authState = ref.watch(authProvider);
+
+  return GoRouter(
+    navigatorKey: _rootNavigatorKey,
+    initialLocation: '/login',
+    redirect: (context, state) {
+      if (authState.status == AuthStatus.uninitialized) return null;
+      final isAuthenticated = authState.status == AuthStatus.authenticated;
+      final isLoginRoute = state.matchedLocation == '/login';
+      if (!isAuthenticated && !isLoginRoute) return '/login';
+      if (isAuthenticated && isLoginRoute) return '/dashboard';
+      return null;
+    },
+    routes: [
+      GoRoute(
+        path: '/login',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const LoginScreen(),
+      ),
+      ShellRoute(
+        navigatorKey: _shellNavigatorKey,
+        builder: (context, state, child) => AppShell(child: child),
+        routes: [
+          GoRoute(
+            path: '/dashboard',
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: DashboardScreen(),
+            ),
           ),
-        ),
         GoRoute(
           path: '/delivery',
           pageBuilder: (context, state) {
@@ -105,7 +124,8 @@ final appRouterProvider = GoRouter(
       builder: (context, state) => const CustomersScreen(),
     ),
   ],
-);
+  );
+});
 
 class AppShell extends StatelessWidget {
   final Widget child;
