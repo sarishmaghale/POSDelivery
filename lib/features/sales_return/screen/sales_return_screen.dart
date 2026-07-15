@@ -620,7 +620,7 @@ class _PaymentEntryRowState extends ConsumerState<_PaymentEntryRow> {
         _isTyping = false;
         final current = double.tryParse(_amountController.text) ?? 0;
         if (current > 0) {
-          final maxAllowed = widget.payment.amount + ref.read(salesReturnProvider).remainingAmount;
+          final maxAllowed = widget.payment.amount + ref.read(salesReturnProvider).remainingAmountIncTax;
           final clamped = current > maxAllowed ? maxAllowed : current;
           _amountController.text = clamped.toStringAsFixed(2);
           ref.read(salesReturnProvider.notifier)
@@ -706,7 +706,7 @@ class _PaymentEntryRowState extends ConsumerState<_PaymentEntryRow> {
                   return;
                 }
                 final maxAllowed = widget.payment.amount +
-                    ref.read(salesReturnProvider).remainingAmount;
+                    ref.read(salesReturnProvider).remainingAmountIncTax;
                 final clamped = parsed > maxAllowed ? maxAllowed : parsed;
                 ref.read(salesReturnProvider.notifier)
                     .updatePaymentEntryAmount(widget.index, clamped);
@@ -776,7 +776,7 @@ class _PaymentModalSheet extends ConsumerWidget {
             }),
             const SizedBox(height: 8),
             OutlinedButton.icon(
-              onPressed: state.remainingAmount > 0
+              onPressed: state.remainingAmountIncTax > 0
                   ? () => ref.read(salesReturnProvider.notifier).addPaymentEntry()
                   : null,
               icon: const Icon(Icons.add, size: 18),
