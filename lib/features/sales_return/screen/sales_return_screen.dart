@@ -406,12 +406,42 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            _totalRow('Gross Total', state.grossTotal, theme, null),
-            _totalRow('Item Discount', -state.totalItemDiscount, theme, theme.colorScheme.error),
-            _totalRow('Volume Discount', -state.discountAmount, theme, theme.colorScheme.error),
+            _totalRow(l10n.grossAmount, state.totalGrossAmountIncTax, theme, null),
+            if (state.totalProductDiscountIncTax > 0) ...[
+              const SizedBox(height: 4),
+              _totalRow(
+                'Product Discount',
+                -state.totalProductDiscountIncTax,
+                theme,
+                theme.colorScheme.error,
+              ),
+            ],
+            if (state.discountAmount > 0) ...[
+              const SizedBox(height: 4),
+              _totalRow(
+                l10n.discount,
+                -state.discountAmount,
+                theme,
+                theme.colorScheme.error,
+              ),
+            ],
+            if (state.totalTaxAmount > 0) ...[
+              const SizedBox(height: 4),
+              _totalRow(
+                l10n.tax,
+                state.totalTaxAmount,
+                theme,
+                theme.colorScheme.onSurfaceVariant,
+              ),
+            ],
             const Divider(),
-            _totalRow('Net Total', state.netTotal, theme,
-                theme.colorScheme.primary, bold: true),
+            _totalRow(
+              l10n.totalAmount,
+              state.netTotalIncTax,
+              theme,
+              theme.colorScheme.primary,
+              bold: true,
+            ),
             const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
@@ -765,7 +795,7 @@ class _PaymentModalSheet extends ConsumerWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text('${l10n.total}:', style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
-                      Text('Rs. ${state.netTotal.toStringAsFixed(2)}', style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+                      Text('Rs. ${state.netTotalIncTax.toStringAsFixed(2)}', style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
                     ],
                   ),
                   const SizedBox(height: 4),
@@ -781,11 +811,11 @@ class _PaymentModalSheet extends ConsumerWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text('${l10n.remaining}:', style: theme.textTheme.bodyMedium?.copyWith(
-                        color: state.remainingAmount > 0 ? theme.colorScheme.error : theme.colorScheme.primary,
+                        color: state.remainingAmountIncTax > 0 ? theme.colorScheme.error : theme.colorScheme.primary,
                         fontWeight: FontWeight.w600,
                       )),
-                      Text('Rs. ${state.remainingAmount.toStringAsFixed(2)}', style: theme.textTheme.bodyMedium?.copyWith(
-                        color: state.remainingAmount > 0 ? theme.colorScheme.error : theme.colorScheme.primary,
+                      Text('Rs. ${state.remainingAmountIncTax.toStringAsFixed(2)}', style: theme.textTheme.bodyMedium?.copyWith(
+                        color: state.remainingAmountIncTax > 0 ? theme.colorScheme.error : theme.colorScheme.primary,
                         fontWeight: FontWeight.w600,
                       )),
                     ],

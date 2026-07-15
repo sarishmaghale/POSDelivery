@@ -57,7 +57,7 @@ class SalesReturnState {
     this.paymentEntries = const [],
     this.isLoading = false,
     this.isSaving = false,
-    this.isValid=true,
+    this.isValid = true,
     this.saved = false,
     this.error,
   });
@@ -76,6 +76,50 @@ class SalesReturnState {
       paymentEntries.fold<double>(0, (sum, e) => sum + e.amount);
 
   double get remainingAmount => netTotal - totalPaidAmount;
+
+  double get remainingAmountIncTax => netTotalIncTax - totalPaidAmount;
+
+  // Tax calculations (similar to delivery screen)
+  double get totalGrossAmountIncTax {
+    return items.fold<double>(0, (sum, item) {
+      final taxableType = item.taxable;
+      final tax = computeItemTax(
+        rate: item.rate,
+        quantity: item.quantity,
+        discount: item.discountAmount,
+        taxableType: taxableType,
+      );
+      return sum + tax.grossAmountIncTax;
+    });
+  }
+
+  double get totalProductDiscountIncTax {
+    return items.fold<double>(0, (sum, item) {
+      final taxableType = item.taxable;
+      final tax = computeItemTax(
+        rate: item.rate,
+        quantity: item.quantity,
+        discount: item.discountAmount,
+        taxableType: taxableType,
+      );
+      return sum + tax.discountIncludingTax;
+    });
+  }
+
+  double get totalTaxAmount {
+    return items.fold<double>(0, (sum, item) {
+      final taxableType = item.taxable;
+      final tax = computeItemTax(
+        rate: item.rate,
+        quantity: item.quantity,
+        discount: item.discountAmount,
+        taxableType: taxableType,
+      );
+      return sum + tax.taxAmount;
+    });
+  }
+
+  double get netTotalIncTax => totalGrossAmountIncTax - totalProductDiscountIncTax - discountAmount;
 }
 
 final salesReturnProvider =
@@ -220,7 +264,7 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
   void addPaymentEntry() {
     final updated = [
       ...state.paymentEntries,
-      PaymentEntry(amount: state.remainingAmount > 0 ? state.remainingAmount : 0),
+      PaymentEntry(amount: state.remainingAmountIncTax > 0 ? state.remainingAmountIncTax : 0),
     ];
     state = _copyWithAll(paymentEntries: updated);
   }
