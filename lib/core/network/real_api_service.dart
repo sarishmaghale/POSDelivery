@@ -22,6 +22,10 @@ class RealApiService implements ApiService {
     ));
   }
 
+  void addInterceptor(Interceptor interceptor) {
+    _dio.interceptors.add(interceptor);
+  }
+
   @override
   void updateConfig({String? baseUrl, String? token}) {
     if (baseUrl != null) {

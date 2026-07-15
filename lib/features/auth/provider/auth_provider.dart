@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/auth/auth_storage.dart';
+import '../../../core/auth/shared_auth_state.dart';
 import '../../../core/network/providers.dart';
 import '../../../repositories/auth_repository.dart';
 import '../models/selection_option.dart';
@@ -72,6 +73,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
   final AuthRepository _authRepo = AuthRepository();
 
   AuthNotifier(this._ref) : super(const AuthState()) {
+    sharedAuthState.onUnauthorized = () async {
+      await clearAuthData();
+      state = const AuthState(status: AuthStatus.unauthenticated);
+    };
     _init();
   }
 
@@ -347,6 +352,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     await saveAuthData(token: finalToken, baseUrl: baseUrl);
     _applyAuthConfig(baseUrl, finalToken);
+    sharedAuthState.reset();
 
     state = AuthState(
       status: AuthStatus.authenticated,
