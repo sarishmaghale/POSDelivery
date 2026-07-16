@@ -298,12 +298,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ),
             ),
             const SizedBox(width: 12),
-            Expanded(
+Expanded(
               child: StatCard(
                 title: l10n.salesReturns,
                 value: state.todaysSalesReturns.toString(),
                 icon: Icons.assignment_return,
-                onTap: () {},
+                onTap: () => context.push('/sales-return-history'),
               ),
             ),
             const SizedBox(width: 12),

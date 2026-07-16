@@ -7,6 +7,7 @@
   "offline": "अफलाइन",
   "welcomeBack": "फेरि स्वागत छ,",
   "todaysDeliveries": "आजको डेलिभरीहरू",
+  "todaysSalesReturns": "आजको सेल्स रिटर्नहरू",
   "salesReturns": "सेल्स रिटर्न",
   "categories": "कोटिहरू",
   "customers": "ग्राहकहरू",
@@ -47,6 +48,16 @@
   "available": "उपलब्ध:",
 
   "noDeliveriesForToday": "आजको लागि कुनै डेलिभरी छैन",
+
+  "noSalesReturnsForToday": "आजको लागि कुनै सेल्स रिटर्न छैन",
+
+  "salesReturnDetail": "सेल्स रिटर्न विवरण",
+  "salesReturnNumber": "सेल्स रिटर्न #{id}",
+  "viewingSalesReturn": "सेल्स रिटर्न हेर्दै",
+  "salesReturnNotFound": "सेल्स रिटर्न फेला परेन",
+  "syncNow": "अहिले सिङ्क गर्नुहोस्",
+  "syncInitiated": "सिङ्क सुरु भयो",
+  "syncFailed": "सिङ्क असफल भयो",
 
   "cart": "कार्ट",
   "clear": "खाली गर्नुहोस्",

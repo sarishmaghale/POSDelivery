@@ -27,6 +27,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get todaysDeliveries => 'Today\'s Deliveries';
 
   @override
+  String get todaysSalesReturns => 'Today\'s Sales Returns';
+
+  @override
   String get salesReturns => 'Sales Returns';
 
   @override
@@ -143,6 +146,29 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noDeliveriesForToday => 'No deliveries for today';
+
+  @override
+  String get noSalesReturnsForToday => 'No sales returns for today';
+
+  @override
+  String get salesReturnDetail => 'Sales Return Detail';
+
+  @override
+  String salesReturnNumber(Object id) {
+    return 'Sales Return #$id';
+  }
+
+  @override
+  String get viewingSalesReturn => 'Viewing sales return';
+
+  @override
+  String get salesReturnNotFound => 'Sales return not found';
+
+  @override
+  String get syncInitiated => 'Sync initiated';
+
+  @override
+  String get syncFailed => 'Sync failed';
 
   @override
   String get cart => 'Cart';

@@ -47,6 +47,13 @@ class CustomerRepository {
     return maps.map((map) => Customer.fromMap(map)).toList();
   }
 
+  Future<Customer?> getCustomerById(String serverId) async {
+    final maps = await _db.query('customer',
+        where: 'server_id = ?', whereArgs: [serverId]);
+    if (maps.isEmpty) return null;
+    return Customer.fromMap(maps.first);
+  }
+
   Future<List<Customer>> _fetchAndCacheCustomers() async {
     final data = await _apiService.fetchCustomers();
     final customers = data.map((json) => Customer()

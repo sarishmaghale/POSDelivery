@@ -13,6 +13,8 @@ import '../../features/delivery/screen/delivery_screen.dart';
 import '../../features/estimate/screen/estimate_history_screen.dart';
 import '../../features/estimate/screen/estimate_screen.dart';
 import '../../features/profile/screen/profile_screen.dart';
+import '../../features/sales_return/screen/sales_return_detail_screen.dart';
+import '../../features/sales_return/screen/sales_return_history_screen.dart';
 import '../../features/sales_return/screen/sales_return_screen.dart';
 import '../../features/sync/screen/sync_screen.dart';
 import '../../l10n/app_localizations.dart';
@@ -78,6 +80,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             child: DeliveryHistoryScreen(),
           ),
         ),
+        GoRoute(
+          path: '/sales-return-history',
+          pageBuilder: (context, state) => const NoTransitionPage(
+            child: SalesReturnHistoryScreen(),
+          ),
+        ),
       ],
     ),
     GoRoute(
@@ -87,6 +95,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         final deliveryId = int.tryParse(
             state.pathParameters['id'] ?? '');
         return DeliveryScreen(deliveryId: deliveryId);
+      },
+    ),
+    GoRoute(
+      path: '/sales-return-detail/:id',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) {
+        final salesReturnId = int.tryParse(
+            state.pathParameters['id'] ?? '');
+        return SalesReturnDetailScreen(salesReturnId: salesReturnId!);
       },
     ),
     GoRoute(

@@ -27,6 +27,9 @@ class AppLocalizationsNe extends AppLocalizations {
   String get todaysDeliveries => 'आजको डेलिभरीहरू';
 
   @override
+  String get todaysSalesReturns => 'आजको सेल्स रिटर्नहरू';
+
+  @override
   String get salesReturns => 'सेल्स रिटर्न';
 
   @override
@@ -143,6 +146,29 @@ class AppLocalizationsNe extends AppLocalizations {
 
   @override
   String get noDeliveriesForToday => 'आजको लागि कुनै डेलिभरी छैन';
+
+  @override
+  String get noSalesReturnsForToday => 'आजको लागि कुनै सेल्स रिटर्न छैन';
+
+  @override
+  String get salesReturnDetail => 'सेल्स रिटर्न विवरण';
+
+  @override
+  String salesReturnNumber(Object id) {
+    return 'सेल्स रिटर्न #$id';
+  }
+
+  @override
+  String get viewingSalesReturn => 'सेल्स रिटर्न हेर्दै';
+
+  @override
+  String get salesReturnNotFound => 'सेल्स रिटर्न फेला परेन';
+
+  @override
+  String get syncInitiated => 'सिङ्क सुरु भयो';
+
+  @override
+  String get syncFailed => 'सिङ्क असफल भयो';
 
   @override
   String get cart => 'कार्ट';

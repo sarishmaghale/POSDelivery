@@ -134,6 +134,12 @@ abstract class AppLocalizations {
   /// **'Today\'s Deliveries'**
   String get todaysDeliveries;
 
+  /// No description provided for @todaysSalesReturns.
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s Sales Returns'**
+  String get todaysSalesReturns;
+
   /// No description provided for @salesReturns.
   ///
   /// In en, this message translates to:
@@ -361,6 +367,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No deliveries for today'**
   String get noDeliveriesForToday;
+
+  /// No description provided for @noSalesReturnsForToday.
+  ///
+  /// In en, this message translates to:
+  /// **'No sales returns for today'**
+  String get noSalesReturnsForToday;
+
+  /// No description provided for @salesReturnDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Sales Return Detail'**
+  String get salesReturnDetail;
+
+  /// No description provided for @salesReturnNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Sales Return #{id}'**
+  String salesReturnNumber(Object id);
+
+  /// No description provided for @viewingSalesReturn.
+  ///
+  /// In en, this message translates to:
+  /// **'Viewing sales return'**
+  String get viewingSalesReturn;
+
+  /// No description provided for @salesReturnNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Sales return not found'**
+  String get salesReturnNotFound;
+
+  /// No description provided for @syncInitiated.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync initiated'**
+  String get syncInitiated;
+
+  /// No description provided for @syncFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync failed'**
+  String get syncFailed;
 
   /// No description provided for @cart.
   ///

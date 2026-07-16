@@ -155,4 +155,34 @@ class SalesReturnRepository {
     );
     return Sqflite.firstIntValue(result) ?? 0;
   }
+
+  Future<List<SalesReturn>> getSalesReturnsByDate(DateTime date) async {
+    final startOfDay = DateTime(date.year, date.month, date.day);
+    final endOfDay = startOfDay.add(const Duration(days: 1));
+    final maps = await _db.query('sales_return',
+        where: 'created_date >= ? AND created_date < ?',
+        whereArgs: [
+          startOfDay.toIso8601String(),
+          endOfDay.toIso8601String()
+        ],
+        orderBy: 'created_date DESC');
+    final returns = maps.map((m) => SalesReturn.fromMap(m)).toList();
+    for (final sr in returns) {
+      final itemMaps = await _db.query('sales_return_item',
+          where: 'sales_return_id = ?', whereArgs: [sr.id]);
+      sr.items = itemMaps.map((m) => SalesReturnItem.fromMap(m)).toList();
+    }
+    return returns;
+  }
+
+  Future<SalesReturn?> getSalesReturnById(int id) async {
+    final maps = await _db.query('sales_return',
+        where: 'id = ?', whereArgs: [id]);
+    if (maps.isEmpty) return null;
+    final sr = SalesReturn.fromMap(maps.first);
+    final itemMaps = await _db.query('sales_return_item',
+        where: 'sales_return_id = ?', whereArgs: [sr.id]);
+    sr.items = itemMaps.map((m) => SalesReturnItem.fromMap(m)).toList();
+    return sr;
+  }
 }

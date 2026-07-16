@@ -11,6 +11,7 @@
   "offline": "Offline",
   "welcomeBack": "Welcome back,",
   "todaysDeliveries": "Today's Deliveries",
+  "todaysSalesReturns": "Today's Sales Returns",
   "salesReturns": "Sales Returns",
   "categories": "Categories",
   "customers": "Customers",
@@ -51,6 +52,16 @@
   "available": "Available:",
 
   "noDeliveriesForToday": "No deliveries for today",
+
+  "noSalesReturnsForToday": "No sales returns for today",
+
+  "salesReturnDetail": "Sales Return Detail",
+  "salesReturnNumber": "Sales Return #{id}",
+  "viewingSalesReturn": "Viewing sales return",
+  "salesReturnNotFound": "Sales return not found",
+  "syncNow": "Sync Now",
+  "syncInitiated": "Sync initiated",
+  "syncFailed": "Sync failed",
 
   "cart": "Cart",
   "clear": "Clear",
