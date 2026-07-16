@@ -5,8 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/providers/locale_provider.dart';
 import '../../../l10n/app_localizations.dart';
-import '../../../models/payment_entry.dart';
-import '../../../models/payment_mode.dart';
+
 import '../../../models/sales_return.dart';
 import '../provider/sales_return_provider.dart';
 import '../widgets/product_dropdown.dart';
@@ -584,154 +583,16 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
     }
   }
 }
-
-class _PaymentEntryRow extends ConsumerStatefulWidget {
-  final int index;
-  final PaymentEntry payment;
-  final List<PaymentMode> paymentModes;
-  final AppLocalizations l10n;
-
-  const _PaymentEntryRow({
-    required this.index,
-    required this.payment,
-    required this.paymentModes,
-    required this.l10n,
-    super.key,
-  });
-
-  @override
-  ConsumerState<_PaymentEntryRow> createState() => _PaymentEntryRowState();
-}
-
-class _PaymentEntryRowState extends ConsumerState<_PaymentEntryRow> {
-  late final TextEditingController _amountController;
-  late final FocusNode _amountFocusNode;
-  bool _isTyping = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _amountController = TextEditingController(
-      text: widget.payment.amount > 0 ? widget.payment.amount.toStringAsFixed(2) : '',
-    );
-    _amountFocusNode = FocusNode();
-    _amountFocusNode.addListener(() {
-      if (!_amountFocusNode.hasFocus) {
-        _isTyping = false;
-        final current = double.tryParse(_amountController.text) ?? 0;
-        if (current > 0) {
-          final maxAllowed = widget.payment.amount + ref.read(salesReturnProvider).remainingAmountIncTax;
-          final clamped = current > maxAllowed ? maxAllowed : current;
-          _amountController.text = clamped.toStringAsFixed(2);
-          ref.read(salesReturnProvider.notifier)
-              .updatePaymentEntryAmount(widget.index, clamped);
-        }
-      } else {
-        _isTyping = true;
-      }
-    });
-  }
-
-  @override
-  void didUpdateWidget(covariant _PaymentEntryRow oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (!_isTyping && widget.payment.amount != oldWidget.payment.amount) {
-      final newText = widget.payment.amount > 0 ? widget.payment.amount.toStringAsFixed(2) : '';
-      if (_amountController.text != newText) {
-        _amountController.text = newText;
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _amountController.dispose();
-    _amountFocusNode.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        children: [
-          Expanded(
-            flex: 3,
-            child: DropdownButtonFormField<String>(
-              isExpanded: true,
-              initialValue: widget.payment.paymentModeId,
-              decoration: InputDecoration(
-                labelText: widget.l10n.paymentMode,
-                border: const OutlineInputBorder(),
-                isDense: true,
-              ),
-              items: widget.paymentModes.map((mode) {
-                return DropdownMenuItem(
-                  value: mode.serverId,
-                  child: Text(mode.name),
-                );
-              }).toList(),
-              onChanged: (value) {
-                final mode = widget.paymentModes
-                    .where((m) => m.serverId == value)
-                    .firstOrNull;
-                ref.read(salesReturnProvider.notifier)
-                    .updatePaymentEntryMode(widget.index, value, mode?.name);
-              },
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            flex: 2,
-            child: TextField(
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              focusNode: _amountFocusNode,
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
-              ],
-              decoration: InputDecoration(
-                labelText: widget.l10n.amount,
-                prefixText: 'Rs. ',
-                border: const OutlineInputBorder(),
-                isDense: true,
-              ),
-              controller: _amountController,
-              onChanged: (value) {
-                final parsed = double.tryParse(value);
-                if (parsed == null) {
-                  ref.read(salesReturnProvider.notifier)
-                      .updatePaymentEntryAmount(widget.index, 0);
-                  return;
-                }
-                final maxAllowed = widget.payment.amount +
-                    ref.read(salesReturnProvider).remainingAmountIncTax;
-                final clamped = parsed > maxAllowed ? maxAllowed : parsed;
-                ref.read(salesReturnProvider.notifier)
-                    .updatePaymentEntryAmount(widget.index, clamped);
-              },
-            ),
-          ),
-          const SizedBox(width: 8),
-          IconButton(
-            icon: Icon(Icons.remove_circle_outline, color: theme.colorScheme.error),
-            onPressed: () {
-              ref.read(salesReturnProvider.notifier).removePaymentEntry(widget.index);
-            },
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _PaymentModalSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(salesReturnProvider);
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
+    
+    final paymentEntry = state.paymentEntries.isNotEmpty ? state.paymentEntries.first : null;
+    final paymentModeId = paymentEntry?.paymentModeId ?? '';
+    final paymentAmount = paymentEntry?.amount ?? state.netTotalIncTax;
 
     return SafeArea(
       child: Padding(
@@ -762,25 +623,64 @@ class _PaymentModalSheet extends ConsumerWidget {
               ],
             ),
             const Divider(),
-            const SizedBox(height: 8),
-            ...state.paymentEntries.asMap().entries.map((entry) {
-              final index = entry.key;
-              final payment = entry.value;
-              return _PaymentEntryRow(
-                key: ValueKey(index),
-                index: index,
-                payment: payment,
-                paymentModes: state.paymentModes,
-                l10n: l10n,
-              );
-            }),
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
-              onPressed: state.remainingAmountIncTax > 0
-                  ? () => ref.read(salesReturnProvider.notifier).addPaymentEntry()
-                  : null,
-              icon: const Icon(Icons.add, size: 18),
-              label: Text(l10n.addPayment),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              initialValue: paymentModeId.isNotEmpty ? paymentModeId : null,
+              decoration: InputDecoration(
+                labelText: l10n.paymentMode,
+                border: const OutlineInputBorder(),
+                isDense: true,
+              ),
+              menuMaxHeight: 200,
+              items: state.paymentModes.map((mode) {
+                return DropdownMenuItem(
+                  value: mode.serverId,
+                  child: Text(mode.name),
+                );
+              }).toList(),
+              onChanged: (value) {
+                final mode = state.paymentModes
+                    .where((m) => m.serverId == value)
+                    .firstOrNull;
+                if (state.paymentEntries.isEmpty) {
+                  ref.read(salesReturnProvider.notifier).addPaymentEntry();
+                }
+                ref.read(salesReturnProvider.notifier)
+                    .updatePaymentEntryMode(0, value, mode?.name);
+              },
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
+              ],
+              decoration: InputDecoration(
+                labelText: l10n.amount,
+                prefixText: 'Rs. ',
+                border: const OutlineInputBorder(),
+                isDense: true,
+              ),
+              onChanged: (value) {
+                final parsed = double.tryParse(value);
+                if (parsed == null) {
+                  if (state.paymentEntries.isNotEmpty) {
+                    ref.read(salesReturnProvider.notifier)
+                        .updatePaymentEntryAmount(0, 0);
+                  }
+                  return;
+                }
+                final maxAllowed = state.netTotalIncTax;
+                final clamped = parsed > maxAllowed ? maxAllowed : parsed;
+                if (state.paymentEntries.isEmpty) {
+                  ref.read(salesReturnProvider.notifier).addPaymentEntry();
+                }
+                ref.read(salesReturnProvider.notifier)
+                    .updatePaymentEntryAmount(0, clamped);
+              },
+              controller: TextEditingController(
+                text: paymentAmount > 0 ? paymentAmount.toStringAsFixed(2) : '',
+              ),
             ),
             const SizedBox(height: 16),
             Container(
