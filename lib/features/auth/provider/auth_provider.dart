@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/auth/auth_storage.dart';
 import '../../../core/auth/shared_auth_state.dart';
 import '../../../core/network/providers.dart';
+import '../../../features/sync/provider/sync_provider.dart';
 import '../../../repositories/auth_repository.dart';
 import '../models/selection_option.dart';
 
@@ -359,6 +360,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
       baseUrl: baseUrl,
       finalToken: finalToken,
     );
+
+    Future.microtask(() => _ref.read(syncProvider.notifier).syncAll());
   }
 
   void _applyAuthConfig(String baseUrl, String token) {

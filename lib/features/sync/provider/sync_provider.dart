@@ -150,12 +150,35 @@ incomingStatus: {
     return allOk;
   }
 
+  /// Downloads master data from server (categories, products, customers, payment modes)
+  /// without pushing local queue. Called automatically on login.
+  Future<bool> syncFromServerOnly() async {
+    final results = await _syncFromServer();
+
+    final allOk = results.entries.where((e) => e.key.endsWith('_error')).isEmpty &&
+        results['categories'] == true &&
+        results['assignedProducts'] == true &&
+        results['allProducts'] == true &&
+        results['customers'] == true &&
+        results['paymentModes'] == true;
+
+    if (!allOk) {
+      print('[AutoSync] Some master data failed to download');
+    } else {
+      print('[AutoSync] Master data downloaded successfully');
+    }
+
+    await refresh();
+
+    return allOk;
+  }
+
   Future<Map<String, dynamic>> _syncFromServer() async {
     final results = <String, dynamic>{};
 
     final now = DateTime.now();
     final transactionDate =
-        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')} ';
 
     try {
       final categories = await _categoryRepo.refreshCategories(
