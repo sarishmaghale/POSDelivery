@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers/locale_provider.dart';
+import '../../auth/provider/auth_provider.dart';
 import '../../../l10n/app_localizations.dart';
 
 class ProfileScreen extends ConsumerWidget {
@@ -11,6 +12,7 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final currentLocale = ref.watch(localeProvider);
+    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -34,6 +36,41 @@ class ProfileScreen extends ConsumerWidget {
                   saveLocale(newLocale);
                 },
               ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Card(
+            child: ListTile(
+              leading: Icon(Icons.logout, color: theme.colorScheme.error),
+              title: Text(
+                'Logout',
+                style: TextStyle(color: theme.colorScheme.error),
+              ),
+              onTap: () {
+                showDialog(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Logout'),
+                    content: const Text('Are you sure you want to logout?'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(ctx).pop(),
+                        child: const Text('Cancel'),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(ctx).pop();
+                          ref.read(authProvider.notifier).logout();
+                        },
+                        child: Text(
+                          'Logout',
+                          style: TextStyle(color: theme.colorScheme.error),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
           ),
         ],
