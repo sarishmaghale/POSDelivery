@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../../../models/product.dart';
 
 class ProductSearch extends StatelessWidget {
@@ -18,6 +19,7 @@ class ProductSearch extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -25,7 +27,7 @@ class ProductSearch extends StatelessWidget {
           controller: TextEditingController(text: query),
           onChanged: onQueryChanged,
           decoration: InputDecoration(
-            hintText: 'Search products...',
+            hintText: l10n.searchProducts,
             prefixIcon: const Icon(Icons.search),
             suffixIcon: query.isNotEmpty
                 ? IconButton(
@@ -45,7 +47,7 @@ class ProductSearch extends StatelessWidget {
               ),
               title: Text(product.name),
               subtitle: product.unit != null
-                  ? Text('Per ${product.unit}')
+                  ? Text(l10n.perUnit(product.unit!))
                   : null,
               trailing: _QuantityAdder(
                 onAdd: (qty) => onAddToCart(product, qty),
@@ -72,6 +74,7 @@ class _QuantityAdderState extends State<_QuantityAdder> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -96,7 +99,7 @@ class _QuantityAdderState extends State<_QuantityAdder> {
         FilledButton.tonalIcon(
           onPressed: () => widget.onAdd(_quantity),
           icon: const Icon(Icons.add, size: 18),
-          label: const Text('Add'),
+          label: Text(l10n.add),
         ),
       ],
     );

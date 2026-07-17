@@ -49,7 +49,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
           : _customers.isEmpty
               ? Center(
                   child: Text(
-                    'No customers available',
+                    l10n.noCustomersAvailable,
                     style: theme.textTheme.bodyLarge?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),

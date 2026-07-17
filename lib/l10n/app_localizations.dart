@@ -512,6 +512,12 @@ abstract class AppLocalizations {
   /// **'Discount Type'**
   String get discountType;
 
+  /// No description provided for @discountValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Discount Value'**
+  String get discountValue;
+
   /// No description provided for @none.
   ///
   /// In en, this message translates to:
@@ -859,6 +865,270 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Volume Discount'**
   String get volumeDiscount;
+
+  /// No description provided for @logout.
+  ///
+  /// In en, this message translates to:
+  /// **'Logout'**
+  String get logout;
+
+  /// No description provided for @confirmLogout.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to logout?'**
+  String get confirmLogout;
+
+  /// No description provided for @done.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get done;
+
+  /// No description provided for @remove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get remove;
+
+  /// No description provided for @change.
+  ///
+  /// In en, this message translates to:
+  /// **'Change'**
+  String get change;
+
+  /// No description provided for @retry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get retry;
+
+  /// No description provided for @selectCustomer.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Customer'**
+  String get selectCustomer;
+
+  /// No description provided for @searchCustomer.
+  ///
+  /// In en, this message translates to:
+  /// **'Search customer...'**
+  String get searchCustomer;
+
+  /// No description provided for @selectCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Category'**
+  String get selectCategory;
+
+  /// No description provided for @perUnit.
+  ///
+  /// In en, this message translates to:
+  /// **'Per {unit}'**
+  String perUnit(Object unit);
+
+  /// No description provided for @unit.
+  ///
+  /// In en, this message translates to:
+  /// **'Unit'**
+  String get unit;
+
+  /// No description provided for @rate.
+  ///
+  /// In en, this message translates to:
+  /// **'Rate'**
+  String get rate;
+
+  /// No description provided for @value.
+  ///
+  /// In en, this message translates to:
+  /// **'Value'**
+  String get value;
+
+  /// No description provided for @companyCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Company Code'**
+  String get companyCode;
+
+  /// No description provided for @username.
+  ///
+  /// In en, this message translates to:
+  /// **'Username'**
+  String get username;
+
+  /// No description provided for @password.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get password;
+
+  /// No description provided for @login.
+  ///
+  /// In en, this message translates to:
+  /// **'Login'**
+  String get login;
+
+  /// No description provided for @enterCompanyCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter company code'**
+  String get enterCompanyCode;
+
+  /// No description provided for @enterUsername.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter username'**
+  String get enterUsername;
+
+  /// No description provided for @enterPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter password'**
+  String get enterPassword;
+
+  /// No description provided for @selectCompany.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Company'**
+  String get selectCompany;
+
+  /// No description provided for @selectBranch.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Branch'**
+  String get selectBranch;
+
+  /// No description provided for @selectDepartment.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Department'**
+  String get selectDepartment;
+
+  /// No description provided for @selectFiscalYear.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Fiscal Year'**
+  String get selectFiscalYear;
+
+  /// No description provided for @noCustomersFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No customers found'**
+  String get noCustomersFound;
+
+  /// No description provided for @productDiscount.
+  ///
+  /// In en, this message translates to:
+  /// **'Product Discount'**
+  String get productDiscount;
+
+  /// No description provided for @noProductsAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'No products added'**
+  String get noProductsAdded;
+
+  /// No description provided for @addedProducts.
+  ///
+  /// In en, this message translates to:
+  /// **'Added Products ({count})'**
+  String addedProducts(Object count);
+
+  /// No description provided for @viewDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'View details'**
+  String get viewDetails;
+
+  /// No description provided for @noProductsAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No products available'**
+  String get noProductsAvailable;
+
+  /// No description provided for @cartIsEmptyMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Cart is empty. Add products from the list above.'**
+  String get cartIsEmptyMessage;
+
+  /// No description provided for @cartItemCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Cart ({count} items)'**
+  String cartItemCount(Object count);
+
+  /// No description provided for @qtyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Qty:'**
+  String get qtyLabel;
+
+  /// No description provided for @stock.
+  ///
+  /// In en, this message translates to:
+  /// **'Stock'**
+  String get stock;
+
+  /// No description provided for @posDelivery.
+  ///
+  /// In en, this message translates to:
+  /// **'POS Delivery'**
+  String get posDelivery;
+
+  /// No description provided for @noCategoriesAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No categories available'**
+  String get noCategoriesAvailable;
+
+  /// No description provided for @noCustomersAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No customers available'**
+  String get noCustomersAvailable;
+
+  /// No description provided for @searchProduct.
+  ///
+  /// In en, this message translates to:
+  /// **'Search Product'**
+  String get searchProduct;
+
+  /// No description provided for @typeToSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Type to search...'**
+  String get typeToSearch;
+
+  /// No description provided for @noProductsFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No products found'**
+  String get noProductsFound;
+
+  /// No description provided for @billsPendingSync.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} bill(s) pending sync'**
+  String billsPendingSync(Object count);
+
+  /// No description provided for @offlineInvoicesWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline invoices waiting to be pushed to server.'**
+  String get offlineInvoicesWaiting;
+
+  /// No description provided for @deliveryLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Delivery'**
+  String get deliveryLabel;
+
+  /// No description provided for @invoiceNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Invoice #{id}'**
+  String invoiceNumber(Object id);
 }
 
 class _AppLocalizationsDelegate

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../../../models/customer.dart';
 
 class CustomerDropdown extends StatelessWidget {
@@ -104,6 +105,7 @@ class _SearchCustomerFieldState extends State<SearchCustomerField> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return TapRegion(
       onTapOutside: (_) {
@@ -120,8 +122,8 @@ class _SearchCustomerFieldState extends State<SearchCustomerField> {
             controller: _searchController,
             focusNode: _focusNode,
             decoration: InputDecoration(
-              labelText: widget.selectedCustomer?.name ?? 'Search Customer',
-              hintText: widget.selectedCustomer != null ? '' : 'Type to search...',
+              labelText: widget.selectedCustomer?.name ?? l10n.searchCustomer,
+              hintText: widget.selectedCustomer != null ? '' : l10n.typeToSearch,
               prefixIcon: const Icon(Icons.search),
               suffixIcon: widget.selectedCustomer != null
                   ? IconButton(
@@ -145,7 +147,7 @@ class _SearchCustomerFieldState extends State<SearchCustomerField> {
             Padding(
               padding: const EdgeInsets.only(top: 4),
               child: Text(
-                'No customers found',
+                l10n.noCustomersFound,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),

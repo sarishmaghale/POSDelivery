@@ -43,19 +43,19 @@ class ProfileScreen extends ConsumerWidget {
             child: ListTile(
               leading: Icon(Icons.logout, color: theme.colorScheme.error),
               title: Text(
-                'Logout',
+                l10n.logout,
                 style: TextStyle(color: theme.colorScheme.error),
               ),
               onTap: () {
                 showDialog(
                   context: context,
                   builder: (ctx) => AlertDialog(
-                    title: const Text('Logout'),
-                    content: const Text('Are you sure you want to logout?'),
+                    title: Text(l10n.logout),
+                    content: Text(l10n.confirmLogout),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.of(ctx).pop(),
-                        child: const Text('Cancel'),
+                        child: Text(l10n.cancel),
                       ),
                       TextButton(
                         onPressed: () {
@@ -63,7 +63,7 @@ class ProfileScreen extends ConsumerWidget {
                           ref.read(authProvider.notifier).logout();
                         },
                         child: Text(
-                          'Logout',
+                          l10n.logout,
                           style: TextStyle(color: theme.colorScheme.error),
                         ),
                       ),

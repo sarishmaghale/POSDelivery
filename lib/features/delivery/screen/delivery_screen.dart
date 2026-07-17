@@ -173,7 +173,7 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Invoice #${delivery?.id ?? ''}',
+                      l10n.invoiceNumber(delivery?.id.toString() ?? ''),
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -202,8 +202,8 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
                 ],
                 if (paymentModeName != null) ...[
                   const SizedBox(height: 8),
-                  Text(
-                    'Payment Mode',
+                      Text(
+                        l10n.paymentMode,
                     style: theme.textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
@@ -302,7 +302,7 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Product Discount',
+                        l10n.productDiscount,
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: theme.colorScheme.error,
                         ),
@@ -391,7 +391,7 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Paid Amount',
+                    l10n.paidAmount,
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: theme.colorScheme.onSecondaryContainer,

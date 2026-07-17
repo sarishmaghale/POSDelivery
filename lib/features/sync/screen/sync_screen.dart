@@ -52,7 +52,7 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '${state.pendingQueue.length} bill(s) pending sync',
+                          l10n.billsPendingSync(state.pendingQueue.length.toString()),
                           style: theme.textTheme.titleSmall?.copyWith(
                             fontWeight: FontWeight.w700,
                             color: theme.colorScheme.onErrorContainer,
@@ -60,7 +60,7 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Offline invoices waiting to be pushed to server.',
+                          l10n.offlineInvoicesWaiting,
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onErrorContainer,
                           ),

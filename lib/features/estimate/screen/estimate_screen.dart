@@ -197,7 +197,7 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
                     onPressed: () => ref
                         .read(estimateProvider.notifier)
                         .selectCustomer(null),
-                    child: const Text('Change'),
+                    child: Text(l10n.change),
                   ),
                 ],
               ),
@@ -217,7 +217,7 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
                       Icon(Icons.person, color: theme.colorScheme.primary),
                       const SizedBox(width: 8),
                       Text(
-                        'Select Customer',
+                        l10n.selectCustomer,
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w600,
                         ),
@@ -227,7 +227,7 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
                   const SizedBox(height: 12),
                   TextField(
                     decoration: InputDecoration(
-                      hintText: 'Search customer...',
+                      hintText: l10n.searchCustomer,
                       prefixIcon: const Icon(Icons.search),
                       suffixIcon: state.customerSearchQuery.isNotEmpty
                           ? IconButton(
@@ -272,7 +272,7 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
                       Padding(
                         padding: const EdgeInsets.only(top: 8),
                         child: Text(
-                          'No customers found',
+                          l10n.noCustomersFound,
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
@@ -322,7 +322,7 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
                         if (item.discountAmount > 0) ...[
                           const SizedBox(height: 2),
                           Text(
-                            'Discount: -Rs. ${item.discountAmount.toStringAsFixed(2)}',
+                        'Discount: -Rs. ${item.discountAmount.toStringAsFixed(2)}',
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: theme.colorScheme.error,
                             ),
@@ -445,7 +445,7 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Product Discount',
+                        l10n.productDiscount,
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: theme.colorScheme.error,
                         ),
@@ -857,7 +857,7 @@ class _PaymentModalSheet extends ConsumerWidget {
             const SizedBox(height: 16),
             FilledButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Done'),
+              child: Text(l10n.done),
             ),
           ],
         ),

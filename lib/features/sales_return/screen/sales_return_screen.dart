@@ -144,7 +144,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
         ),
         const SizedBox(height: 24),
         Text(
-          'Products',
+          l10n.products,
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w600,
           ),
@@ -175,7 +175,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
                           FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
                         ],
                         decoration: InputDecoration(
-                          labelText: 'Qty',
+                          labelText: l10n.qty,
                           border: const OutlineInputBorder(),
                           isDense: true,
                         ),
@@ -191,7 +191,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
                       child: TextField(
                         controller: _unitController,
                         decoration: InputDecoration(
-                          labelText: 'Unit',
+                          labelText: l10n.unit,
                           border: const OutlineInputBorder(),
                           isDense: true,
                         ),
@@ -217,7 +217,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
                           FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
                         ],
                         decoration: InputDecoration(
-                          labelText: 'Rate',
+                          labelText: l10n.rate,
                           border: const OutlineInputBorder(),
                           isDense: true,
                         ),
@@ -245,7 +245,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
                               _rateController.clear();
                             },
                       icon: const Icon(Icons.add, size: 20),
-                      label: const Text('Add'),
+                      label: Text(l10n.add),
                     ),
                   ],
                 ),
@@ -318,7 +318,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
           padding: const EdgeInsets.all(24),
           child: Center(
             child: Text(
-              'No products added',
+              l10n.noProductsAdded,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -332,7 +332,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          'Added Products (${state.items.length})',
+          l10n.addedProducts(state.items.length.toString()),
           style: theme.textTheme.titleSmall?.copyWith(
             fontWeight: FontWeight.w600,
             color: theme.colorScheme.onSurfaceVariant,
@@ -375,7 +375,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
                     ),
                     IconButton(
                       icon: const Icon(Icons.visibility_outlined),
-                      tooltip: 'View details',
+                      tooltip: l10n.viewDetails,
                       onPressed: () {
                         _showItemDetails(context, index, item);
                       },
@@ -409,7 +409,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
             if (state.totalProductDiscountIncTax > 0) ...[
               const SizedBox(height: 4),
               _totalRow(
-                'Product Discount',
+                l10n.productDiscount,
                 -state.totalProductDiscountIncTax,
                 theme,
                 theme.colorScheme.error,
@@ -497,7 +497,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Volume Discount',
+              l10n.volumeDiscount,
               style: theme.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w600,
                 color: theme.colorScheme.onSurfaceVariant,
@@ -515,7 +515,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
                       FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
                     ],
                     decoration: InputDecoration(
-                      labelText: 'Value',
+                      labelText: l10n.value,
                       hintText: '0',
                       border: const OutlineInputBorder(),
                       isDense: true,
@@ -532,14 +532,14 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
                   child:                   DropdownButtonFormField<String?>(
                     isExpanded: true,
                     initialValue: state.discountType,
-                    decoration: const InputDecoration(
-                      labelText: 'Type',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n.discountType,
+                      border: const OutlineInputBorder(),
                       isDense: true,
                     ),
-                    items: const [
-                      DropdownMenuItem(value: 'amount', child: Text('Amount (Rs.)')),
-                      DropdownMenuItem(value: 'percent', child: Text('Percent (%)')),
+                    items: [
+                      DropdownMenuItem(value: 'amount', child: Text(l10n.amountRs)),
+                      DropdownMenuItem(value: 'percent', child: Text(l10n.percent)),
                     ],
                     onChanged: (value) {
                       ref.read(salesReturnProvider.notifier).setDiscountType(value);
@@ -726,7 +726,7 @@ class _PaymentModalSheet extends ConsumerWidget {
             const SizedBox(height: 16),
             FilledButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Done'),
+              child: Text(l10n.done),
             ),
           ],
         ),
@@ -770,6 +770,7 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final state = ref.watch(salesReturnProvider);
     if (widget.index >= state.items.length) {
       return const SizedBox.shrink();
@@ -810,7 +811,7 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
             const SizedBox(height: 8),
             Row(
               children: [
-                Text('Quantity', style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600)),
+                Text(l10n.quantity, style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600)),
                 const SizedBox(width: 12),
                 IconButton(
                   icon: Icon(Icons.remove_circle_outline, color: theme.colorScheme.error),
@@ -831,9 +832,9 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
                     controller: _rateCtrl,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
-                    decoration: const InputDecoration(
-                      labelText: 'Rate',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n.rate,
+                      border: const OutlineInputBorder(),
                       isDense: true,
                     ),
                     onChanged: (v) => notifier.setItemRate(widget.index, double.tryParse(v) ?? 0),
@@ -845,7 +846,7 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
             if (item.unit != null && item.unit!.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
-                child: Text('Unit: ${item.unit}', style: theme.textTheme.bodyMedium),
+                child: Text('${l10n.unit}: ${item.unit}', style: theme.textTheme.bodyMedium),
               ),
             Row(
               children: [
@@ -854,10 +855,10 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
                     controller: _discCtrl,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
-                    decoration: const InputDecoration(
-                      labelText: 'Discount Value',
+                    decoration: InputDecoration(
+                      labelText: l10n.discountValue,
                       hintText: '0',
-                      border: OutlineInputBorder(),
+                      border: const OutlineInputBorder(),
                       isDense: true,
                     ),
                     onChanged: (v) => notifier.setItemDiscount(
@@ -870,15 +871,15 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
                   child: DropdownButtonFormField<String?>(
                     isExpanded: true,
                     initialValue: _selectedType,
-                    decoration: const InputDecoration(
-                      labelText: 'Discount Type',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n.discountType,
+                      border: const OutlineInputBorder(),
                       isDense: true,
                     ),
-                    items: const [
-                      DropdownMenuItem(value: null, child: Text('None')),
-                      DropdownMenuItem(value: 'amount', child: Text('Amount (Rs.)')),
-                      DropdownMenuItem(value: 'percent', child: Text('Percent (%)')),
+                    items: [
+                      DropdownMenuItem(value: null, child: Text(l10n.none)),
+                      DropdownMenuItem(value: 'amount', child: Text(l10n.amountRs)),
+                      DropdownMenuItem(value: 'percent', child: Text(l10n.percent)),
                     ],
                     onChanged: (v) {
                       setState(() => _selectedType = v);
@@ -902,14 +903,14 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
                     notifier.removeItem(widget.index);
                     Navigator.of(context).pop();
                   },
-                  child: const Text('Remove'),
+                  child: Text(l10n.remove),
                 ),
               ],
             ),
             const SizedBox(height: 8),
             FilledButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Done'),
+              child: Text(l10n.done),
             ),
           ],
         ),

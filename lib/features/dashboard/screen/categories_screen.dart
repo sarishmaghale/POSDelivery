@@ -48,7 +48,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
           : _categories.isEmpty
               ? Center(
                   child: Text(
-                    'No categories available',
+                    l10n.noCategoriesAvailable,
                     style: theme.textTheme.bodyLarge?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),

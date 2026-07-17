@@ -331,7 +331,7 @@ Expanded(
             const SizedBox(width: 12),
             Expanded(
               child: StatCard(
-                title: 'Products',
+                title: l10n.products,
                 value: state.assignedProductsCount.toString(),
                 icon: Icons.inventory_2,
                 onTap: () => context.push('/products'),

@@ -222,6 +222,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get discountType => 'Discount Type';
 
   @override
+  String get discountValue => 'Discount Value';
+
+  @override
   String get none => 'None';
 
   @override
@@ -408,4 +411,148 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get volumeDiscount => 'Volume Discount';
+
+  @override
+  String get logout => 'Logout';
+
+  @override
+  String get confirmLogout => 'Are you sure you want to logout?';
+
+  @override
+  String get done => 'Done';
+
+  @override
+  String get remove => 'Remove';
+
+  @override
+  String get change => 'Change';
+
+  @override
+  String get retry => 'Retry';
+
+  @override
+  String get selectCustomer => 'Select Customer';
+
+  @override
+  String get searchCustomer => 'Search customer...';
+
+  @override
+  String get selectCategory => 'Select Category';
+
+  @override
+  String perUnit(Object unit) {
+    return 'Per $unit';
+  }
+
+  @override
+  String get unit => 'Unit';
+
+  @override
+  String get rate => 'Rate';
+
+  @override
+  String get value => 'Value';
+
+  @override
+  String get companyCode => 'Company Code';
+
+  @override
+  String get username => 'Username';
+
+  @override
+  String get password => 'Password';
+
+  @override
+  String get login => 'Login';
+
+  @override
+  String get enterCompanyCode => 'Enter company code';
+
+  @override
+  String get enterUsername => 'Enter username';
+
+  @override
+  String get enterPassword => 'Enter password';
+
+  @override
+  String get selectCompany => 'Select Company';
+
+  @override
+  String get selectBranch => 'Select Branch';
+
+  @override
+  String get selectDepartment => 'Select Department';
+
+  @override
+  String get selectFiscalYear => 'Select Fiscal Year';
+
+  @override
+  String get noCustomersFound => 'No customers found';
+
+  @override
+  String get productDiscount => 'Product Discount';
+
+  @override
+  String get noProductsAdded => 'No products added';
+
+  @override
+  String addedProducts(Object count) {
+    return 'Added Products ($count)';
+  }
+
+  @override
+  String get viewDetails => 'View details';
+
+  @override
+  String get noProductsAvailable => 'No products available';
+
+  @override
+  String get cartIsEmptyMessage =>
+      'Cart is empty. Add products from the list above.';
+
+  @override
+  String cartItemCount(Object count) {
+    return 'Cart ($count items)';
+  }
+
+  @override
+  String get qtyLabel => 'Qty:';
+
+  @override
+  String get stock => 'Stock';
+
+  @override
+  String get posDelivery => 'POS Delivery';
+
+  @override
+  String get noCategoriesAvailable => 'No categories available';
+
+  @override
+  String get noCustomersAvailable => 'No customers available';
+
+  @override
+  String get searchProduct => 'Search Product';
+
+  @override
+  String get typeToSearch => 'Type to search...';
+
+  @override
+  String get noProductsFound => 'No products found';
+
+  @override
+  String billsPendingSync(Object count) {
+    return '$count bill(s) pending sync';
+  }
+
+  @override
+  String get offlineInvoicesWaiting =>
+      'Offline invoices waiting to be pushed to server.';
+
+  @override
+  String get deliveryLabel => 'Delivery';
+
+  @override
+  String invoiceNumber(Object id) {
+    return 'Invoice #$id';
+  }
 }

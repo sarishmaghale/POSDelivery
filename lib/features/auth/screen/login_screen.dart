@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../models/selection_option.dart';
 import '../provider/auth_provider.dart';
 
@@ -29,6 +30,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(authProvider);
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     ref.listen<AuthState>(authProvider, (prev, next) {
       if (prev?.error != null && next.error == null) {
@@ -46,7 +48,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     if (state.companies != null && state.companies!.length > 1) {
       return _buildSelectionScreen(
-        title: 'Select Company',
+        title: AppLocalizations.of(context)!.selectCompany,
         options: state.companies!,
         onSelected: (id) => ref.read(authProvider.notifier).selectCompany(id),
       );
@@ -54,7 +56,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     if (state.branches != null && state.branches!.length > 1) {
       return _buildSelectionScreen(
-        title: 'Select Branch',
+        title: AppLocalizations.of(context)!.selectBranch,
         options: state.branches!,
         onSelected: (id) => ref.read(authProvider.notifier).selectBranch(id),
       );
@@ -62,7 +64,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     if (state.departments != null && state.departments!.length > 1) {
       return _buildSelectionScreen(
-        title: 'Select Department',
+        title: AppLocalizations.of(context)!.selectDepartment,
         options: state.departments!,
         onSelected: (id) => ref.read(authProvider.notifier).selectDepartment(id),
       );
@@ -70,7 +72,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     if (state.fiscalYears != null && state.fiscalYears!.length > 1) {
       return _buildSelectionScreen(
-        title: 'Select Fiscal Year',
+        title: AppLocalizations.of(context)!.selectFiscalYear,
         options: state.fiscalYears!,
         onSelected: (id) => ref.read(authProvider.notifier).selectFiscalYear(id),
       );
@@ -94,7 +96,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'POS Delivery',
+                    l10n.posDelivery,
                     textAlign: TextAlign.center,
                     style: theme.textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.bold,
@@ -103,36 +105,36 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   const SizedBox(height: 32),
                   TextFormField(
                     controller: _companyCodeController,
-                    decoration: const InputDecoration(
-                      labelText: 'Company Code',
+                    decoration: InputDecoration(
+                      labelText: l10n.companyCode,
                       prefixIcon: Icon(Icons.business),
                       border: OutlineInputBorder(),
                     ),
                     validator: (v) =>
-                        v == null || v.isEmpty ? 'Enter company code' : null,
+                        v == null || v.isEmpty ? l10n.enterCompanyCode : null,
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _usernameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Username',
+                    decoration: InputDecoration(
+                      labelText: l10n.username,
                       prefixIcon: Icon(Icons.person),
                       border: OutlineInputBorder(),
                     ),
                     validator: (v) =>
-                        v == null || v.isEmpty ? 'Enter username' : null,
+                        v == null || v.isEmpty ? l10n.enterUsername : null,
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _passwordController,
                     obscureText: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Password',
+                    decoration: InputDecoration(
+                      labelText: l10n.password,
                       prefixIcon: Icon(Icons.lock),
                       border: OutlineInputBorder(),
                     ),
                     validator: (v) =>
-                        v == null || v.isEmpty ? 'Enter password' : null,
+                        v == null || v.isEmpty ? l10n.enterPassword : null,
                   ),
                   const SizedBox(height: 24),
                   SizedBox(
@@ -160,8 +162,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 strokeWidth: 2,
                               ),
                             )
-                          : const Text(
-                              'Login',
+                          : Text(
+                              l10n.login,
                               style: TextStyle(fontSize: 16),
                             ),
                     ),
