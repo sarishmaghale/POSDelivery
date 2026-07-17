@@ -19,6 +19,7 @@ class AuthState {
   final String? finalToken;
   final String? customerId;
   final String? driverId;
+  final String? userName;
   final List<SelectionOption>? companies;
   final List<SelectionOption>? branches;
   final List<SelectionOption>? departments;
@@ -34,6 +35,7 @@ class AuthState {
     this.finalToken,
     this.customerId,
     this.driverId,
+    this.userName,
     this.companies,
     this.branches,
     this.departments,
@@ -50,6 +52,7 @@ class AuthState {
     String? finalToken,
     String? customerId,
     String? driverId,
+    String? userName,
     List<SelectionOption>? companies,
     List<SelectionOption>? branches,
     List<SelectionOption>? departments,
@@ -65,6 +68,7 @@ class AuthState {
       finalToken: finalToken ?? this.finalToken,
       customerId: customerId ?? this.customerId,
       driverId: driverId ?? this.driverId,
+      userName: userName ?? this.userName,
       companies: companies ?? this.companies,
       branches: branches ?? this.branches,
       departments: departments ?? this.departments,
@@ -96,6 +100,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final baseUrl = await getSavedBaseUrl();
       final customerId = await getSavedCustomerId();
       final driverId = await getSavedDriverId();
+      final userName = await getSavedUserName();
       if (token != null && baseUrl != null) {
         _applyAuthConfig(baseUrl, token);
         state = AuthState(
@@ -104,6 +109,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           baseUrl: baseUrl,
           customerId: customerId,
           driverId: driverId,
+          userName: userName,
         );
         return;
       }
@@ -366,11 +372,27 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     final userId = step5Data['UserId'] as String?;
 
+    String? userName;
+    if (userId != null && userId.isNotEmpty) {
+      try {
+        final profileData = await _authRepo.getProfile(
+          baseUrl: baseUrl,
+          token: finalToken,
+          userId: userId,
+        );
+        final firstName = profileData['FirstName'] as String? ?? '';
+        final lastName = profileData['LastName'] as String? ?? '';
+        userName = '$firstName $lastName'.trim();
+        if (userName.isEmpty) userName = null;
+      } catch (_) {}
+    }
+
     await saveAuthData(
       token: finalToken,
       baseUrl: baseUrl,
       customerId: userId,
       driverId: userId,
+      userName: userName,
     );
     _applyAuthConfig(baseUrl, finalToken);
     sharedAuthState.reset();
@@ -381,6 +403,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       finalToken: finalToken,
       customerId: userId,
       driverId: userId,
+      userName: userName,
     );
 
     Future.microtask(() => _ref.read(syncProvider.notifier).syncAll());

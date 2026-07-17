@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../auth/provider/auth_provider.dart';
 import '../provider/dashboard_provider.dart';
 import '../widgets/quick_action_card.dart';
 import '../widgets/stat_card.dart';
@@ -28,6 +29,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(dashboardProvider);
     final locationState = ref.watch(locationStateProvider);
+    final authState = ref.watch(authProvider);
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
 
@@ -55,7 +57,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            _buildDriverHeader(state, theme, l10n),
+            _buildDriverHeader(state, authState, theme, l10n),
             const SizedBox(height: 16),
             _buildLocationTrackingSection(locationState, theme, l10n),
             const SizedBox(height: 20),
@@ -77,9 +79,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   Widget _buildDriverHeader(
     DashboardState state,
+    AuthState authState,
     ThemeData theme,
     AppLocalizations l10n,
   ) {
+    final displayName = authState.userName ?? state.driverName;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -89,8 +93,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               radius: 28,
               backgroundColor: theme.colorScheme.primaryContainer,
               child: Text(
-                state.driverName.isNotEmpty
-                    ? state.driverName[0].toUpperCase()
+                displayName.isNotEmpty
+                    ? displayName[0].toUpperCase()
                     : 'R',
                 style: theme.textTheme.titleLarge?.copyWith(
                   color: theme.colorScheme.onPrimaryContainer,
@@ -110,7 +114,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     ),
                   ),
                   Text(
-                    state.driverName,
+                    displayName,
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),

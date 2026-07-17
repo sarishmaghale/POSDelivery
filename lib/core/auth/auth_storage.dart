@@ -4,6 +4,7 @@ const _tokenKey = 'auth_final_token';
 const _baseUrlKey = 'auth_base_url';
 const _customerIdKey = 'auth_customer_id';
 const _driverIdKey = 'auth_driver_id';
+const _userNameKey = 'auth_user_name';
 
 const _storage = FlutterSecureStorage();
 
@@ -23,11 +24,16 @@ Future<String?> getSavedDriverId() async {
   return _storage.read(key: _driverIdKey);
 }
 
+Future<String?> getSavedUserName() async {
+  return _storage.read(key: _userNameKey);
+}
+
 Future<void> saveAuthData({
   required String token,
   required String baseUrl,
   String? customerId,
   String? driverId,
+  String? userName,
 }) async {
   await _storage.write(key: _tokenKey, value: token);
   await _storage.write(key: _baseUrlKey, value: baseUrl);
@@ -37,6 +43,9 @@ Future<void> saveAuthData({
   if (driverId != null) {
     await _storage.write(key: _driverIdKey, value: driverId);
   }
+  if (userName != null) {
+    await _storage.write(key: _userNameKey, value: userName);
+  }
 }
 
 Future<void> clearAuthData() async {
@@ -44,6 +53,7 @@ Future<void> clearAuthData() async {
   await _storage.delete(key: _baseUrlKey);
   await _storage.delete(key: _customerIdKey);
   await _storage.delete(key: _driverIdKey);
+  await _storage.delete(key: _userNameKey);
 }
 
 Future<bool> hasSavedAuth() async {

@@ -138,4 +138,27 @@ class AuthRepository {
         .map((e) => SelectionOption.fromJson(e as Map<String, dynamic>))
         .toList();
   }
+
+  Future<Map<String, dynamic>> getProfile({
+    required String baseUrl,
+    required String token,
+    required String userId,
+  }) async {
+    final dio = Dio(BaseOptions(
+      baseUrl: baseUrl,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    ));
+    final response = await dio.post('/ap1/token/getProfile', data: {
+      'Id': userId,
+    });
+    final body = response.data as Map<String, dynamic>;
+    if (body['Status'] != true) {
+      throw Exception(body['Message'] ?? 'Failed to fetch profile');
+    }
+    return body['Data'] as Map<String, dynamic>;
+  }
 }
