@@ -16,6 +16,7 @@ import '../../../repositories/delivery_repository.dart';
 import '../../../repositories/estimate_repository.dart';
 import '../../../repositories/payment_mode_repository.dart';
 import '../../../repositories/product_repository.dart';
+import '../../../features/auth/provider/auth_provider.dart';
 
 class EstimateItemView {
   final String productId;
@@ -145,6 +146,7 @@ final estimateProvider =
         productRepo: ref.read(productRepositoryProvider),
         paymentModeRepo: ref.read(paymentModeRepositoryProvider),
         estimateRepo: ref.read(estimateRepositoryProvider),
+        outletId: ref.read(authProvider).outletId ?? ApiConfig.emptyGuid,
       );
     });
 
@@ -154,6 +156,7 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
   final ProductRepository _productRepo;
   final PaymentModeRepository _paymentModeRepo;
   final EstimateRepository _estimateRepo;
+  final String _outletId;
 
   EstimateNotifier({
     required this._deliveryRepo,
@@ -161,7 +164,9 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
     required this._productRepo,
     required this._paymentModeRepo,
     required this._estimateRepo,
+    required String outletId,
   }) : _customerRepo = customerRepo,
+       _outletId = outletId,
        super(EstimateState(isLoadingDelivery: true));
 
   void initializeFromDeliveryForm({
@@ -714,7 +719,7 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
         transactionDate: transactionDate,
         customerId: state.customer!.serverId,
         customerName: state.customer!.name,
-        outletId: ApiConfig.emptyGuid,
+        outletId: _outletId,
         totalQuantity: totalQty,
         totalGrossAmount: totalgrossAmountExcTax,
         totalGrossAmountIncludingTax: totalgrossAmountIncTax,

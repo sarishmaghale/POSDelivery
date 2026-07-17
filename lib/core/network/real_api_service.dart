@@ -122,7 +122,11 @@ class RealApiService implements ApiService {
       data: request.toJson(),
     );
     final body = response.data as Map<String, dynamic>;
-    return SalesInvoiceResponse.fromJson(body);
+    final result = SalesInvoiceResponse.fromJson(body);
+    if (!result.success) {
+      print('[API] createSalesInvoice FAILED. Response: ${response.data}');
+    }
+    return result;
   }
 
   @override
@@ -132,7 +136,11 @@ class RealApiService implements ApiService {
       data: data,
     );
     final body = response.data as Map<String, dynamic>;
-    return body['Status'] == true || body['status'] == true;
+    final status = body['Status'] == true || body['status'] == true;
+    if (!status) {
+      print('[API] createSalesReturn FAILED. Response: ${response.data}');
+    }
+    return status;
   }
 
   @override
@@ -142,6 +150,10 @@ class RealApiService implements ApiService {
       data: request.toJson(),
     );
     final body = response.data as Map<String, dynamic>;
-    return body['Status'] == true || body['status'] == true;
+    final status = body['Status'] == true || body['status'] == true;
+    if (!status) {
+      print('[API] SalesReturnV2 FAILED. Response: ${response.data}');
+    }
+    return status;
   }
 }

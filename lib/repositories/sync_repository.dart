@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -13,24 +15,19 @@ import '../models/estimate.dart';
 import '../models/sales_return.dart';
 import '../models/sync_queue.dart';
 
-final syncRepositoryProvider = Provider<SyncRepository>((ref) {
-  return SyncRepository(
-    apiService: ref.read(apiServiceProvider),
-    db: ref.read(databaseServiceProvider).db,
-    networkChecker: ref.read(networkCheckerProvider),
-  );
-});
-
 class SyncRepository {
   final ApiService _apiService;
   final Database _db;
   final NetworkChecker _networkChecker;
+  final String _outletId;
 
   SyncRepository({
     required this._apiService,
     required Database db,
     required this._networkChecker,
-  })  : _db = db;
+    required String outletId,
+  })  : _db = db,
+        _outletId = outletId;
 
   Future<List<SyncQueue>> getPendingQueue() async {
     final maps = await _db.rawQuery(
@@ -184,7 +181,7 @@ class SyncRepository {
         quantity: item.quantity,
         unitId: item.unitId ?? product?['unit_id'] as String? ?? '',
         unitName: item.unitName ?? product?['unit'] as String? ?? '',
-        categoryId: product?['category_id'] as String? ?? '',
+        categoryId: product?['category_id'] as String? ?? ApiConfig.emptyGuid,
         rate: tax.rateExTax,
         rateIncludingTax: tax.rateIncTax,
         grossAmount: tax.grossAmount,
@@ -236,7 +233,7 @@ class SyncRepository {
       chalanNumber: chalanNumber,
       transactionDate: transactionDate,
       customerId: customerId,
-      outletId: ApiConfig.emptyGuid,
+      outletId: _outletId,
       totalQuantity: totalQty,
       totalGrossAmount: totalGrossAmountExcTax,
       totalGrossAmountIncludingTax: totalGrossAmountIncTax,
@@ -313,7 +310,7 @@ class SyncRepository {
     sr.items = itemMaps.map((m) => SalesReturnItem.fromMap(m)).toList();
 
     // Look up product details from product table
-    final productMaps = await _db.query('product');
+    final productMaps = await _db.query('all_product');
     final productsMap = <String, Map<String, dynamic>>{
       for (final p in productMaps) (p['server_id'] as String): p,
     };
@@ -354,8 +351,8 @@ class SyncRepository {
         quantity: item.quantity,
         unitId: item.unitId ?? product?['unit_id'] as String? ?? '',
         unitName: item.unit ?? product?['unit'] as String? ?? '',
-        categoryId: product?['category_id'] as String? ?? '',
-        groupId: product?['category_id'] as String? ?? '00000000-0000-0000-0000-000000000000',
+        categoryId: product?['category_id'] as String? ?? ApiConfig.emptyGuid,
+        groupId: product?['category_id'] as String? ?? ApiConfig.emptyGuid,
         rate: tax.rateExTax,
         rateIncludingTax: tax.rateIncTax,
         grossAmount: tax.grossAmount,
@@ -426,6 +423,18 @@ class SyncRepository {
         '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')} '
         '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
 
+    // Look up customer name from customer table
+    String customerName = '';
+    final customerMaps = await _db.query(
+      'customer',
+      where: 'server_id = ?',
+      whereArgs: [sr.customerId],
+      limit: 1,
+    );
+    if (customerMaps.isNotEmpty) {
+      customerName = customerMaps.first['name'] as String? ?? '';
+    }
+
     // Build the request
     final request = SalesReturnRequest(
       transactionDate: transactionDate,
@@ -434,9 +443,9 @@ class SyncRepository {
       isReturn: true,
       isSettled: true,
       customerId: sr.customerId,
-      customerName: '',
+      customerName: customerName,
       remarks: sr.reason ?? sr.remarks ?? '',
-      outletId: ApiConfig.emptyGuid,
+      outletId: _outletId,
       totalQuantity: totalQty,
       totalGrossAmount: totalGrossAmount,
       totalGrossAmountIncludingTax: totalGrossAmountIncTax,
@@ -464,22 +473,37 @@ class SyncRepository {
       volumeDiscount: sr.discountAmount,
     );
 
-    final response = await _apiService.createSalesReturnV2(request);
-
-    if (response) {
-      await _db.update(
-        'sales_return',
-        {'is_synced': 1},
-        where: 'id = ?',
-        whereArgs: [sr.id],
-      );
-      await _db.update(
-        'sync_queue',
-        {'status': 'Synced'},
-        where: 'id = ?',
-        whereArgs: [entry.id],
-      );
-    } else {
+    try {
+      final json = request.toJson();
+      print('[Sync] OutletId=${json['OutletId']} CustomerId=${json['CustomerId']} CustomerName=[${json['CustomerName']}] CurrencyId=${json['CurrencyId']} PayMode=${json['PayMode']}');
+      print('[Sync] Item[0]=${jsonEncode(json['SalesInvoiceItem']?.first)}');
+      print('[Sync] Payment=${jsonEncode(json['SalesInvoicePayment'])}');
+      final response = await _apiService.createSalesReturnV2(request);
+      print('[Sync] SalesReturnV2 response: $response');
+      if (response) {
+        await _db.update(
+          'sales_return',
+          {'is_synced': 1},
+          where: 'id = ?',
+          whereArgs: [sr.id],
+        );
+        await _db.update(
+          'sync_queue',
+          {'status': 'Synced'},
+          where: 'id = ?',
+          whereArgs: [entry.id],
+        );
+      } else {
+        print('[Sync] SalesReturnV2 FAILED - server returned Status: false');
+        await _db.update(
+          'sync_queue',
+          {'status': 'Failed'},
+          where: 'id = ?',
+          whereArgs: [entry.id],
+        );
+      }
+    } catch (e) {
+      print('[Sync] SalesReturnV2 ERROR: $e');
       await _db.update(
         'sync_queue',
         {'status': 'Failed'},

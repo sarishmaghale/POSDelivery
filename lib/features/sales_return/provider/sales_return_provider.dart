@@ -16,6 +16,7 @@ import '../../../repositories/customer_repository.dart';
 import '../../../repositories/payment_mode_repository.dart';
 import '../../../repositories/product_repository.dart';
 import '../../../repositories/sales_return_repository.dart';
+import '../../../features/auth/provider/auth_provider.dart';
 import '../../location/location_provider.dart';
 
 class SalesReturnState {
@@ -133,6 +134,7 @@ final salesReturnProvider =
     apiService: ref.read(apiServiceProvider),
     locationState: ref.read(locationStateProvider),
     networkChecker: ref.read(networkCheckerProvider),
+    outletId: ref.read(authProvider).outletId ?? ApiConfig.emptyGuid,
   );
 });
 
@@ -144,6 +146,7 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
   final ApiService _apiService;
   final LocationState _locationState;
   final NetworkChecker _networkChecker;
+  final String _outletId;
 
   SalesReturnNotifier({
     required this._customerRepo,
@@ -153,7 +156,9 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
     required this._apiService,
     required this._locationState,
     required this._networkChecker,
+    required String outletId,
   })  : _productRepo = productRepo,
+        _outletId = outletId,
         super(SalesReturnState()) {
     _loadInitialData();
   }
@@ -507,7 +512,7 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
           quantity: item.quantity,
           unitId: item.unitId ?? product?.unitId ?? '',
           unitName: item.unit ?? product?.unit ?? '',
-          categoryId: product?.categoryId ?? '',
+          categoryId: product?.categoryId ?? ApiConfig.emptyGuid,
           groupId: product?.categoryId ?? '00000000-0000-0000-0000-000000000000',
           rate: tax.rateExTax,
           rateIncludingTax: tax.rateIncTax,
@@ -602,7 +607,7 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
         customerId: state.selectedCustomer!.serverId,
         customerName: state.selectedCustomer!.name,
         remarks: state.reason ?? state.remarks ?? '',
-        outletId: ApiConfig.emptyGuid,
+        outletId: _outletId,
         totalQuantity: totalQty,
         totalGrossAmount: totalGrossAmount,
         totalGrossAmountIncludingTax: totalGrossAmountIncTax,

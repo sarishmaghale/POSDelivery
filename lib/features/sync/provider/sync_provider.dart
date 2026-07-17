@@ -1,5 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/database/providers.dart';
+import '../../../core/network/api_config.dart';
+import '../../../core/network/providers.dart';
 import '../../../core/services/image_prefetch_service.dart';
 import '../../../models/sync_queue.dart';
 import '../../../repositories/category_repository.dart';
@@ -42,9 +45,16 @@ class SyncState {
 }
 
 final syncProvider = StateNotifierProvider<SyncNotifier, SyncState>((ref) {
+  final outletId = ref.read(authProvider).outletId ?? ApiConfig.emptyGuid;
+  final syncRepo = SyncRepository(
+    apiService: ref.read(apiServiceProvider),
+    db: ref.read(databaseServiceProvider).db,
+    networkChecker: ref.read(networkCheckerProvider),
+    outletId: outletId,
+  );
   return SyncNotifier(
     ref: ref,
-    syncRepo: ref.read(syncRepositoryProvider),
+    syncRepo: syncRepo,
     categoryRepo: ref.read(categoryRepositoryProvider),
     productRepo: ref.read(productRepositoryProvider),
     customerRepo: ref.read(customerRepositoryProvider),

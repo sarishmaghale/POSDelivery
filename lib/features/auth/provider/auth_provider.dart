@@ -20,6 +20,7 @@ class AuthState {
   final String? customerId;
   final String? driverId;
   final String? userName;
+  final String? outletId;
   final List<SelectionOption>? companies;
   final List<SelectionOption>? branches;
   final List<SelectionOption>? departments;
@@ -36,6 +37,7 @@ class AuthState {
     this.customerId,
     this.driverId,
     this.userName,
+    this.outletId,
     this.companies,
     this.branches,
     this.departments,
@@ -53,6 +55,7 @@ class AuthState {
     String? customerId,
     String? driverId,
     String? userName,
+    String? outletId,
     List<SelectionOption>? companies,
     List<SelectionOption>? branches,
     List<SelectionOption>? departments,
@@ -69,6 +72,7 @@ class AuthState {
       customerId: customerId ?? this.customerId,
       driverId: driverId ?? this.driverId,
       userName: userName ?? this.userName,
+      outletId: outletId ?? this.outletId,
       companies: companies ?? this.companies,
       branches: branches ?? this.branches,
       departments: departments ?? this.departments,
@@ -101,6 +105,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final customerId = await getSavedCustomerId();
       final driverId = await getSavedDriverId();
       final userName = await getSavedUserName();
+      final outletId = await getSavedOutletId();
       if (token != null && baseUrl != null) {
         _applyAuthConfig(baseUrl, token);
         state = AuthState(
@@ -110,6 +115,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           customerId: customerId,
           driverId: driverId,
           userName: userName,
+          outletId: outletId,
         );
         return;
       }
@@ -252,6 +258,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required String token,
     required String branchId,
   }) async {
+    state = state.copyWith(outletId: branchId);
     final step3Data = await _authRepo.step3(
       baseUrl: baseUrl,
       token: token,
@@ -273,6 +280,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         baseUrl: baseUrl,
         token: token3,
         departmentId: departments.first.id,
+        branchId: branchId,
       );
       return;
     }
@@ -292,6 +300,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         baseUrl: state.baseUrl!,
         token: state.tempToken!,
         departmentId: departmentId,
+        branchId: state.outletId ?? '',
       );
     } catch (e) {
       state = state.copyWith(
@@ -305,6 +314,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required String baseUrl,
     required String token,
     required String departmentId,
+    required String branchId,
   }) async {
     final step4Data = await _authRepo.step4(
       baseUrl: baseUrl,
@@ -327,6 +337,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         baseUrl: baseUrl,
         token: token4,
         fiscalYearId: fiscalYears.first.id,
+        outletId: branchId,
       );
       return;
     }
@@ -346,6 +357,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         baseUrl: state.baseUrl!,
         token: state.tempToken!,
         fiscalYearId: fiscalYearId,
+        outletId: state.outletId ?? '',
       );
     } catch (e) {
       state = state.copyWith(
@@ -359,6 +371,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required String baseUrl,
     required String token,
     required String fiscalYearId,
+    required String outletId,
   }) async {
     final step5Data = await _authRepo.step5(
       baseUrl: baseUrl,
@@ -393,6 +406,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       customerId: userId,
       driverId: userId,
       userName: userName,
+      outletId: outletId,
     );
     _applyAuthConfig(baseUrl, finalToken);
     sharedAuthState.reset();
@@ -404,6 +418,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       customerId: userId,
       driverId: userId,
       userName: userName,
+      outletId: outletId,
     );
 
     Future.microtask(() => _ref.read(syncProvider.notifier).syncAll());
