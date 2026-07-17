@@ -117,6 +117,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         throw Exception('Invalid company URL');
       }
       final baseUrl = website.endsWith('/') ? website.substring(0, website.length - 1) : website;
+      state = state.copyWith(baseUrl: baseUrl);
 
       final step1Data = await _authRepo.step1(
         baseUrl: baseUrl,
