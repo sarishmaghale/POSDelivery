@@ -8,6 +8,7 @@ import '../core/network/network_checker.dart';
 import '../core/network/providers.dart';
 import '../core/utils/tax_calculator.dart';
 import '../dto/sales_invoice_request.dart';
+import '../dto/sales_return_request.dart';
 import '../models/estimate.dart';
 import '../models/sales_return.dart';
 import '../models/sync_queue.dart';
@@ -311,11 +312,159 @@ class SyncRepository {
         where: 'sales_return_id = ?', whereArgs: [sr.id]);
     sr.items = itemMaps.map((m) => SalesReturnItem.fromMap(m)).toList();
 
-    final payload = {
-      ...sr.toMap(),
-      'items': sr.items.map((item) => item.toMap()).toList(),
+    // Look up product details from product table
+    final productMaps = await _db.query('product');
+    final productsMap = <String, Map<String, dynamic>>{
+      for (final p in productMaps) (p['server_id'] as String): p,
     };
-    final response = await _apiService.createSalesReturn(payload);
+
+    // Calculate tax breakdown for each item
+    final salesInvoiceItems = <SalesInvoiceItemRequest>[];
+    double totalQty = 0;
+    double totalGrossAmount = 0;
+    double totalGrossAmountIncTax = 0;
+    double totalDiscountExcTax = 0;
+    double totalDiscountIncTax = 0;
+    double totalTaxableAmount = 0;
+    double totalNonTaxableAmount = 0;
+    double totalTaxAmount = 0;
+    double totalNetAmount = 0;
+
+    for (final item in sr.items) {
+      final product = productsMap[item.productId];
+      final taxableType = item.taxable;
+
+      final tax = computeItemTax(
+        rate: item.rate,
+        quantity: item.quantity,
+        discount: item.discountAmount,
+        taxableType: taxableType,
+        taxPercent: kDefaultTaxPercent,
+      );
+
+      final itemRequest = SalesInvoiceItemRequest(
+        sku: product?['code'] as String?,
+        hasSerialNumber: false,
+        serialNumber: '',
+        refNo: item.productId,
+        chalanNumber: product?['chalan_number'] as String? ?? '',
+        lotNo: '',
+        productId: item.productId,
+        name: item.productName,
+        quantity: item.quantity,
+        unitId: item.unitId ?? product?['unit_id'] as String? ?? '',
+        unitName: item.unit ?? product?['unit'] as String? ?? '',
+        categoryId: product?['category_id'] as String? ?? '',
+        groupId: product?['category_id'] as String? ?? '00000000-0000-0000-0000-000000000000',
+        rate: tax.rateExTax,
+        rateIncludingTax: tax.rateIncTax,
+        grossAmount: tax.grossAmount,
+        grossAmountIncludingTax: tax.grossAmountIncTax,
+        discountPercent: 0,
+        discount: tax.discountExcTax,
+        discountIncludingTax: tax.discountIncludingTax,
+        discountType: 'Product',
+        offerId: '',
+        isCombo: false,
+        isMaintainBatchLotNo: false,
+        isNonConversableUnit: false,
+        taxable: tax.taxableAmount,
+        nonTaxable: tax.nonTaxableAmount,
+        taxPercent: kDefaultTaxPercent,
+        taxAmount: tax.taxAmount,
+        netAmount: tax.netAmount,
+        salesInvoiceItemTax: [
+          SalesInvoiceItemTaxRequest(
+            taxOrder: 1,
+            name: 'VAT SALES',
+            taxType: 'Percent',
+            tax: kDefaultTaxPercent,
+            taxableAmount: tax.taxableAmount,
+            taxAmount: tax.taxAmount,
+            netAmount: tax.netAmount,
+          ),
+        ],
+        barcode: '',
+        hsCode: '',
+        attribute1: '',
+        attribute2: '',
+      );
+
+      salesInvoiceItems.add(itemRequest);
+
+      totalQty += item.quantity;
+      totalGrossAmount += tax.grossAmount;
+      totalGrossAmountIncTax += tax.grossAmountIncTax;
+      totalDiscountExcTax += tax.discountExcTax;
+      totalDiscountIncTax += tax.discountIncludingTax;
+      totalTaxableAmount += tax.taxableAmount;
+      totalNonTaxableAmount += tax.nonTaxableAmount;
+      totalTaxAmount += tax.taxAmount;
+      totalNetAmount += tax.netAmount;
+    }
+
+    // Add header discount to totals
+    totalDiscountExcTax += sr.discountAmount;
+    totalDiscountIncTax += sr.discountAmount;
+    totalNetAmount -= sr.discountAmount;
+
+    // Build payment entries
+    final salesInvoicePayments = <SalesInvoicePaymentRequest>[];
+    for (final entry in sr.paymentEntries) {
+      final payModeName = entry.paymentModeName ?? 'Cash';
+      final payModeId = entry.paymentModeId ?? ApiConfig.emptyGuid;
+      salesInvoicePayments.add(SalesInvoicePaymentRequest(
+        payMode: payModeName,
+        paymentId: payModeId,
+        amount: entry.amount,
+      ));
+    }
+
+    // Build transaction date from createdDate
+    final now = sr.createdDate;
+    final transactionDate =
+        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')} '
+        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
+
+    // Build the request
+    final request = SalesReturnRequest(
+      transactionDate: transactionDate,
+      transactionDateBS: '',
+      type: 'Return',
+      isReturn: true,
+      isSettled: true,
+      customerId: sr.customerId,
+      customerName: '',
+      remarks: sr.reason ?? sr.remarks ?? '',
+      outletId: ApiConfig.emptyGuid,
+      totalQuantity: totalQty,
+      totalGrossAmount: totalGrossAmount,
+      totalGrossAmountIncludingTax: totalGrossAmountIncTax,
+      totalDiscount: totalDiscountExcTax,
+      totalDiscountIncludingTax: totalDiscountIncTax,
+      totalTaxableAmount: totalTaxableAmount,
+      totalNonTaxableAmount: totalNonTaxableAmount,
+      totalTax: totalTaxAmount,
+      totalNetAmount: totalNetAmount,
+      totalPayableAmount: totalNetAmount,
+      currencyName: 'NRs',
+      payMode: sr.paymentMode ?? 'Cash',
+      tenderAmount: totalNetAmount,
+      changeAmount: 0,
+      salesInvoiceTax: [
+        SalesInvoiceTaxRequest(
+          taxOrder: 1,
+          name: 'VAT SALES',
+          taxAmount: totalTaxAmount,
+        ),
+      ],
+      salesInvoiceItem: salesInvoiceItems,
+      salesInvoicePayment: salesInvoicePayments,
+      currencyId: ApiConfig.defaultCurrencyId,
+      volumeDiscount: sr.discountAmount,
+    );
+
+    final response = await _apiService.createSalesReturnV2(request);
 
     if (response) {
       await _db.update(

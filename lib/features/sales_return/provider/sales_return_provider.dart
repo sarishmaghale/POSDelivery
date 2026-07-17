@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_config.dart';
 import '../../../core/network/api_service.dart';
+import '../../../core/network/network_checker.dart';
 import '../../../core/network/providers.dart';
 import '../../../core/utils/tax_calculator.dart';
 import '../../../dto/sales_invoice_request.dart';
@@ -131,6 +132,7 @@ final salesReturnProvider =
     paymentModeRepo: ref.read(paymentModeRepositoryProvider),
     apiService: ref.read(apiServiceProvider),
     locationState: ref.read(locationStateProvider),
+    networkChecker: ref.read(networkCheckerProvider),
   );
 });
 
@@ -141,6 +143,7 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
   final PaymentModeRepository _paymentModeRepo;
   final ApiService _apiService;
   final LocationState _locationState;
+  final NetworkChecker _networkChecker;
 
   SalesReturnNotifier({
     required this._customerRepo,
@@ -149,6 +152,7 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
     required this._paymentModeRepo,
     required this._apiService,
     required this._locationState,
+    required this._networkChecker,
   })  : _productRepo = productRepo,
         super(SalesReturnState()) {
     _loadInitialData();
@@ -591,14 +595,14 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
       // Build the request
       final request = SalesReturnRequest(
         transactionDate: transactionDate,
-        transactionDateBS: '', // Will be filled by server if needed
+        transactionDateBS: '',
         type: 'Return',
         isReturn: true,
         isSettled: true,
         customerId: state.selectedCustomer!.serverId,
         customerName: state.selectedCustomer!.name,
         remarks: state.reason ?? state.remarks ?? '',
-        outletId: ApiConfig.emptyGuid, // Using empty GUID like in billing
+        outletId: ApiConfig.emptyGuid,
         totalQuantity: totalQty,
         totalGrossAmount: totalGrossAmount,
         totalGrossAmountIncludingTax: totalGrossAmountIncTax,
@@ -627,20 +631,44 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
         deliveryBoyId: deliveryBoyId,
       );
 
-      // Send to API
-      final success = await _apiService.createSalesReturnV2(request);
+      // Determine payment mode string for local storage
+      final String? payMode;
+      if (state.paymentEntries.isEmpty) {
+        payMode = null;
+      } else if (state.paymentEntries.length == 1) {
+        payMode = state.paymentEntries.first.paymentModeName;
+      } else {
+        payMode = 'Mix';
+      }
 
-      if (success) {
-        // Also save locally
-        final String? payMode;
-        if (state.paymentEntries.isEmpty) {
-          payMode = null;
-        } else if (state.paymentEntries.length == 1) {
-          payMode = state.paymentEntries.first.paymentModeName;
+      // Check connectivity
+      final isOnline = await _networkChecker.isConnected;
+
+      if (isOnline) {
+        // Online: send to API first, then save locally
+        final success = await _apiService.createSalesReturnV2(request);
+
+        if (success) {
+          await _salesReturnRepo.saveSalesReturn(
+            customerId: state.selectedCustomer!.serverId,
+            items: state.items,
+            reason: state.reason,
+            remarks: state.remarks,
+            discountType: state.discountType,
+            discountValue: state.discountValue,
+            discountAmount: state.discountAmount,
+            paymentMode: payMode,
+            paymentEntries: state.paymentEntries,
+            skipSync: true,
+          );
+
+          state = _copyWithAll(saved: true, isSaving: false);
+          return true;
         } else {
-          payMode = 'Mix';
+          throw Exception('Failed to save sales return to server');
         }
-
+      } else {
+        // Offline: save locally to SQLite + sync queue
         await _salesReturnRepo.saveSalesReturn(
           customerId: state.selectedCustomer!.serverId,
           items: state.items,
@@ -651,15 +679,11 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
           discountAmount: state.discountAmount,
           paymentMode: payMode,
           paymentEntries: state.paymentEntries,
+          skipSync: true,
         );
 
-        state = _copyWithAll(
-          saved: true,
-          isSaving: false,
-        );
+        state = _copyWithAll(saved: true, isSaving: false);
         return true;
-      } else {
-        throw Exception('Failed to save sales return to server');
       }
     } catch (e) {
       state = _copyWithAll(

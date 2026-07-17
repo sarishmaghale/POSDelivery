@@ -38,6 +38,7 @@ class SalesReturnRepository {
     double discountAmount = 0,
     String? paymentMode,
     List<PaymentEntry> paymentEntries = const [],
+    bool skipSync = false,
   }) async {
     final sr = SalesReturn()
       ..customerId = customerId
@@ -67,9 +68,11 @@ class SalesReturnRepository {
       ..createdDate = DateTime.now();
     await _db.insert('sync_queue', syncEntry.toMap());
 
-    final isOnline = await _networkChecker.isConnected;
-    if (isOnline) {
-      await _syncSalesReturn(sr);
+    if (!skipSync) {
+      final isOnline = await _networkChecker.isConnected;
+      if (isOnline) {
+        await _syncSalesReturn(sr);
+      }
     }
 
     return sr;

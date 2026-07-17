@@ -127,7 +127,12 @@ class RealApiService implements ApiService {
 
   @override
   Future<bool> createSalesReturn(Map<String, dynamic> data) async {
-    throw UnimplementedError('createSalesReturn not implemented on real API');
+    final response = await _dio.post(
+      ApiConfig.salesInvoiceAddEndpoint,
+      data: data,
+    );
+    final body = response.data as Map<String, dynamic>;
+    return body['Status'] == true || body['status'] == true;
   }
 
   @override
