@@ -17,6 +17,8 @@ class AuthState {
   final String? companyCode;
   final String? tempToken;
   final String? finalToken;
+  final String? customerId;
+  final String? driverId;
   final List<SelectionOption>? companies;
   final List<SelectionOption>? branches;
   final List<SelectionOption>? departments;
@@ -30,6 +32,8 @@ class AuthState {
     this.companyCode,
     this.tempToken,
     this.finalToken,
+    this.customerId,
+    this.driverId,
     this.companies,
     this.branches,
     this.departments,
@@ -44,6 +48,8 @@ class AuthState {
     String? companyCode,
     String? tempToken,
     String? finalToken,
+    String? customerId,
+    String? driverId,
     List<SelectionOption>? companies,
     List<SelectionOption>? branches,
     List<SelectionOption>? departments,
@@ -57,6 +63,8 @@ class AuthState {
       companyCode: companyCode ?? this.companyCode,
       tempToken: tempToken ?? this.tempToken,
       finalToken: finalToken ?? this.finalToken,
+      customerId: customerId ?? this.customerId,
+      driverId: driverId ?? this.driverId,
       companies: companies ?? this.companies,
       branches: branches ?? this.branches,
       departments: departments ?? this.departments,
@@ -86,12 +94,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
     if (hasAuth) {
       final token = await getSavedToken();
       final baseUrl = await getSavedBaseUrl();
+      final customerId = await getSavedCustomerId();
+      final driverId = await getSavedDriverId();
       if (token != null && baseUrl != null) {
         _applyAuthConfig(baseUrl, token);
         state = AuthState(
           status: AuthStatus.authenticated,
           finalToken: token,
           baseUrl: baseUrl,
+          customerId: customerId,
+          driverId: driverId,
         );
         return;
       }
@@ -352,7 +364,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
       throw Exception('Invalid token received');
     }
 
-    await saveAuthData(token: finalToken, baseUrl: baseUrl);
+    final userId = step5Data['UserId'] as String?;
+
+    await saveAuthData(
+      token: finalToken,
+      baseUrl: baseUrl,
+      customerId: userId,
+      driverId: userId,
+    );
     _applyAuthConfig(baseUrl, finalToken);
     sharedAuthState.reset();
 
@@ -360,6 +379,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
       status: AuthStatus.authenticated,
       baseUrl: baseUrl,
       finalToken: finalToken,
+      customerId: userId,
+      driverId: userId,
     );
 
     Future.microtask(() => _ref.read(syncProvider.notifier).syncAll());

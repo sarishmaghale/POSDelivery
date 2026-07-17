@@ -9,7 +9,6 @@ import 'services/location_sync_service.dart';
 import 'services/location_api_service.dart';
 import 'package:dio/dio.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import '../../core/network/api_config.dart';
 
 @pragma('vm:entry-point')
 void startLocationTrackingCallback() {
@@ -31,15 +30,18 @@ class LocationTrackingTaskHandler extends TaskHandler {
   Future<void> _initAsync() async {
     try {
       final data = await FlutterForegroundTask.getData<String>(key: 'driverId');
-      _driverId = data ?? 'C3C7C7AA-7F7D-4EE2-8440-122DF4E6CB54';
+      _driverId = data ?? '';
+
+      final baseUrl = await FlutterForegroundTask.getData<String>(key: 'baseUrl');
+      final token = await FlutterForegroundTask.getData<String>(key: 'token');
 
       final dio = Dio(BaseOptions(
-        baseUrl: ApiConfig.baseUrl,
+        baseUrl: baseUrl ?? '',
         connectTimeout: const Duration(seconds: 60),
         receiveTimeout: const Duration(seconds: 60),
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer ${ApiConfig.staticBearerToken}',
+          'Authorization': 'Bearer ${token ?? ''}',
         },
       ));
       final apiService = LocationApiService(dio);

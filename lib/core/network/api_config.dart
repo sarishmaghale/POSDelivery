@@ -6,8 +6,6 @@ class ApiConfig {
   static String get productEndpoint => '/ap1/pos/posMobile/getAssignedProducts';
   static String get customerEndpoint => '/ap1/pos/posMobile/getCustomers';
   static String get allProductsEndpoint => '/ap1/pos/PosMobile/getAllProducts';
-  static const String defaultCustomerId =
-      'a4889c27-aba5-4d1d-8872-76898925eba6';
   static String get salesInvoiceAddEndpoint => '/ap1/pos/salesInvoice/add';
   static String get paymodeEndpoint => '/ap1/pos/setting/getPaymode';
   static const String allCategoryId = '00000000-0000-0000-0000-000000000000';

@@ -9,6 +9,7 @@ import 'services/location_database_service.dart';
 import 'services/location_sync_service.dart';
 import 'services/location_api_service.dart';
 import '../../core/network/providers.dart';
+import '../../features/auth/provider/auth_provider.dart';
 import 'location_foreground_handler.dart';
 
 final locationServiceProvider = Provider((_) => LocationService());
@@ -17,11 +18,14 @@ final locationSyncServiceProvider = Provider((ref) => LocationSyncService(ref.re
 final locationApiServiceProvider = Provider((ref) => LocationApiService(ref.read(dioProvider)));
 
 final locationStateProvider = StateNotifierProvider<LocationStateNotifier, LocationState>((ref) {
+  final authState = ref.watch(authProvider);
   return LocationStateNotifier(
     ref.read(locationServiceProvider),
     ref.read(locationDatabaseServiceProvider),
     ref.read(locationSyncServiceProvider),
-    initialDriverId: 'C3C7C7AA-7F7D-4EE2-8440-122DF4E6CB54',
+    initialDriverId: authState.driverId,
+    initialBaseUrl: authState.baseUrl,
+    initialToken: authState.finalToken,
   );
 });
 
@@ -68,6 +72,8 @@ class LocationStateNotifier extends StateNotifier<LocationState> {
   final LocationService _locationService;
   final LocationDatabaseService _db;
   final String? _driverId;
+  final String? _baseUrl;
+  final String? _token;
   final LocationSyncService _syncService;
   Timer? _uiRefreshTimer;
 
@@ -76,7 +82,11 @@ class LocationStateNotifier extends StateNotifier<LocationState> {
     this._db,
     this._syncService, {
     String? initialDriverId,
+    String? initialBaseUrl,
+    String? initialToken,
   }) : _driverId = initialDriverId,
+       _baseUrl = initialBaseUrl,
+       _token = initialToken,
        super(const LocationState()) {
     _init();
   }
@@ -140,6 +150,14 @@ class LocationStateNotifier extends StateNotifier<LocationState> {
       await FlutterForegroundTask.saveData(
         key: 'driverId',
         value: _driverId ?? '',
+      );
+      await FlutterForegroundTask.saveData(
+        key: 'baseUrl',
+        value: _baseUrl ?? '',
+      );
+      await FlutterForegroundTask.saveData(
+        key: 'token',
+        value: _token ?? '',
       );
       state = state.copyWith(isTracking: true, error: null);
       _startUiRefresh();

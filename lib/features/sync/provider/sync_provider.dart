@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/network/api_config.dart';
 import '../../../core/services/image_prefetch_service.dart';
 import '../../../models/sync_queue.dart';
 import '../../../repositories/category_repository.dart';
@@ -8,6 +7,7 @@ import '../../../repositories/customer_repository.dart';
 import '../../../repositories/payment_mode_repository.dart';
 import '../../../repositories/product_repository.dart';
 import '../../../repositories/sync_repository.dart';
+import '../../auth/provider/auth_provider.dart';
 
 class SyncStatus {
   final String label;
@@ -43,6 +43,7 @@ class SyncState {
 
 final syncProvider = StateNotifierProvider<SyncNotifier, SyncState>((ref) {
   return SyncNotifier(
+    ref: ref,
     syncRepo: ref.read(syncRepositoryProvider),
     categoryRepo: ref.read(categoryRepositoryProvider),
     productRepo: ref.read(productRepositoryProvider),
@@ -52,6 +53,7 @@ final syncProvider = StateNotifierProvider<SyncNotifier, SyncState>((ref) {
 });
 
 class SyncNotifier extends StateNotifier<SyncState> {
+  final Ref _ref;
   final SyncRepository _syncRepo;
   final CategoryRepository _categoryRepo;
   final ProductRepository _productRepo;
@@ -59,6 +61,7 @@ class SyncNotifier extends StateNotifier<SyncState> {
   final PaymentModeRepository _paymentModeRepo;
 
   SyncNotifier({
+    required this._ref,
     required this._syncRepo,
     required CategoryRepository categoryRepo,
     required this._productRepo,
@@ -176,13 +179,15 @@ incomingStatus: {
   Future<Map<String, dynamic>> _syncFromServer() async {
     final results = <String, dynamic>{};
 
+    final customerId = _ref.read(authProvider).customerId ?? '';
+
     final now = DateTime.now();
     final transactionDate =
         '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')} ';
 
     try {
       final categories = await _categoryRepo.refreshCategories(
-        customerId: ApiConfig.defaultCustomerId,
+        customerId: customerId,
         transactionDate: transactionDate,
       );
       results['categories'] = true;
@@ -200,7 +205,7 @@ incomingStatus: {
 
     try {
       final products = await _productRepo.refreshProducts(
-        customerId: ApiConfig.defaultCustomerId,
+        customerId: customerId,
         transactionDate: transactionDate,
       );
       results['assignedProducts'] = true;

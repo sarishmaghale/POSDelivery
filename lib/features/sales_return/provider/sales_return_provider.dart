@@ -590,7 +590,7 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
           '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
 
       // Get delivery boy ID from location provider
-      final deliveryBoyId = _locationState.driverId ?? 'C3C7C7AA-7F7D-4EE2-8440-122DF4E6CB54';
+      final deliveryBoyId = _locationState.driverId ?? '';
 
       // Build the request
       final request = SalesReturnRequest(
