@@ -362,6 +362,12 @@ abstract class AppLocalizations {
   /// **'Available:'**
   String get available;
 
+  /// No description provided for @backToDelivery.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to Delivery'**
+  String get backToDelivery;
+
   /// No description provided for @noDeliveriesForToday.
   ///
   /// In en, this message translates to:
@@ -1039,12 +1045,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'View details'**
   String get viewDetails;
-
- /// No description provided for @backToDelivery.
-  ///
-  /// In en, this message translates to:
-  /// **'Back to Delivery'**
-  String get backToDelivery;
 
   /// No description provided for @noProductsAvailable.
   ///

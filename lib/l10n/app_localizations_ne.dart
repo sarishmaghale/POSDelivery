@@ -145,6 +145,9 @@ class AppLocalizationsNe extends AppLocalizations {
   String get available => 'उपलब्ध:';
 
   @override
+  String get backToDelivery => 'डेलिभरीमा फर्कनुहोस्';
+
+  @override
   String get noDeliveriesForToday => 'आजको लागि कुनै डेलिभरी छैन';
 
   @override
@@ -429,9 +432,6 @@ class AppLocalizationsNe extends AppLocalizations {
 
   @override
   String get retry => 'पुन: प्रयास गर्नुहोस्';
-
-   @override
-  String get backToDelivery => 'डेलिभरीमा फर्कनुहोस्';
 
   @override
   String get selectCustomer => 'ग्राहक चयन गर्नुहोस्';
