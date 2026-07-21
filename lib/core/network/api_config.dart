@@ -7,7 +7,7 @@ class ApiConfig {
   static String get customerEndpoint => '/ap1/pos/posMobile/getCustomers';
   static String get allProductsEndpoint => '/ap1/pos/PosMobile/getAllProducts';
   static String get salesInvoiceAddEndpoint => '/ap1/pos/salesInvoice/add';
-  static String get paymodeEndpoint => '/ap1/pos/setting/getPaymode';
+  static String get paymodeEndpoint => '/ap1/pos/posmobile/getPaymentMode';
   static const String allCategoryId = '00000000-0000-0000-0000-000000000000';
   static const String emptyGuid = '00000000-0000-0000-0000-000000000000';
   static const String defaultCurrencyId =
