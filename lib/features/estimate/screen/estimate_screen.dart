@@ -590,6 +590,7 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
 
     if (success) {
       ref.read(deliveryFormProvider.notifier).resetForm();
+      ref.read(deliveryFormProvider.notifier).refreshProducts(); 
       ref.read(syncProvider.notifier).refresh();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
