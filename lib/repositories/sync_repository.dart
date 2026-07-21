@@ -173,6 +173,7 @@ class SyncRepository {
         taxableType: (product?['taxable'] as num?)?.toInt() ?? 0,
       );
 
+
       return SalesInvoiceItemRequest(
         refNo: item.productId,
         chalanNumber: product?['chalan_number'] as String? ?? '',
@@ -229,10 +230,23 @@ class SyncRepository {
         ? (productsMap[items.first.productId]?['chalan_number'] as String? ?? '')
         : '';
 
+    
+      String customerName = '';
+    final customerMaps = await _db.query(
+      'customer',
+      where: 'server_id = ?',
+      whereArgs: [customerId],
+      limit: 1,
+    );
+    if (customerMaps.isNotEmpty) {
+      customerName = customerMaps.first['name'] as String? ?? '';
+    }
+
     final request = SalesInvoiceRequest(
       chalanNumber: chalanNumber,
       transactionDate: transactionDate,
       customerId: customerId,
+      customerName: customerName,
       outletId: _outletId,
       totalQuantity: totalQty,
       totalGrossAmount: totalGrossAmountExcTax,
