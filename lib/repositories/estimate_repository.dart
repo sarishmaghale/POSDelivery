@@ -8,6 +8,7 @@ import '../core/network/providers.dart';
 import '../dto/sales_invoice_request.dart';
 import '../models/estimate.dart';
 import '../models/sync_queue.dart';
+import '../models/payment_entry.dart';
 
 final estimateRepositoryProvider = Provider<EstimateRepository>((ref) {
   return EstimateRepository(
@@ -37,6 +38,7 @@ class EstimateRepository {
     String? discountType,
     double? discountValue,
     double? discountAmount,
+    List<PaymentEntry> paymentEntries = const [],
     SalesInvoiceRequest? salesInvoiceRequest,
   }) async {
     final grossTotal = items.fold<double>(
@@ -55,6 +57,7 @@ class EstimateRepository {
       ..paymentMode = paymentMode
       ..paidAmount = paidAmount ?? 0
       ..remarks = remarks
+      ..paymentEntries = paymentEntries
       ..createdDate = DateTime.now()
       ..isSynced = false;
 

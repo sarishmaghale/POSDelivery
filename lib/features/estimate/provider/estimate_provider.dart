@@ -318,16 +318,31 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
     }
 
     // Initialize payment entries if loading existing or new
+    // final entries = existingEstimates.isNotEmpty
+    //     ? (existingEstimates.first.paymentMode != null && existingEstimates.first.paidAmount > 0
+    //         ? <PaymentEntry>[
+    //             PaymentEntry(
+    //               paymentModeId: existingEstimates.first.paymentMode,
+    //               paymentModeName: existingEstimates.first.paymentMode,
+    //               amount: existingEstimates.first.paidAmount,
+    //             ),
+    //           ]
+    //         : <PaymentEntry>[])
+    //     : <PaymentEntry>[];
+
+        // Replace lines 320-331 with:
     final entries = existingEstimates.isNotEmpty
-        ? (existingEstimates.first.paymentMode != null && existingEstimates.first.paidAmount > 0
-            ? <PaymentEntry>[
-                PaymentEntry(
-                  paymentModeId: existingEstimates.first.paymentMode,
-                  paymentModeName: existingEstimates.first.paymentMode,
-                  amount: existingEstimates.first.paidAmount,
-                ),
-              ]
-            : <PaymentEntry>[])
+        ? (existingEstimates.first.paymentEntries.isNotEmpty
+            ? existingEstimates.first.paymentEntries
+            : existingEstimates.first.paymentMode != null && existingEstimates.first.paidAmount > 0
+                ? <PaymentEntry>[
+                    PaymentEntry(
+                      paymentModeId: existingEstimates.first.paymentMode,
+                      paymentModeName: existingEstimates.first.paymentMode,
+                      amount: existingEstimates.first.paidAmount,
+                    ),
+                  ]
+                : <PaymentEntry>[])
         : <PaymentEntry>[];
 
     state = EstimateState(
@@ -763,6 +778,7 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
         discountType: state.discountType,
         discountValue: state.discountValue,
         discountAmount: state.discountAmount,
+        paymentEntries: state.paymentEntries,
         salesInvoiceRequest: salesInvoiceRequest,
       );
 

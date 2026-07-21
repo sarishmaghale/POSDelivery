@@ -24,7 +24,7 @@ class DatabaseService {
 
       _database = await openDatabase(
         path,
-        version: 18,
+        version: 19,
         onCreate: _createTables,
         onUpgrade: _onUpgrade,
       );
@@ -255,6 +255,13 @@ class DatabaseService {
         );
       } catch (_) {}
     }
+    if (oldVersion < 19) {
+    try {
+      await db.execute(
+        'ALTER TABLE estimate ADD COLUMN payment_entries TEXT',
+      );
+    } catch (_) {}
+  }
   }
 
   Future<void> _createTables(Database db, int version) async {

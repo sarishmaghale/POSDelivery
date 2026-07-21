@@ -14,6 +14,7 @@ import '../dto/sales_return_request.dart';
 import '../models/estimate.dart';
 import '../models/sales_return.dart';
 import '../models/sync_queue.dart';
+import '../models/payment_entry.dart';
 
 class SyncRepository {
   final ApiService _apiService;
@@ -154,6 +155,17 @@ class SyncRepository {
               orElse: () => null,
             )?['name'] as String? ?? 'Cash')
         : 'Cash';
+    
+    List<PaymentEntry> paymentEntries = estimate.paymentEntries;
+    if (paymentEntries.isEmpty && estimate.paymentMode != null && estimate.paidAmount > 0) {
+      paymentEntries = [
+        PaymentEntry(
+          paymentModeId: estimate.paymentMode,
+          paymentModeName: payModeName,
+          amount: estimate.paidAmount,
+        ),
+      ];
+    }
 
     final now = estimate.createdDate;
     final transactionDate =
@@ -258,19 +270,28 @@ class SyncRepository {
       totalTax: totalItemTax,
       totalNetAmount: totalNetAmount,
       totalPayableAmount: totalNetAmount,
-      payMode: payModeName,
+      payMode: paymentEntries.length == 1
+          ? (paymentEntries.first.paymentModeName ?? 'Cash')
+          : 'Mix',
       tenderAmount: totalNetAmount,
       salesInvoiceTax: [
         SalesInvoiceTaxRequest(taxAmount: totalItemTax),
       ],
       salesInvoiceItem: salesInvoiceItems,
-      salesInvoicePayment: [
+      // salesInvoicePayment: [
+      //   SalesInvoicePaymentRequest(
+      //     payMode: payModeName,
+      //     paymentId: estimate.paymentMode ?? ApiConfig.emptyGuid,
+      //     amount: estimate.paidAmount > 0 ? estimate.paidAmount : totalNetAmount,
+      //   ),
+      // ],
+      salesInvoicePayment: paymentEntries.map((entry) =>
         SalesInvoicePaymentRequest(
-          payMode: payModeName,
-          paymentId: estimate.paymentMode ?? ApiConfig.emptyGuid,
-          amount: estimate.paidAmount > 0 ? estimate.paidAmount : totalNetAmount,
+          payMode: entry.paymentModeName ?? 'Cash',
+          paymentId: entry.paymentModeId ?? ApiConfig.emptyGuid,
+          amount: entry.amount,
         ),
-      ],
+      ).toList(),
       currencyId: ApiConfig.defaultCurrencyId,
     );
 

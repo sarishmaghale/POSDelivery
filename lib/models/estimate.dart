@@ -1,3 +1,5 @@
+import 'payment_entry.dart';
+
 class Estimate {
   int? id;
   String? serverId;
@@ -12,6 +14,7 @@ class Estimate {
   String? remarks;
   late DateTime createdDate;
   bool isSynced = false;
+  List<PaymentEntry> paymentEntries = [];
 
   Estimate();
 
@@ -30,6 +33,7 @@ class Estimate {
       'remarks': remarks,
       'created_date': createdDate.toIso8601String(),
       'is_synced': isSynced ? 1 : 0,
+      'payment_entries': PaymentEntry.listToJson(paymentEntries),
     };
   }
 
@@ -48,6 +52,7 @@ class Estimate {
     estimate.remarks = map['remarks'] as String?;
     estimate.createdDate = DateTime.parse(map['created_date'] as String);
     estimate.isSynced = (map['is_synced'] as int) == 1;
+    estimate.paymentEntries = PaymentEntry.listFromJson(map['payment_entries'] as String?);
     return estimate;
   }
 }
