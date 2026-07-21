@@ -599,6 +599,16 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
         ),
       );
     } else {
+      final state = ref.read(estimateProvider);
+  if (state.paymentEntries.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Please add a payment mode before saving'),
+        backgroundColor: Theme.of(context).colorScheme.error,
+      ),
+    );
+    _showPaymentModal(context);
+   } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(AppLocalizations.of(context)!.failedToSaveInvoice),
@@ -606,6 +616,7 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
         ),
       );
     }
+   }
   }
 
   void _showPaymentModal(BuildContext context) {
@@ -687,11 +698,11 @@ class _PaymentEntryRowState extends ConsumerState<_PaymentEntryRow> {
     final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        children: [
-          Expanded(
-            flex: 3,
-            child: DropdownButtonFormField<String>(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children:[
+ 
+            DropdownButtonFormField<String>(
               isExpanded: true,
               initialValue: widget.payment.paymentModeId,
               decoration: InputDecoration(
@@ -713,9 +724,14 @@ class _PaymentEntryRowState extends ConsumerState<_PaymentEntryRow> {
                     .updatePaymentEntryMode(widget.index, value, mode?.name);
               },
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
+          
+       
+        
+        
+          const SizedBox(height: 8),
+          Row(
+            children: [
+           Expanded(
             flex: 2,
             child: TextField(
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -746,11 +762,13 @@ class _PaymentEntryRowState extends ConsumerState<_PaymentEntryRow> {
             ),
           ),
           const SizedBox(width: 8),
-          IconButton(
-            icon: Icon(Icons.remove_circle_outline, color: theme.colorScheme.error),
-            onPressed: () {
-              ref.read(estimateProvider.notifier).removePaymentEntry(widget.index);
-            },
+            IconButton(
+              icon: Icon(Icons.remove_circle_outline, color: theme.colorScheme.error),
+              onPressed: () {
+                ref.read(estimateProvider.notifier).removePaymentEntry(widget.index);
+              },
+            ),
+          ],
           ),
         ],
       ),
@@ -773,6 +791,7 @@ class _PaymentModalSheet extends ConsumerWidget {
           top: 16,
           bottom: MediaQuery.of(context).viewInsets.bottom + 16,
         ),
+      child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -862,6 +881,7 @@ class _PaymentModalSheet extends ConsumerWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }

@@ -593,6 +593,7 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
 
   Future<bool> saveInvoice() async {
     if (state.customer == null || state.items.isEmpty) return false;
+    if (state.paymentEntries.isEmpty) return false; 
 
     state = EstimateState(
       delivery: state.delivery,
