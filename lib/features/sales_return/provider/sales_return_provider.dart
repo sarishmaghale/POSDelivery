@@ -203,6 +203,7 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
   SalesReturnState _copyWithAll({
     Customer? selectedCustomer,
     Product? pendingProduct,
+    bool clearPendingProduct = false,
     double? pendingQuantity,
     double? pendingRate,
     String? pendingUnit,
@@ -224,7 +225,7 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
   }) {
     return SalesReturnState(
       selectedCustomer: selectedCustomer ?? state.selectedCustomer,
-      pendingProduct: pendingProduct ?? state.pendingProduct,
+      pendingProduct: clearPendingProduct ? null : (pendingProduct ?? state.pendingProduct),
       pendingQuantity: pendingQuantity ?? state.pendingQuantity,
       pendingRate: pendingRate ?? state.pendingRate,
       pendingUnit: pendingUnit ?? state.pendingUnit,
@@ -324,6 +325,7 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
       existing.quantity += state.pendingQuantity;
       state = _copyWithAll(
         pendingQuantity: 1,
+        clearPendingProduct: true,
         items: updated,
       );
     } else {
@@ -338,6 +340,7 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
 
       state = _copyWithAll(
         pendingQuantity: 1,
+        clearPendingProduct: true,
         items: [...state.items, item],
       );
     }
