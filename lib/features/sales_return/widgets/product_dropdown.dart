@@ -165,7 +165,7 @@ class _SearchProductFieldState extends State<SearchProductField> {
               constraints: const BoxConstraints(maxHeight: 280),
               child: ListView.builder(
                 shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
+                physics: const AlwaysScrollableScrollPhysics(),
                 itemCount: _results.length,
                 itemBuilder: (context, index) {
                   final product = _results[index];
