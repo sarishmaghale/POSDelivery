@@ -664,7 +664,7 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
             discountAmount: state.discountAmount,
             paymentMode: payMode,
             paymentEntries: state.paymentEntries,
-            skipSync: true,
+            isSynced: true,
           );
 
           state = _copyWithAll(saved: true, isSaving: false);
@@ -684,7 +684,7 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
           discountAmount: state.discountAmount,
           paymentMode: payMode,
           paymentEntries: state.paymentEntries,
-          skipSync: true,
+          // skipSync: true,
         );
 
         state = _copyWithAll(saved: true, isSaving: false);

@@ -38,7 +38,7 @@ class SalesReturnRepository {
     double discountAmount = 0,
     String? paymentMode,
     List<PaymentEntry> paymentEntries = const [],
-    bool skipSync = false,
+    bool isSynced = false,
   }) async {
     final sr = SalesReturn()
       ..customerId = customerId
@@ -50,7 +50,7 @@ class SalesReturnRepository {
       ..paymentMode = paymentMode
       ..paymentEntries = paymentEntries
       ..createdDate = DateTime.now()
-      ..isSynced = false;
+      ..isSynced = isSynced;
 
     final id = await _db.insert('sales_return', sr.toMap());
     sr.id = id;
@@ -61,61 +61,63 @@ class SalesReturnRepository {
     }
     sr.items = items;
 
-    final syncEntry = SyncQueue()
+    if(!isSynced)
+    {
+      final syncEntry = SyncQueue()
       ..entityType = 'SalesReturn'
       ..entityId = id
       ..status = 'Pending'
       ..createdDate = DateTime.now();
-    await _db.insert('sync_queue', syncEntry.toMap());
-
-    if (!skipSync) {
-      final isOnline = await _networkChecker.isConnected;
-      if (isOnline) {
-        await _syncSalesReturn(sr);
-      }
+      await _db.insert('sync_queue', syncEntry.toMap());
     }
+    // if (!skipSync) {
+    //   final isOnline = await _networkChecker.isConnected;
+    //   if (isOnline) {
+    //     await _syncSalesReturn(sr);
+    //   }
+    // }
 
     return sr;
   }
 
-  Future<void> _syncSalesReturn(SalesReturn sr) async {
-    await _db.update(
-      'sync_queue',
-      {'status': 'Syncing'},
-      where: 'entity_type = ? AND entity_id = ?',
-      whereArgs: ['SalesReturn', sr.id],
-    );
+  // Future<void> _syncSalesReturn(SalesReturn sr) async {
+  //   await _db.update(
+  //     'sync_queue',
+  //     {'status': 'Syncing'},
+  //     where: 'entity_type = ? AND entity_id = ?',
+  //     whereArgs: ['SalesReturn', sr.id],
+  //   );
 
-    try {
-      final payload = {
-        ...sr.toMap(),
-        'items': sr.items.map((item) => item.toMap()).toList(),
-      };
-      final response = await _apiService.createSalesReturn(payload);
+  //   try {
+  //     final payload = {
+  //       ...sr.toMap(),
+  //       'items': sr.items.map((item) => item.toMap()).toList(),
+  //     };
+  //     final response = await _apiService.createSalesReturn(payload);
 
-      if (response) {
-        await _db.update(
-          'sales_return',
-          {'is_synced': 1},
-          where: 'id = ?',
-          whereArgs: [sr.id],
-        );
-        await _db.update(
-          'sync_queue',
-          {'status': 'Synced'},
-          where: 'entity_type = ? AND entity_id = ?',
-          whereArgs: ['SalesReturn', sr.id],
-        );
-      }
-    } catch (_) {
-      await _db.update(
-        'sync_queue',
-        {'status': 'Failed'},
-        where: 'entity_type = ? AND entity_id = ?',
-        whereArgs: ['SalesReturn', sr.id],
-      );
-    }
-  }
+  //     if (response) {
+  //       await _db.update(
+  //         'sales_return',
+  //         {'is_synced': 1},
+  //         where: 'id = ?',
+  //         whereArgs: [sr.id],
+  //       );
+  //       await _db.update(
+  //         'sync_queue',
+  //         {'status': 'Synced'},
+  //         where: 'entity_type = ? AND entity_id = ?',
+  //         whereArgs: ['SalesReturn', sr.id],
+  //       );
+  //     }
+  //   } catch (_) {
+  //     await _db.update(
+  //       'sync_queue',
+  //       {'status': 'Failed'},
+  //       where: 'entity_type = ? AND entity_id = ?',
+  //       whereArgs: ['SalesReturn', sr.id],
+  //     );
+  //   }
+  // }
 
   Future<List<SalesReturn>> getReturnsByDate(DateTime date) async {
     final startOfDay = DateTime(date.year, date.month, date.day);
