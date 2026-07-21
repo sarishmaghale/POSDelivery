@@ -367,7 +367,8 @@ class DatabaseService {
         paid_amount REAL DEFAULT 0,
         remarks TEXT,
         created_date TEXT NOT NULL,
-        is_synced INTEGER DEFAULT 0
+        is_synced INTEGER DEFAULT 0,
+        payment_entries TEXT
       )
     ''');
 

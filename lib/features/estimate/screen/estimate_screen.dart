@@ -599,16 +599,16 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
         ),
       );
     } else {
-      final state = ref.read(estimateProvider);
-  if (state.paymentEntries.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Please add a payment mode before saving'),
-        backgroundColor: Theme.of(context).colorScheme.error,
-      ),
-    );
-    _showPaymentModal(context);
-   } else {
+  //     final state = ref.read(estimateProvider);
+  // if (state.paymentEntries.isEmpty) {
+  //   ScaffoldMessenger.of(context).showSnackBar(
+  //     SnackBar(
+  //       content: Text('Please add a payment mode before saving'),
+  //       backgroundColor: Theme.of(context).colorScheme.error,
+  //     ),
+  //   );
+  //   _showPaymentModal(context);
+  //  } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(AppLocalizations.of(context)!.failedToSaveInvoice),
@@ -616,7 +616,7 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
         ),
       );
     }
-   }
+  //  }
   }
 
   void _showPaymentModal(BuildContext context) {
