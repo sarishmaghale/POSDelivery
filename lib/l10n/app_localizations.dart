@@ -1040,6 +1040,12 @@ abstract class AppLocalizations {
   /// **'View details'**
   String get viewDetails;
 
+ /// No description provided for @backToDelivery.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to Delivery'**
+  String get backToDelivery;
+
   /// No description provided for @noProductsAvailable.
   ///
   /// In en, this message translates to:

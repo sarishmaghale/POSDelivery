@@ -140,7 +140,7 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
                   ref.read(estimateProvider.notifier).reset();
                   context.pop();
                 },
-                child: Text(l10n.backToDashboard),
+                child: Text(l10n.backToDelivery),
               ),
             ],
           ),

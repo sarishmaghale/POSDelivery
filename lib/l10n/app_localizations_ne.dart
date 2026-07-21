@@ -430,6 +430,9 @@ class AppLocalizationsNe extends AppLocalizations {
   @override
   String get retry => 'पुन: प्रयास गर्नुहोस्';
 
+   @override
+  String get backToDelivery => 'डेलिभरीमा फर्कनुहोस्';
+
   @override
   String get selectCustomer => 'ग्राहक चयन गर्नुहोस्';
 

@@ -430,6 +430,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get retry => 'Retry';
 
+   @override
+  String get backToDelivery => 'Back To Delivery';
+
   @override
   String get selectCustomer => 'Select Customer';
 
