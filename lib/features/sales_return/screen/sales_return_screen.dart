@@ -583,9 +583,184 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
     }
   }
 }
-class _PaymentModalSheet extends ConsumerWidget {
+// class _PaymentModalSheet extends ConsumerWidget {
+//   @override
+//   Widget build(BuildContext context, WidgetRef ref) {
+//     final state = ref.watch(salesReturnProvider);
+//     final theme = Theme.of(context);
+//     final l10n = AppLocalizations.of(context)!;
+    
+//     final paymentEntry = state.paymentEntries.isNotEmpty ? state.paymentEntries.first : null;
+//     final paymentModeId = paymentEntry?.paymentModeId ?? '';
+//     final paymentAmount = paymentEntry?.amount ?? state.netTotalIncTax;
+
+//     return SafeArea(
+//       child: Padding(
+//         padding: EdgeInsets.only(
+//           left: 16,
+//           right: 16,
+//           top: 16,
+//           bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+//         ),
+//         child: Column(
+//           mainAxisSize: MainAxisSize.min,
+//           crossAxisAlignment: CrossAxisAlignment.stretch,
+//           children: [
+//             Row(
+//               children: [
+//                 Expanded(
+//                   child: Text(
+//                     l10n.paymentDetails,
+//                     style: theme.textTheme.titleMedium?.copyWith(
+//                       fontWeight: FontWeight.w600,
+//                     ),
+//                   ),
+//                 ),
+//                 IconButton(
+//                   icon: const Icon(Icons.close),
+//                   onPressed: () => Navigator.of(context).pop(),
+//                 ),
+//               ],
+//             ),
+//             const Divider(),
+//             const SizedBox(height: 16),
+//             DropdownButtonFormField<String>(
+//               initialValue: paymentModeId.isNotEmpty ? paymentModeId : null,
+//               decoration: InputDecoration(
+//                 labelText: l10n.paymentMode,
+//                 border: const OutlineInputBorder(),
+//                 isDense: true,
+//               ),
+//               menuMaxHeight: 200,
+//               items: state.paymentModes.map((mode) {
+//                 return DropdownMenuItem(
+//                   value: mode.serverId,
+//                   child: Text(mode.name),
+//                 );
+//               }).toList(),
+//               onChanged: (value) {
+//                 final mode = state.paymentModes
+//                     .where((m) => m.serverId == value)
+//                     .firstOrNull;
+//                 if (state.paymentEntries.isEmpty) {
+//                   ref.read(salesReturnProvider.notifier).addPaymentEntry();
+//                 }
+//                 ref.read(salesReturnProvider.notifier)
+//                     .updatePaymentEntryMode(0, value, mode?.name);
+//               },
+//             ),
+//             const SizedBox(height: 12),
+//             TextField(
+//               keyboardType: const TextInputType.numberWithOptions(decimal: true),
+//               inputFormatters: [
+//                 FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
+//               ],
+//               decoration: InputDecoration(
+//                 labelText: l10n.amount,
+//                 prefixText: 'Rs. ',
+//                 border: const OutlineInputBorder(),
+//                 isDense: true,
+//               ),
+//               onChanged: (value) {
+//                 final parsed = double.tryParse(value);
+//                 if (parsed == null) {
+//                   if (state.paymentEntries.isNotEmpty) {
+//                     ref.read(salesReturnProvider.notifier)
+//                         .updatePaymentEntryAmount(0, 0);
+//                   }
+//                   return;
+//                 }
+//                 final maxAllowed = state.netTotalIncTax;
+//                 final clamped = parsed > maxAllowed ? maxAllowed : parsed;
+//                 if (state.paymentEntries.isEmpty) {
+//                   ref.read(salesReturnProvider.notifier).addPaymentEntry();
+//                 }
+//                 ref.read(salesReturnProvider.notifier)
+//                     .updatePaymentEntryAmount(0, clamped);
+//               },
+//               controller: TextEditingController(
+//                 text: paymentAmount > 0 ? paymentAmount.toStringAsFixed(2) : '',
+//               ),
+//             ),
+//             const SizedBox(height: 16),
+//             Container(
+//               padding: const EdgeInsets.all(12),
+//               decoration: BoxDecoration(
+//                 color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+//                 borderRadius: BorderRadius.circular(8),
+//               ),
+//               child: Column(
+//                 children: [
+//                   Row(
+//                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//                     children: [
+//                       Text('${l10n.total}:', style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+//                       Text('Rs. ${state.netTotalIncTax.toStringAsFixed(2)}', style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+//                     ],
+//                   ),
+//                   const SizedBox(height: 4),
+//                   Row(
+//                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//                     children: [
+//                       Text('${l10n.paid}:', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.w600)),
+//                       Text('Rs. ${state.totalPaidAmount.toStringAsFixed(2)}', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.w600)),
+//                     ],
+//                   ),
+//                   const SizedBox(height: 4),
+//                   Row(
+//                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//                     children: [
+//                       Text('${l10n.remaining}:', style: theme.textTheme.bodyMedium?.copyWith(
+//                         color: state.remainingAmountIncTax > 0 ? theme.colorScheme.error : theme.colorScheme.primary,
+//                         fontWeight: FontWeight.w600,
+//                       )),
+//                       Text('Rs. ${state.remainingAmountIncTax.toStringAsFixed(2)}', style: theme.textTheme.bodyMedium?.copyWith(
+//                         color: state.remainingAmountIncTax > 0 ? theme.colorScheme.error : theme.colorScheme.primary,
+//                         fontWeight: FontWeight.w600,
+//                       )),
+//                     ],
+//                   ),
+//                 ],
+//               ),
+//             ),
+//             const SizedBox(height: 16),
+//             FilledButton(
+//               onPressed: () => Navigator.of(context).pop(),
+//               child: Text(l10n.done),
+//             ),
+//           ],
+//         ),
+//       ),
+//     );
+//   }
+// }
+class _PaymentModalSheet extends ConsumerStatefulWidget {
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_PaymentModalSheet> createState() => _PaymentModalSheetState();
+}
+
+class _PaymentModalSheetState extends ConsumerState<_PaymentModalSheet> {
+  late final TextEditingController _amountController;
+
+  @override
+  void initState() {
+    super.initState();
+    final state = ref.read(salesReturnProvider);
+    final paymentEntry = state.paymentEntries.isNotEmpty ? state.paymentEntries.first : null;
+    final paymentAmount = paymentEntry?.amount ?? state.netTotalIncTax;
+    _amountController = TextEditingController(
+      text: paymentAmount > 0 ? paymentAmount.toStringAsFixed(2) : '',
+    );
+  }
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(salesReturnProvider);
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
@@ -593,6 +768,13 @@ class _PaymentModalSheet extends ConsumerWidget {
     final paymentEntry = state.paymentEntries.isNotEmpty ? state.paymentEntries.first : null;
     final paymentModeId = paymentEntry?.paymentModeId ?? '';
     final paymentAmount = paymentEntry?.amount ?? state.netTotalIncTax;
+
+    // Update controller text only when paymentAmount changes from external source
+    final currentText = _amountController.text;
+    final expectedText = paymentAmount > 0 ? paymentAmount.toStringAsFixed(2) : '';
+    if (currentText != expectedText && !_amountController.selection.isValid) {
+      _amountController.text = expectedText;
+    }
 
     return SafeArea(
       child: Padding(
@@ -661,6 +843,7 @@ class _PaymentModalSheet extends ConsumerWidget {
                 border: const OutlineInputBorder(),
                 isDense: true,
               ),
+              controller: _amountController,
               onChanged: (value) {
                 final parsed = double.tryParse(value);
                 if (parsed == null) {
@@ -678,9 +861,6 @@ class _PaymentModalSheet extends ConsumerWidget {
                 ref.read(salesReturnProvider.notifier)
                     .updatePaymentEntryAmount(0, clamped);
               },
-              controller: TextEditingController(
-                text: paymentAmount > 0 ? paymentAmount.toStringAsFixed(2) : '',
-              ),
             ),
             const SizedBox(height: 16),
             Container(
