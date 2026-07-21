@@ -109,6 +109,10 @@ incomingStatus: {
       },
     );
 
+     try {
+      await _syncRepo.syncAll();
+    } catch (_) {}
+
     final results = await _syncFromServer();
     final allOk = results.entries.where((e) => e.key.endsWith('_error')).isEmpty &&
         results['categories'] == true &&
@@ -130,9 +134,7 @@ incomingStatus: {
       );
     }
 
-    try {
-      await _syncRepo.syncAll();
-    } catch (_) {}
+   
 
     await refresh();
 
