@@ -584,6 +584,19 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
   }
 
   Future<void> _saveInvoice(BuildContext context) async {
+    
+  final state = ref.read(estimateProvider);
+  if (state.remainingAmount > 0) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Please pay the full amount before saving'),
+        backgroundColor: Theme.of(context).colorScheme.error,
+      ),
+    );
+    _showPaymentModal(context);
+    return;
+  }
+    
     final success = await ref.read(estimateProvider.notifier).saveInvoice();
 
     if (!context.mounted) return;

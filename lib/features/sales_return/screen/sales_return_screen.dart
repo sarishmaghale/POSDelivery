@@ -566,6 +566,18 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
   }
 
   Future<void> _saveSalesReturn(BuildContext context) async {
+    final state = ref.read(salesReturnProvider);
+    if (state.remainingAmountIncTax > 0) {
+    ScaffoldMessenger.of(context).showSnackBar(
+     SnackBar(
+      content: Text('Please pay the full amount before saving'),
+      backgroundColor: Theme.of(context).colorScheme.error,
+     ),
+    );
+  _showPaymentModal(context);
+  return;
+}
+    
     final notifier = ref.read(salesReturnProvider.notifier);
     final success = await notifier.saveSalesReturn();
 
