@@ -587,13 +587,13 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
     
   final state = ref.read(estimateProvider);
   if (state.remainingAmount > 0) {
-    _showPaymentModal(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(AppLocalizations.of(context)!.pleaseMakeFullPayment),
         backgroundColor: Theme.of(context).colorScheme.error,
       ),
     );
+    _showPaymentModal(context);
     return;
   }
 

@@ -191,5 +191,7 @@
   "offlineInvoicesWaiting": "Offline invoices waiting to be pushed to server.",
   "deliveryLabel": "Delivery",
   "invoiceNumber": "Invoice #{id}",
-  "pleaseMakeFullPayment": "Please make full payment"
+  "pleaseMakeFullPayment": "Please make full payment",
+  "pleaseEnterReason":"Please add return reason",
+  "pleaseEnterPaymode":"Please add payment entry"
 }

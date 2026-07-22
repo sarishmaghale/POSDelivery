@@ -561,4 +561,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pleaseMakeFullPayment => 'Please make full payment';
+
+  @override
+  String get pleaseEnterReason => 'Please add return reason';
+
+  @override
+  String get pleaseEnterPaymode => 'Please add payment entry';
 }

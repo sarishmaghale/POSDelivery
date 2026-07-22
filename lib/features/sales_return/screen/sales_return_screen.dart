@@ -577,9 +577,9 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
   _showPaymentModal(context);
   return;
 }
-    
+    final l10n = AppLocalizations.of(context)!;
     final notifier = ref.read(salesReturnProvider.notifier);
-    final success = await notifier.saveSalesReturn();
+    final success = await notifier.saveSalesReturn(l10n);
 
     if (!context.mounted) return;
 

@@ -561,4 +561,10 @@ class AppLocalizationsNe extends AppLocalizations {
 
   @override
   String get pleaseMakeFullPayment => 'कृपया पूरा भुक्तानी गर्नुहोस्';
+
+  @override
+  String get pleaseEnterReason => 'कृपया रिटर्न कारण थप्नुहोस्';
+
+  @override
+  String get pleaseEnterPaymode => 'कृपया भुक्तानी मोड थप्नुहोस्';
 }

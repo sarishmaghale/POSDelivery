@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pos_delivery/l10n/app_localizations.dart';
 
 import '../../../core/network/api_config.dart';
 import '../../../core/network/api_service.dart';
@@ -450,11 +451,11 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
     _recalcHeaderDiscount();
   }
 
-  String? validate() {
-    if (state.selectedCustomer == null) return 'Please select a customer';
-    if (state.items.isEmpty) return 'Please select at least one product';
-    if (state.reason == null || state.reason!.trim().isEmpty) return 'Please enter a return reason';
-    if (state.paymentEntries.isEmpty) return 'Please add at least one payment entry';
+  String? validate(AppLocalizations l10n) {
+    if (state.selectedCustomer == null) {return l10n.selectCustomer;}
+    if (state.items.isEmpty) {return l10n.selectProduct;}
+    if (state.reason == null || state.reason!.trim().isEmpty) {return l10n.pleaseEnterReason;}
+    if (state.paymentEntries.isEmpty) {return l10n.pleaseEnterPaymode;}
     for (final entry in state.paymentEntries) {
       if (entry.paymentModeId == null || entry.paymentModeId!.isEmpty) {
         return 'Please select a payment mode for all entries';
@@ -464,8 +465,8 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
     return null;
   }
 
-  Future<bool> saveSalesReturn() async {
-    final validationError = validate();
+  Future<bool> saveSalesReturn(AppLocalizations l10n) async {
+    final validationError = validate(l10n);
     if (validationError != null) {
       state = _copyWithAll(error: validationError);
       return false;

@@ -1141,6 +1141,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Please make full payment'**
   String get pleaseMakeFullPayment;
+
+  /// No description provided for @pleaseEnterReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Please add return reason'**
+  String get pleaseEnterReason;
+
+  /// No description provided for @pleaseEnterPaymode.
+  ///
+  /// In en, this message translates to:
+  /// **'Please add payment entry'**
+  String get pleaseEnterPaymode;
 }
 
 class _AppLocalizationsDelegate
