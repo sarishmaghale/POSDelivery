@@ -6,6 +6,7 @@ import '../../../core/network/providers.dart';
 import '../../../features/sync/provider/sync_provider.dart';
 import '../../../repositories/auth_repository.dart';
 import '../models/selection_option.dart';
+import '../../location/location_provider.dart';
 
 enum AuthStatus { uninitialized, unauthenticated, authenticated }
 
@@ -432,6 +433,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> logout() async {
+    await _ref.read(locationStateProvider.notifier).stopTracking();
     await clearAuthData();
     state = const AuthState(status: AuthStatus.unauthenticated);
   }
