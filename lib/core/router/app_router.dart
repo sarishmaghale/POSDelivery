@@ -29,7 +29,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/login',
     redirect: (context, state) {
-      if (authState.status == AuthStatus.uninitialized) return null;
+      if (authState.status == AuthStatus.uninitialized) return '/splash';
       final isAuthenticated = authState.status == AuthStatus.authenticated;
       final isLoginRoute = state.matchedLocation == '/login';
       if (!isAuthenticated && !isLoginRoute) return '/login';
@@ -37,6 +37,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
+      GoRoute(
+      path: '/splash',
+      builder: (context, state) => const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+       ),
+      ),
       GoRoute(
         path: '/login',
         parentNavigatorKey: _rootNavigatorKey,
