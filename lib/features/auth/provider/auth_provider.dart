@@ -333,6 +333,21 @@ class AuthNotifier extends StateNotifier<AuthState> {
       throw Exception('No fiscal years available');
     }
 
+    final activeFiscalYear = fiscalYears.cast<SelectionOption?>().firstWhere(
+      (fy) => fy!.isActive,
+      orElse: () => null,
+    );
+
+     if (activeFiscalYear != null) {
+      await _finishLogin(
+        baseUrl: baseUrl,
+        token: token4,
+        fiscalYearId: activeFiscalYear.id,
+        outletId: branchId,
+      );
+      return;
+    }
+
     if (fiscalYears.length == 1) {
       await _finishLogin(
         baseUrl: baseUrl,
