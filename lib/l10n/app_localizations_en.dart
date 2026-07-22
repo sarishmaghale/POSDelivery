@@ -558,4 +558,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String invoiceNumber(Object id) {
     return 'Invoice #$id';
   }
+
+  @override
+  String get pleaseMakeFullPayment => 'Please make full payment';
 }

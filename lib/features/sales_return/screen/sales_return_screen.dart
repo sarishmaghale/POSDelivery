@@ -570,7 +570,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
     if (state.remainingAmountIncTax > 0) {
     ScaffoldMessenger.of(context).showSnackBar(
      SnackBar(
-      content: Text('Please pay the full amount before saving'),
+      content: Text(AppLocalizations.of(context)!.pleaseMakeFullPayment),
       backgroundColor: Theme.of(context).colorScheme.error,
      ),
     );

@@ -190,5 +190,6 @@
   "billsPendingSync": "{count} bill(s) pending sync",
   "offlineInvoicesWaiting": "Offline invoices waiting to be pushed to server.",
   "deliveryLabel": "Delivery",
-  "invoiceNumber": "Invoice #{id}"
+  "invoiceNumber": "Invoice #{id}",
+  "pleaseMakeFullPayment": "Please make full payment"
 }

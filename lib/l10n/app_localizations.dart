@@ -1135,6 +1135,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Invoice #{id}'**
   String invoiceNumber(Object id);
+
+  /// No description provided for @pleaseMakeFullPayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Please make full payment'**
+  String get pleaseMakeFullPayment;
 }
 
 class _AppLocalizationsDelegate

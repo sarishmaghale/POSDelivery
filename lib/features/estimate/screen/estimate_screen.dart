@@ -587,13 +587,35 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
     
   final state = ref.read(estimateProvider);
   if (state.remainingAmount > 0) {
+    _showPaymentModal(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Please pay the full amount before saving'),
+        content: Text(AppLocalizations.of(context)!.pleaseMakeFullPayment),
         backgroundColor: Theme.of(context).colorScheme.error,
       ),
     );
-    _showPaymentModal(context);
+    return;
+  }
+
+  if(state.customer == null)
+  {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(AppLocalizations.of(context)!.selectCustomer),
+        backgroundColor: Theme.of(context).colorScheme.error,
+      ),
+    );
+    return;
+  }
+
+   if(state.items.isEmpty)
+  {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(AppLocalizations.of(context)!.pleaseSelectItems),
+        backgroundColor: Theme.of(context).colorScheme.error,
+      ),
+    );
     return;
   }
     
@@ -633,6 +655,11 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
   }
 
   void _showPaymentModal(BuildContext context) {
+  final s = ref.read(estimateProvider);
+  if (s.paymentEntries.isEmpty && s.remainingAmount > 0) {
+    ref.read(estimateProvider.notifier).addPaymentEntry();
+  }
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,

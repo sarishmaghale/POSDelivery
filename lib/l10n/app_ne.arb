@@ -186,5 +186,6 @@
   "billsPendingSync": "{count} बिल(हरू) सिङ्क पेन्डिङ",
   "offlineInvoicesWaiting": "अफलाइन इन्भ्वाइसहरू सर्भरमा पठाउन बाँकी छन्।",
   "deliveryLabel": "डेलिभरी",
-  "invoiceNumber": "इन्भ्वाइस #{id}"
+  "invoiceNumber": "इन्भ्वाइस #{id}",
+  "pleaseMakeFullPayment": "कृपया पूरा भुक्तानी गर्नुहोस्"
 }
