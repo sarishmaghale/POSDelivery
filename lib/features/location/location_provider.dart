@@ -97,8 +97,16 @@ class LocationStateNotifier extends StateNotifier<LocationState> {
     final existingLocations = await _db.getAllLocations();
     state = state.copyWith(isOnline: online, pendingSyncCount: pending, recentLocations: existingLocations);
 
+   bool serviceRunning = false;
+    try {
+      serviceRunning = await FlutterForegroundTask.isRunningService;
+    } catch (_) {}
+    if (serviceRunning) {
+      state = state.copyWith(isTracking: true);
+      _startUiRefresh();
+    }
+
     _syncService.startPeriodicSync();
-    _startUiRefresh();
   }
 
   void _startUiRefresh() {
