@@ -234,7 +234,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
                       ),
                     ),
                     const SizedBox(width: 16),
-                    FilledButton.tonalIcon(
+                    FilledButton.icon(
                       onPressed: state.pendingProduct == null
                           ? null
                           : () {
@@ -246,6 +246,10 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
                             },
                       icon: const Icon(Icons.add, size: 20),
                       label: Text(l10n.add),
+                      style: FilledButton.styleFrom(
+                      backgroundColor: theme.colorScheme.primary,
+                      foregroundColor: theme.colorScheme.onPrimary,
+                      ),
                     ),
                   ],
                 ),
@@ -449,8 +453,8 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
                 icon: const Icon(Icons.payment, size: 20),
                 label: Text(l10n.makePayment),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: theme.colorScheme.primary,
-                  foregroundColor: theme.colorScheme.onPrimary,
+                  backgroundColor: theme.colorScheme.secondaryContainer,
+                  foregroundColor: theme.colorScheme.onSecondaryContainer,
                   minimumSize: const Size(double.infinity, 48),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
