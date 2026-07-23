@@ -530,8 +530,8 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
           icon: const Icon(Icons.payment, size: 20),
           label: Text(l10n.makePayment),
           style: ElevatedButton.styleFrom(
-            backgroundColor: theme.colorScheme.primary,
-            foregroundColor: theme.colorScheme.onPrimary,
+            backgroundColor: theme.colorScheme.secondaryContainer,
+            foregroundColor: theme.colorScheme.onSecondaryContainer,
             minimumSize: const Size(double.infinity, 48),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
@@ -618,6 +618,17 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
     );
     return;
   }
+
+  final hasUnsetPaymode=state.paymentEntries.any((e)=>e.paymentModeId == null || e.paymentModeId!.isEmpty);
+              if (hasUnsetPaymode) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                    content: Text('Please select paymode'),
+                    backgroundColor: Theme.of(context).colorScheme.error,
+                  ),
+                );
+                return;
+               } 
     
     final success = await ref.read(estimateProvider.notifier).saveInvoice();
 
@@ -916,7 +927,20 @@ class _PaymentModalSheet extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
             FilledButton(
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () {
+                final s = ref.read(estimateProvider);
+                final hasUnsetPaymode=s.paymentEntries.any((e)=>e.paymentModeId == null || e.paymentModeId!.isEmpty);
+                if (hasUnsetPaymode) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                    content: Text('Please select paymode'),
+                    backgroundColor: Theme.of(context).colorScheme.error,
+                  ),
+               );
+               } else {
+                  Navigator.of(context).pop();
+               }
+              },
               child: Text(l10n.done),
             ),
           ],

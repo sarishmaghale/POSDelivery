@@ -594,6 +594,7 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
   Future<bool> saveInvoice() async {
     if (state.customer == null || state.items.isEmpty) return false;
     if (state.paymentEntries.isEmpty) return false; 
+    if (state.paymentEntries.any((e) => e.paymentModeId == null)) return false;
 
     state = EstimateState(
       delivery: state.delivery,
@@ -747,7 +748,7 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
         totalNetAmount: totalNetAmount,
         totalPayableAmount: totalNetAmount,
         payMode: state.paymentEntries.length == 1
-            ? (state.paymentEntries.first.paymentModeName ?? 'Cash')
+            ? (state.paymentEntries.first.paymentModeName ?? ' ')
             : 'Mix',
         tenderAmount: totalNetAmount,
         chalanNumber: chalanNumber,
