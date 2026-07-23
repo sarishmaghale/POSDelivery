@@ -763,6 +763,7 @@ class EstimateNotifier extends StateNotifier<EstimateState> {
             .toList(),
         currencyId: ApiConfig.defaultCurrencyId,
         volumeDiscount: globalDiscount,
+        remarks:state.remarks ?? ' ',
       );
 
       // Debug: log payment entries
