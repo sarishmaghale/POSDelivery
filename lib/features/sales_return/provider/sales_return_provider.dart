@@ -610,7 +610,7 @@ class SalesReturnNotifier extends StateNotifier<SalesReturnState> {
         isSettled: true,
         customerId: state.selectedCustomer!.serverId,
         customerName: state.selectedCustomer!.name,
-        remarks: state.reason ?? state.remarks ?? '',
+        returnReason: state.reason ?? state.remarks ?? '',
         outletId: _outletId,
         totalQuantity: totalQty,
         totalGrossAmount: totalGrossAmount,
