@@ -542,6 +542,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
                       isDense: true,
                     ),
                     items: [
+                      DropdownMenuItem(value: null, child: Text(l10n.none)),
                       DropdownMenuItem(value: 'amount', child: Text(l10n.amountRs)),
                       DropdownMenuItem(value: 'percent', child: Text(l10n.percent)),
                     ],
