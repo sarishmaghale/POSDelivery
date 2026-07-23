@@ -21,8 +21,8 @@ void main() async {
       channelId: 'location_tracking',
       channelName: 'Location Tracking',
       channelDescription: 'Tracking your location during duty',
-      channelImportance: NotificationChannelImportance.LOW,
-      priority: NotificationPriority.LOW,
+      channelImportance: NotificationChannelImportance.DEFAULT,
+      priority: NotificationPriority.DEFAULT,
     ),
     iosNotificationOptions: const IOSNotificationOptions(
       showNotification: true,

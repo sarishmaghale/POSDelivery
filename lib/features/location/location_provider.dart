@@ -148,6 +148,19 @@ class LocationStateNotifier extends StateNotifier<LocationState> {
       }
     } catch (_) {}
 
+    await FlutterForegroundTask.saveData(
+      key: 'driverId',
+      value: _driverId ?? '',
+    );
+    await FlutterForegroundTask.saveData(
+      key: 'baseUrl',
+      value: _baseUrl ?? '',
+    );
+    await FlutterForegroundTask.saveData(
+      key: 'token',
+      value: _token ?? '',
+    );
+
     final startResult = await FlutterForegroundTask.startService(
       notificationTitle: 'Location Tracking',
       notificationText: 'Tracking your location during duty',
@@ -155,18 +168,6 @@ class LocationStateNotifier extends StateNotifier<LocationState> {
     );
 
     if (startResult is ServiceRequestSuccess) {
-      await FlutterForegroundTask.saveData(
-        key: 'driverId',
-        value: _driverId ?? '',
-      );
-      await FlutterForegroundTask.saveData(
-        key: 'baseUrl',
-        value: _baseUrl ?? '',
-      );
-      await FlutterForegroundTask.saveData(
-        key: 'token',
-        value: _token ?? '',
-      );
       state = state.copyWith(isTracking: true, error: null);
       _startUiRefresh();
     } else {

@@ -49,18 +49,7 @@ class LocationTrackingTaskHandler extends TaskHandler {
 
       _syncService!.startPeriodicSync();
 
-      _positionStream = Geolocator.getPositionStream(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          distanceFilter: 10,
-          timeLimit: Duration(seconds: 30),
-        ),
-      ).listen(
-        (pos) => _handlePosition(pos),
-        onError: (e) {
-          if (kDebugMode) print('Foreground position error: $e');
-        },
-      );
+      _startPositionStream();
 
       _periodicTimer = Timer.periodic(
         const Duration(seconds: 30),
@@ -70,9 +59,7 @@ class LocationTrackingTaskHandler extends TaskHandler {
               desiredAccuracy: LocationAccuracy.high,
             );
             _handlePosition(pos);
-          } catch (e) {
-            if (kDebugMode) print('Foreground periodic position error: $e');
-          }
+          } catch (_) {}
         },
       );
 
@@ -80,6 +67,22 @@ class LocationTrackingTaskHandler extends TaskHandler {
     } catch (e) {
       if (kDebugMode) print('Foreground init error: $e');
     }
+  }
+
+  Future<void> _startPositionStream() async {
+    await _positionStream?.cancel();
+    _positionStream = Geolocator.getPositionStream(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 10,
+      ),
+    ).listen(
+      (pos) => _handlePosition(pos),
+      onError: (_) {
+        Future.delayed(const Duration(seconds: 5), _startPositionStream);
+      },
+      cancelOnError: false,
+    );
   }
 
   Future<void> _handlePosition(Position pos) async {
