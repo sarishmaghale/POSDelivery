@@ -100,7 +100,7 @@ class SyncNotifier extends StateNotifier<SyncState> {
       syncedCount: state.syncedCount,
       lastSyncTime: state.lastSyncTime,
       isSyncing: true,
-incomingStatus: {
+      incomingStatus: {
         'categories': const SyncStatus(label: 'Categories', success: null),
         'assignedProducts': const SyncStatus(label: 'Assigned Products', success: null),
         'allProducts': const SyncStatus(label: 'All Products', success: null),
@@ -110,6 +110,7 @@ incomingStatus: {
     );
 
      try {
+      _syncRepo.updateOutletId(_ref.read(authProvider).outletId ?? ApiConfig.emptyGuid);
       await _syncRepo.syncAll();
     } catch (_) {}
 

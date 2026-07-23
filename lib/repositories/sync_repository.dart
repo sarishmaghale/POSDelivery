@@ -20,7 +20,7 @@ class SyncRepository {
   final ApiService _apiService;
   final Database _db;
   final NetworkChecker _networkChecker;
-  final String _outletId;
+  String _outletId;
 
   SyncRepository({
     required this._apiService,
@@ -29,6 +29,10 @@ class SyncRepository {
     required String outletId,
   })  : _db = db,
         _outletId = outletId;
+
+    void updateOutletId(String outletId) {
+     _outletId = outletId;
+    }
 
   Future<List<SyncQueue>> getPendingQueue() async {
     final maps = await _db.rawQuery(
