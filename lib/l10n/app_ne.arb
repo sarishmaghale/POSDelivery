@@ -120,7 +120,10 @@
   "language": "भाषा",
   "english": "अङ्ग्रेजी",
   "nepali": "नेपाली",
-
+  "darkMode": "डार्क मोड",
+  "on": "अन",
+  "off": "अफ",
+ 
   "delivery": "डेलिभरी",
   "deliveryNumber": "डेलिभरी #{id}",
   "phone": "फोन:",

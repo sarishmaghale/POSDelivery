@@ -133,6 +133,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     ThemeData theme,
     AppLocalizations l10n,
   ) {
+    final isDark = theme.brightness == Brightness.dark;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -144,13 +145,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
                 color: locationState.isTracking
-                    ? Colors.green.shade50
-                    : Colors.grey.shade100,
+                    ? (isDark ? Colors.green.shade900.withValues(alpha: 0.3) : Colors.green.shade50)
+                    : theme.colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
                   color: locationState.isTracking
-                      ? Colors.green.shade200
-                      : Colors.grey.shade300,
+                      ? (isDark ? Colors.green.shade700 : Colors.green.shade200)
+                      : theme.colorScheme.outlineVariant,
                 ),
               ),
               child: Row(
@@ -161,7 +162,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         : Icons.location_off,
                     color: locationState.isTracking
                         ? Colors.green
-                        : Colors.grey,
+                        : theme.colorScheme.onSurfaceVariant,
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -172,8 +173,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       style: TextStyle(
                         fontWeight: FontWeight.w500,
                         color: locationState.isTracking
-                            ? Colors.green.shade700
-                            : Colors.grey.shade700,
+                            ? (isDark ? Colors.green.shade200 : Colors.green.shade700)
+                            : theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ),
@@ -185,7 +186,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.orange.shade100,
+                        color: isDark ? Colors.orange.shade900.withValues(alpha: 0.3) : Colors.orange.shade100,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
@@ -193,7 +194,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           locationState.pendingSyncCount.toString(),
                         ),
                         style: TextStyle(
-                          color: Colors.orange.shade700,
+                          color: isDark ? Colors.orange.shade200 : Colors.orange.shade700,
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
                         ),
@@ -268,13 +269,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.red.shade50,
+                  color: isDark ? Colors.red.shade900.withValues(alpha: 0.3) : Colors.red.shade50,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.red.shade200),
+                  border: Border.all(color: isDark ? Colors.red.shade700 : Colors.red.shade200),
                 ),
                 child: Text(
                   locationState.error!,
-                  style: TextStyle(color: Colors.red.shade800, fontSize: 13),
+                  style: TextStyle(
+                    color: isDark ? Colors.red.shade200 : Colors.red.shade800,
+                    fontSize: 13,
+                  ),
                 ),
               ),
             ],

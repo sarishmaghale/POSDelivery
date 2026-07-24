@@ -125,7 +125,10 @@
   "language": "Language",
   "english": "English",
   "nepali": "Nepali",
-
+  "darkMode": "Dark Mode",
+  "on": "On",
+  "off": "Off",
+ 
   "delivery": "Delivery",
   "deliveryNumber": "Delivery #{id}",
   "phone": "Phone:",

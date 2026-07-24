@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers/locale_provider.dart';
+import '../../../core/providers/theme_provider.dart';
 import '../../auth/provider/auth_provider.dart';
 import '../../../l10n/app_localizations.dart';
 
@@ -12,6 +13,7 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final currentLocale = ref.watch(localeProvider);
+    final currentThemeMode = ref.watch(themeModeProvider);
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -34,6 +36,26 @@ class ProfileScreen extends ConsumerWidget {
                   final newLocale = value ? const Locale('ne') : const Locale('en');
                   ref.read(localeProvider.notifier).state = newLocale;
                   saveLocale(newLocale);
+                },
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Card(
+            child: ListTile(
+              leading: Icon(
+                currentThemeMode == ThemeMode.dark ? Icons.dark_mode : Icons.light_mode,
+              ),
+              title: Text(l10n.darkMode),
+              subtitle: Text(
+                currentThemeMode == ThemeMode.dark ? l10n.on : l10n.off,
+              ),
+              trailing: Switch(
+                value: currentThemeMode == ThemeMode.dark,
+                onChanged: (value) {
+                  final newMode = value ? ThemeMode.dark : ThemeMode.light;
+                  ref.read(themeModeProvider.notifier).state = newMode;
+                  saveThemeMode(newMode);
                 },
               ),
             ),

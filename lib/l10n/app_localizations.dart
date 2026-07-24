@@ -758,6 +758,24 @@ abstract class AppLocalizations {
   /// **'Nepali'**
   String get nepali;
 
+  /// No description provided for @darkMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark Mode'**
+  String get darkMode;
+
+  /// No description provided for @on.
+  ///
+  /// In en, this message translates to:
+  /// **'On'**
+  String get on;
+
+  /// No description provided for @off.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get off;
+
   /// No description provided for @delivery.
   ///
   /// In en, this message translates to:

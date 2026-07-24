@@ -345,6 +345,15 @@ class AppLocalizationsNe extends AppLocalizations {
   String get nepali => 'नेपाली';
 
   @override
+  String get darkMode => 'डार्क मोड';
+
+  @override
+  String get on => 'अन';
+
+  @override
+  String get off => 'अफ';
+
+  @override
   String get delivery => 'डेलिभरी';
 
   @override
