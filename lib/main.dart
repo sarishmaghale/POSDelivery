@@ -76,6 +76,7 @@ class _PosDeliveryAppState extends ConsumerState<PosDeliveryApp> {
   Widget build(BuildContext context) {
     final locale = ref.watch(localeProvider);
     final router = ref.watch(appRouterProvider);
+    const double textScale = 1.15;
     return MaterialApp.router(
       title: 'POS Delivery',
       debugShowCheckedModeBanner: false,
@@ -89,6 +90,12 @@ class _PosDeliveryAppState extends ConsumerState<PosDeliveryApp> {
         GlobalWidgetsLocalizations.delegate,
       ],
       routerConfig: router,
+       builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(
+          textScaleFactor: MediaQuery.of(context).textScaleFactor * textScale,
+        ),
+        child: child ?? const SizedBox.shrink(),
+      ),
     );
   }
 }
