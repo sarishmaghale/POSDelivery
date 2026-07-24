@@ -13,6 +13,7 @@ import '../../../repositories/delivery_repository.dart';
 import '../../../repositories/estimate_repository.dart';
 import '../../../repositories/payment_mode_repository.dart';
 import '../../../repositories/product_repository.dart';
+import '../../../models/payment_entry.dart';
 
 class DeliveryFormState {
   final Delivery? delivery;
@@ -34,6 +35,7 @@ class DeliveryFormState {
   final bool isSaving;
   final String? stockError;
   final double paidAmount;
+  final List<PaymentEntry> paymentEntries;
   final String? discountType;
   final double discountValue;
   final double discountAmount;
@@ -58,6 +60,7 @@ class DeliveryFormState {
     this.isSaving = false,
     this.stockError,
     this.paidAmount = 0,
+    this.paymentEntries = const [],
     this.discountType,
     this.discountValue = 0,
     this.discountAmount = 0,
@@ -245,6 +248,7 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
       isLoadingProducts: false,
       isSaving: state.isSaving,
       paidAmount: state.paidAmount,
+      paymentEntries: state.paymentEntries,
       discountType: state.discountType,
       discountValue: state.discountValue,
       discountAmount: state.discountAmount,
@@ -314,6 +318,9 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
       final paidAmount = existingEstimates.isNotEmpty
           ? existingEstimates.first.paidAmount
           : 0.0;
+      final paymentEntries = existingEstimates.isNotEmpty
+      ? existingEstimates.first.paymentEntries
+      : <PaymentEntry>[];
 
       String? discountType;
       double discountValue = 0;
@@ -338,6 +345,7 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
         delivery: delivery,
         isReadOnly: isReadOnly,
         paidAmount: paidAmount,
+        paymentEntries: paymentEntries,
         customerName: customerName,
         categories: categories,
         products: products,
@@ -371,6 +379,7 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
       categories: state.categories,
       products: state.products,
       paymentModes: state.paymentModes,
+      paymentEntries: state.paymentEntries,
       selectedPaymentMode: state.selectedPaymentMode,
       cart: state.cart,
       customPrices: state.customPrices,
@@ -389,6 +398,7 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
       categories: state.categories,
       products: state.products,
       paymentModes: state.paymentModes,
+      paymentEntries: state.paymentEntries,
       selectedPaymentMode: mode,
       cart: state.cart,
       customPrices: state.customPrices,
@@ -411,6 +421,7 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
       categories: state.categories,
       products: state.products,
       paymentModes: state.paymentModes,
+      paymentEntries: state.paymentEntries,
       selectedPaymentMode: state.selectedPaymentMode,
       cart: state.cart,
       customPrices: updated,
@@ -439,6 +450,7 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
       categories: state.categories,
       products: state.products,
       paymentModes: state.paymentModes,
+      paymentEntries: state.paymentEntries,
       selectedPaymentMode: state.selectedPaymentMode,
       cart: state.cart,
       customPrices: state.customPrices,
@@ -460,6 +472,7 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
         categories: state.categories,
         products: state.products,
         paymentModes: state.paymentModes,
+        paymentEntries: state.paymentEntries,
         selectedPaymentMode: state.selectedPaymentMode,
         cart: state.cart,
         customPrices: state.customPrices,
@@ -496,6 +509,7 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
         categories: state.categories,
         products: state.products,
         paymentModes: state.paymentModes,
+        paymentEntries: state.paymentEntries,
         selectedPaymentMode: state.selectedPaymentMode,
         cart: state.cart,
         customPrices: state.customPrices,
@@ -518,6 +532,7 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
       categories: state.categories,
       products: state.products,
       paymentModes: state.paymentModes,
+      paymentEntries: state.paymentEntries,
       selectedPaymentMode: state.selectedPaymentMode,
       cart: updated,
       customPrices: state.customPrices,
@@ -539,6 +554,7 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
       categories: state.categories,
       products: state.products,
       paymentModes: state.paymentModes,
+      paymentEntries: state.paymentEntries,
       selectedPaymentMode: state.selectedPaymentMode,
       cart: updated,
       customPrices: state.customPrices,
@@ -561,6 +577,7 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
       categories: state.categories,
       products: state.products,
       paymentModes: state.paymentModes,
+      paymentEntries: state.paymentEntries,
       selectedPaymentMode: state.selectedPaymentMode,
       cart: state.cart,
       customPrices: state.customPrices,
@@ -577,6 +594,7 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
       categories: state.categories,
       products: state.products,
       paymentModes: state.paymentModes,
+      paymentEntries: state.paymentEntries,
       selectedPaymentMode: state.selectedPaymentMode,
       productSearchQuery: state.productSearchQuery,
     );
@@ -589,6 +607,7 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
       categories: state.categories,
       products: state.products,
       paymentModes: state.paymentModes,
+      paymentEntries: state.paymentEntries,
       selectedPaymentMode: state.selectedPaymentMode,
       cart: state.cart,
       productSearchQuery: state.productSearchQuery,
@@ -602,6 +621,7 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
       categories: state.categories,
       products: state.products,
       paymentModes: state.paymentModes,
+      paymentEntries: state.paymentEntries,
       selectedPaymentMode: state.selectedPaymentMode,
       cart: state.cart,
       customPrices: state.customPrices,
@@ -615,6 +635,7 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
       categories: state.categories,
       products: state.products,
       paymentModes: state.paymentModes,
+      paymentEntries: state.paymentEntries,
     );
   }
 
@@ -627,6 +648,7 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
       categories: state.categories,
       products: state.products,
       paymentModes: state.paymentModes,
+      paymentEntries: state.paymentEntries,
       selectedPaymentMode: state.selectedPaymentMode,
       cart: state.cart,
       customPrices: state.customPrices,
@@ -688,6 +710,7 @@ class DeliveryFormNotifier extends StateNotifier<DeliveryFormState> {
         categories: state.categories,
         products: state.products,
         paymentModes: state.paymentModes,
+        paymentEntries: state.paymentEntries,
         selectedPaymentMode: state.selectedPaymentMode,
         cart: state.cart,
         customPrices: state.customPrices,
