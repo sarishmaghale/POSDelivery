@@ -46,10 +46,9 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
   final CategoryRepository _categoryRepo;
 
   DashboardNotifier({
-    required DashboardRepository dashboardRepo,
+    required this._dashboardRepo,
     required CategoryRepository categoryRepo,
-  })  : _dashboardRepo = dashboardRepo,
-        _categoryRepo = categoryRepo,
+  })  : _categoryRepo = categoryRepo,
         super(DashboardState()) {
     loadDashboard();
   }

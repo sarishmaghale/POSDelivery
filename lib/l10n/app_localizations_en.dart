@@ -27,6 +27,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get todaysDeliveries => 'Today\'s Deliveries';
 
   @override
+  String get todaysSalesReturns => 'Today\'s Sales Returns';
+
+  @override
   String get salesReturns => 'Sales Returns';
 
   @override
@@ -142,7 +145,33 @@ class AppLocalizationsEn extends AppLocalizations {
   String get available => 'Available:';
 
   @override
+  String get backToDelivery => 'Back to Delivery';
+
+  @override
   String get noDeliveriesForToday => 'No deliveries for today';
+
+  @override
+  String get noSalesReturnsForToday => 'No sales returns for today';
+
+  @override
+  String get salesReturnDetail => 'Sales Return Detail';
+
+  @override
+  String salesReturnNumber(Object id) {
+    return 'Sales Return #$id';
+  }
+
+  @override
+  String get viewingSalesReturn => 'Viewing sales return';
+
+  @override
+  String get salesReturnNotFound => 'Sales return not found';
+
+  @override
+  String get syncInitiated => 'Sync initiated';
+
+  @override
+  String get syncFailed => 'Sync failed';
 
   @override
   String get cart => 'Cart';
@@ -194,6 +223,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get discountType => 'Discount Type';
+
+  @override
+  String get discountValue => 'Discount Value';
 
   @override
   String get none => 'None';
@@ -256,7 +288,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get additionalDetails => 'Additional Details';
 
   @override
-  String get reasonOptional => 'Reason (Optional)';
+  String get reason => 'Reason';
 
   @override
   String get saveSalesReturn => 'Save Sales Return';
@@ -313,6 +345,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get nepali => 'Nepali';
 
   @override
+  String get darkMode => 'Dark Mode';
+
+  @override
+  String get on => 'On';
+
+  @override
+  String get off => 'Off';
+
+  @override
   String get delivery => 'Delivery';
 
   @override
@@ -333,7 +374,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get paid => 'Paid:';
 
   @override
-  String qtyWithPrice(Object qty, Object price) {
+  String qtyWithPrice(Object price, Object qty) {
     return 'Qty: $qty × Rs. $price';
   }
 
@@ -369,8 +410,170 @@ class AppLocalizationsEn extends AppLocalizations {
   String get receipt => 'Receipt';
 
   @override
-  String get addPayment => 'addPayment';
+  String get amount => 'Amount';
 
   @override
-  String get makePayment => 'makePayment';
+  String get remaining => 'Remaining:';
+
+  @override
+  String get addPayment => 'Add Payment';
+
+  @override
+  String get makePayment => 'Make Payment';
+
+  @override
+  String get volumeDiscount => 'Volume Discount';
+
+  @override
+  String get logout => 'Logout';
+
+  @override
+  String get confirmLogout => 'Are you sure you want to logout?';
+
+  @override
+  String get done => 'Done';
+
+  @override
+  String get remove => 'Remove';
+
+  @override
+  String get change => 'Change';
+
+  @override
+  String get retry => 'Retry';
+
+  @override
+  String get selectCustomer => 'Select Customer';
+
+  @override
+  String get searchCustomer => 'Search customer...';
+
+  @override
+  String get selectCategory => 'Select Category';
+
+  @override
+  String perUnit(Object unit) {
+    return 'Per $unit';
+  }
+
+  @override
+  String get unit => 'Unit';
+
+  @override
+  String get rate => 'Rate';
+
+  @override
+  String get value => 'Value';
+
+  @override
+  String get companyCode => 'Company Code';
+
+  @override
+  String get username => 'Username';
+
+  @override
+  String get password => 'Password';
+
+  @override
+  String get login => 'Login';
+
+  @override
+  String get enterCompanyCode => 'Enter company code';
+
+  @override
+  String get enterUsername => 'Enter username';
+
+  @override
+  String get enterPassword => 'Enter password';
+
+  @override
+  String get selectCompany => 'Select Company';
+
+  @override
+  String get selectBranch => 'Select Branch';
+
+  @override
+  String get selectDepartment => 'Select Department';
+
+  @override
+  String get selectFiscalYear => 'Select Fiscal Year';
+
+  @override
+  String get noCustomersFound => 'No customers found';
+
+  @override
+  String get productDiscount => 'Product Discount';
+
+  @override
+  String get noProductsAdded => 'No products added';
+
+  @override
+  String addedProducts(Object count) {
+    return 'Added Products ($count)';
+  }
+
+  @override
+  String get viewDetails => 'View details';
+
+  @override
+  String get noProductsAvailable => 'No products available';
+
+  @override
+  String get cartIsEmptyMessage =>
+      'Cart is empty. Add products from the list above.';
+
+  @override
+  String cartItemCount(Object count) {
+    return 'Cart ($count items)';
+  }
+
+  @override
+  String get qtyLabel => 'Qty:';
+
+  @override
+  String get stock => 'Stock';
+
+  @override
+  String get posDelivery => 'POS Delivery';
+
+  @override
+  String get noCategoriesAvailable => 'No categories available';
+
+  @override
+  String get noCustomersAvailable => 'No customers available';
+
+  @override
+  String get searchProduct => 'Search Product';
+
+  @override
+  String get typeToSearch => 'Type to search...';
+
+  @override
+  String get noProductsFound => 'No products found';
+
+  @override
+  String billsPendingSync(Object count) {
+    return '$count bill(s) pending sync';
+  }
+
+  @override
+  String get offlineInvoicesWaiting =>
+      'Offline invoices waiting to be pushed to server.';
+
+  @override
+  String get deliveryLabel => 'Delivery';
+
+  @override
+  String invoiceNumber(Object id) {
+    return 'Invoice #$id';
+  }
+
+  @override
+  String get pleaseMakeFullPayment => 'Please make full payment';
+
+  @override
+  String get pleaseEnterReason => 'Please add return reason';
+
+  @override
+  String get pleaseEnterPaymode => 'Please add payment entry';
 }

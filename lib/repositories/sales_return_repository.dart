@@ -23,12 +23,10 @@ class SalesReturnRepository {
   final NetworkChecker _networkChecker;
 
   SalesReturnRepository({
-    required ApiService apiService,
+    required this._apiService,
     required Database db,
-    required NetworkChecker networkChecker,
-  })  : _apiService = apiService,
-        _db = db,
-        _networkChecker = networkChecker;
+    required this._networkChecker,
+  })  : _db = db;
 
   Future<SalesReturn> saveSalesReturn({
     required String customerId,
@@ -40,6 +38,7 @@ class SalesReturnRepository {
     double discountAmount = 0,
     String? paymentMode,
     List<PaymentEntry> paymentEntries = const [],
+    bool isSynced = false,
   }) async {
     final sr = SalesReturn()
       ..customerId = customerId
@@ -51,7 +50,7 @@ class SalesReturnRepository {
       ..paymentMode = paymentMode
       ..paymentEntries = paymentEntries
       ..createdDate = DateTime.now()
-      ..isSynced = false;
+      ..isSynced = isSynced;
 
     final id = await _db.insert('sales_return', sr.toMap());
     sr.id = id;
@@ -62,59 +61,63 @@ class SalesReturnRepository {
     }
     sr.items = items;
 
-    final syncEntry = SyncQueue()
+    if(!isSynced)
+    {
+      final syncEntry = SyncQueue()
       ..entityType = 'SalesReturn'
       ..entityId = id
       ..status = 'Pending'
       ..createdDate = DateTime.now();
-    await _db.insert('sync_queue', syncEntry.toMap());
-
-    final isOnline = await _networkChecker.isConnected;
-    if (isOnline) {
-      await _syncSalesReturn(sr);
+      await _db.insert('sync_queue', syncEntry.toMap());
     }
+    // if (!skipSync) {
+    //   final isOnline = await _networkChecker.isConnected;
+    //   if (isOnline) {
+    //     await _syncSalesReturn(sr);
+    //   }
+    // }
 
     return sr;
   }
 
-  Future<void> _syncSalesReturn(SalesReturn sr) async {
-    await _db.update(
-      'sync_queue',
-      {'status': 'Syncing'},
-      where: 'entity_type = ? AND entity_id = ?',
-      whereArgs: ['SalesReturn', sr.id],
-    );
+  // Future<void> _syncSalesReturn(SalesReturn sr) async {
+  //   await _db.update(
+  //     'sync_queue',
+  //     {'status': 'Syncing'},
+  //     where: 'entity_type = ? AND entity_id = ?',
+  //     whereArgs: ['SalesReturn', sr.id],
+  //   );
 
-    try {
-      final payload = {
-        ...sr.toMap(),
-        'items': sr.items.map((item) => item.toMap()).toList(),
-      };
-      final response = await _apiService.createSalesReturn(payload);
+  //   try {
+  //     final payload = {
+  //       ...sr.toMap(),
+  //       'items': sr.items.map((item) => item.toMap()).toList(),
+  //     };
+  //     final response = await _apiService.createSalesReturn(payload);
 
-      if (response) {
-        await _db.update(
-          'sales_return',
-          {'is_synced': 1},
-          where: 'id = ?',
-          whereArgs: [sr.id],
-        );
-        await _db.update(
-          'sync_queue',
-          {'status': 'Synced'},
-          where: 'entity_type = ? AND entity_id = ?',
-          whereArgs: ['SalesReturn', sr.id],
-        );
-      }
-    } catch (_) {
-      await _db.update(
-        'sync_queue',
-        {'status': 'Failed'},
-        where: 'entity_type = ? AND entity_id = ?',
-        whereArgs: ['SalesReturn', sr.id],
-      );
-    }
-  }
+  //     if (response) {
+  //       await _db.update(
+  //         'sales_return',
+  //         {'is_synced': 1},
+  //         where: 'id = ?',
+  //         whereArgs: [sr.id],
+  //       );
+  //       await _db.update(
+  //         'sync_queue',
+  //         {'status': 'Synced'},
+  //         where: 'entity_type = ? AND entity_id = ?',
+  //         whereArgs: ['SalesReturn', sr.id],
+  //       );
+  //     }
+  //   } catch (_) {
+  //     await _db.update(
+  //       'sync_queue',
+  //       {'status': 'Failed'},
+  //       where: 'entity_type = ? AND entity_id = ?',
+  //       whereArgs: ['SalesReturn', sr.id],
+  //     );
+  //   }
+  // }
 
   Future<List<SalesReturn>> getReturnsByDate(DateTime date) async {
     final startOfDay = DateTime(date.year, date.month, date.day);
@@ -156,5 +159,35 @@ class SalesReturnRepository {
       [startOfDay.toIso8601String(), endOfDay.toIso8601String()],
     );
     return Sqflite.firstIntValue(result) ?? 0;
+  }
+
+  Future<List<SalesReturn>> getSalesReturnsByDate(DateTime date) async {
+    final startOfDay = DateTime(date.year, date.month, date.day);
+    final endOfDay = startOfDay.add(const Duration(days: 1));
+    final maps = await _db.query('sales_return',
+        where: 'created_date >= ? AND created_date < ?',
+        whereArgs: [
+          startOfDay.toIso8601String(),
+          endOfDay.toIso8601String()
+        ],
+        orderBy: 'created_date DESC');
+    final returns = maps.map((m) => SalesReturn.fromMap(m)).toList();
+    for (final sr in returns) {
+      final itemMaps = await _db.query('sales_return_item',
+          where: 'sales_return_id = ?', whereArgs: [sr.id]);
+      sr.items = itemMaps.map((m) => SalesReturnItem.fromMap(m)).toList();
+    }
+    return returns;
+  }
+
+  Future<SalesReturn?> getSalesReturnById(int id) async {
+    final maps = await _db.query('sales_return',
+        where: 'id = ?', whereArgs: [id]);
+    if (maps.isEmpty) return null;
+    final sr = SalesReturn.fromMap(maps.first);
+    final itemMaps = await _db.query('sales_return_item',
+        where: 'sales_return_id = ?', whereArgs: [sr.id]);
+    sr.items = itemMaps.map((m) => SalesReturnItem.fromMap(m)).toList();
+    return sr;
   }
 }

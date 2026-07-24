@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
+
 class ErrorBanner extends StatelessWidget {
   final String message;
   final VoidCallback? onRetry;
@@ -38,7 +40,7 @@ class ErrorBanner extends StatelessWidget {
           if (onRetry != null)
             TextButton(
               onPressed: onRetry,
-              child: const Text('Retry'),
+              child: Text(AppLocalizations.of(context)!.retry),
             ),
         ],
       ),

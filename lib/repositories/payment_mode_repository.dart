@@ -17,9 +17,8 @@ class PaymentModeRepository {
   final ApiService _apiService;
   final Database _db;
 
-  PaymentModeRepository({required ApiService apiService, required Database db})
-      : _apiService = apiService,
-        _db = db;
+  PaymentModeRepository({required this._apiService, required Database db})
+      : _db = db;
 
   Future<List<PaymentMode>> getPaymentModes() async {
     final maps = await _db.query('payment_mode');

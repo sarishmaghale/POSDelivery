@@ -27,6 +27,9 @@ class AppLocalizationsNe extends AppLocalizations {
   String get todaysDeliveries => 'आजको डेलिभरीहरू';
 
   @override
+  String get todaysSalesReturns => 'आजको सेल्स रिटर्नहरू';
+
+  @override
   String get salesReturns => 'सेल्स रिटर्न';
 
   @override
@@ -142,7 +145,33 @@ class AppLocalizationsNe extends AppLocalizations {
   String get available => 'उपलब्ध:';
 
   @override
+  String get backToDelivery => 'डेलिभरीमा फर्कनुहोस्';
+
+  @override
   String get noDeliveriesForToday => 'आजको लागि कुनै डेलिभरी छैन';
+
+  @override
+  String get noSalesReturnsForToday => 'आजको लागि कुनै सेल्स रिटर्न छैन';
+
+  @override
+  String get salesReturnDetail => 'सेल्स रिटर्न विवरण';
+
+  @override
+  String salesReturnNumber(Object id) {
+    return 'सेल्स रिटर्न #$id';
+  }
+
+  @override
+  String get viewingSalesReturn => 'सेल्स रिटर्न हेर्दै';
+
+  @override
+  String get salesReturnNotFound => 'सेल्स रिटर्न फेला परेन';
+
+  @override
+  String get syncInitiated => 'सिङ्क सुरु भयो';
+
+  @override
+  String get syncFailed => 'सिङ्क असफल भयो';
 
   @override
   String get cart => 'कार्ट';
@@ -194,6 +223,9 @@ class AppLocalizationsNe extends AppLocalizations {
 
   @override
   String get discountType => 'छुट प्रकार';
+
+  @override
+  String get discountValue => 'छुट मूल्य';
 
   @override
   String get none => 'कुनै पनि होइन';
@@ -256,7 +288,7 @@ class AppLocalizationsNe extends AppLocalizations {
   String get additionalDetails => 'अतिरिक्त विवरण';
 
   @override
-  String get reasonOptional => 'कारण (वैकल्पिक)';
+  String get reason => 'कारण';
 
   @override
   String get saveSalesReturn => 'सेल्स रिटर्न सुरक्षित गर्नुहोस्';
@@ -311,6 +343,15 @@ class AppLocalizationsNe extends AppLocalizations {
 
   @override
   String get nepali => 'नेपाली';
+
+  @override
+  String get darkMode => 'डार्क मोड';
+
+  @override
+  String get on => 'अन';
+
+  @override
+  String get off => 'अफ';
 
   @override
   String get delivery => 'डेलिभरी';
@@ -382,4 +423,157 @@ class AppLocalizationsNe extends AppLocalizations {
 
   @override
   String get volumeDiscount => 'भोल्युम छुट';
+
+  @override
+  String get logout => 'लग आउट';
+
+  @override
+  String get confirmLogout => 'के तपाईं लग आउट गर्न चाहनुहुन्छ?';
+
+  @override
+  String get done => 'भयो';
+
+  @override
+  String get remove => 'हटाउनुहोस्';
+
+  @override
+  String get change => 'परिवर्तन गर्नुहोस्';
+
+  @override
+  String get retry => 'पुन: प्रयास गर्नुहोस्';
+
+  @override
+  String get selectCustomer => 'ग्राहक चयन गर्नुहोस्';
+
+  @override
+  String get searchCustomer => 'ग्राहक खोज्नुहोस्...';
+
+  @override
+  String get selectCategory => 'कोटी चयन गर्नुहोस्';
+
+  @override
+  String perUnit(Object unit) {
+    return 'प्रति $unit';
+  }
+
+  @override
+  String get unit => 'एकाइ';
+
+  @override
+  String get rate => 'दर';
+
+  @override
+  String get value => 'मूल्य';
+
+  @override
+  String get companyCode => 'कम्पनी कोड';
+
+  @override
+  String get username => 'प्रयोगकर्ता नाम';
+
+  @override
+  String get password => 'पासवर्ड';
+
+  @override
+  String get login => 'लग इन';
+
+  @override
+  String get enterCompanyCode => 'कम्पनी कोड प्रविष्ट गर्नुहोस्';
+
+  @override
+  String get enterUsername => 'प्रयोगकर्ता नाम प्रविष्ट गर्नुहोस्';
+
+  @override
+  String get enterPassword => 'पासवर्ड प्रविष्ट गर्नुहोस्';
+
+  @override
+  String get selectCompany => 'कम्पनी चयन गर्नुहोस्';
+
+  @override
+  String get selectBranch => 'शाखा चयन गर्नुहोस्';
+
+  @override
+  String get selectDepartment => 'विभाग चयन गर्नुहोस्';
+
+  @override
+  String get selectFiscalYear => 'आर्थिक वर्ष चयन गर्नुहोस्';
+
+  @override
+  String get noCustomersFound => 'कुनै ग्राहक फेला भएन';
+
+  @override
+  String get productDiscount => 'उत्पादन छुट';
+
+  @override
+  String get noProductsAdded => 'कुनै उत्पादन थपिएको छैन';
+
+  @override
+  String addedProducts(Object count) {
+    return 'थपिएका उत्पादनहरू ($count)';
+  }
+
+  @override
+  String get viewDetails => 'विवरण हेर्नुहोस्';
+
+  @override
+  String get noProductsAvailable => 'कुनै उत्पादन उपलब्ध छैन';
+
+  @override
+  String get cartIsEmptyMessage =>
+      'कार्ट खाली छ। माथिको सूचीबाट उत्पादनहरू थप्नुहोस्।';
+
+  @override
+  String cartItemCount(Object count) {
+    return 'कार्ट ($count वस्तुहरू)';
+  }
+
+  @override
+  String get qtyLabel => 'मात्रा:';
+
+  @override
+  String get stock => 'स्टक';
+
+  @override
+  String get posDelivery => 'POS डेलिभरी';
+
+  @override
+  String get noCategoriesAvailable => 'कुनै कोटी उपलब्ध छैन';
+
+  @override
+  String get noCustomersAvailable => 'कुनै ग्राहक उपलब्ध छैन';
+
+  @override
+  String get searchProduct => 'उत्पादन खोज्नुहोस्';
+
+  @override
+  String get typeToSearch => 'खोज्न टाइप गर्नुहोस्...';
+
+  @override
+  String get noProductsFound => 'कुनै उत्पादन फेला भएन';
+
+  @override
+  String billsPendingSync(Object count) {
+    return '$count बिल(हरू) सिङ्क पेन्डिङ';
+  }
+
+  @override
+  String get offlineInvoicesWaiting =>
+      'अफलाइन इन्भ्वाइसहरू सर्भरमा पठाउन बाँकी छन्।';
+
+  @override
+  String get deliveryLabel => 'डेलिभरी';
+
+  @override
+  String invoiceNumber(Object id) {
+    return 'इन्भ्वाइस #$id';
+  }
+
+  @override
+  String get pleaseMakeFullPayment => 'कृपया पूरा भुक्तानी गर्नुहोस्';
+
+  @override
+  String get pleaseEnterReason => 'कृपया रिटर्न कारण थप्नुहोस्';
+
+  @override
+  String get pleaseEnterPaymode => 'कृपया भुक्तानी मोड थप्नुहोस्';
 }

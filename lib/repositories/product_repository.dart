@@ -21,9 +21,8 @@ class ProductRepository {
   final ApiService _apiService;
   final Database _db;
 
-  ProductRepository({required ApiService apiService, required Database db})
-    : _apiService = apiService,
-      _db = db;
+  ProductRepository({required this._apiService, required Database db})
+    : _db = db;
 
   Future<List<Product>> getProducts({
     required String customerId,
@@ -67,6 +66,7 @@ class ProductRepository {
       p.unitId = json['BaseUnitId']?.toString();
       p.unit = json['BaseUnitName']?.toString();
       p.unitPrice = (json['Rate'] as num?)?.toDouble() ?? 0;
+      p.taxable = (json['Taxable'] as num?)?.toInt() ?? 0;
 
       final unitsRaw = json['Units'] as List?;
       if (unitsRaw != null) {
@@ -92,6 +92,7 @@ class ProductRepository {
             'unit_price':p.unitPrice,
             'image_url': p.imageUrl,
             'units_json': p.units.isNotEmpty ? jsonEncode(p.units.map((u) => u.toJson()).toList()) : null,
+            'taxable': p.taxable,
           }, conflictAlgorithm: ConflictAlgorithm.replace);
         }
       });
@@ -113,6 +114,7 @@ class ProductRepository {
       p.unit = map['unit'] as String?;
       p.imageUrl = map['image_url'] as String?;
       p.unitPrice = (map['unit_price'] as num?)?.toDouble() ?? 0;
+      p.taxable = (map['taxable'] as int?) ?? 0;
       final unitsRaw = map['units_json'] as String?;
       if (unitsRaw != null && unitsRaw.isNotEmpty) {
         p.units = (jsonDecode(unitsRaw) as List)

@@ -14,8 +14,8 @@ class DeliveryRepository {
   final Database _db;
 
   DeliveryRepository({
-    required Database db,
-  }) : _db = db;
+    required this._db,
+  });
 
   Future<Delivery> updateDelivery(
     int deliveryId, {

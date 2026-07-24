@@ -104,11 +104,6 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
     AppLocalizations l10n,
   ) {
     final delivery = state.delivery;
-    final paymentModeName =
-        state.selectedPaymentMode?.name ??
-        (delivery?.paymentMode != null && delivery!.paymentMode!.isNotEmpty
-            ? delivery.paymentMode
-            : null);
 
     final itemsWithTax = cartItems.map((item) {
       final product = state.products
@@ -124,15 +119,22 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
     }).toList();
 
     final totalGrossIncTax = itemsWithTax.fold<double>(
-        0, (sum, e) => sum + e.tax.grossAmountIncTax);
+      0,
+      (sum, e) => sum + e.tax.grossAmountIncTax,
+    );
     final totalDiscountIncTax = itemsWithTax.fold<double>(
-        0, (sum, e) => sum + e.tax.discountIncludingTax);
+      0,
+      (sum, e) => sum + e.tax.discountIncludingTax,
+    );
     final totalTax = itemsWithTax.fold<double>(
-        0, (sum, e) => sum + e.tax.taxAmount);
+      0,
+      (sum, e) => sum + e.tax.taxAmount,
+    );
     final globalDiscountIncTax = state.discountAmount > 0
         ? state.discountAmount
         : 0.0;
-    final netTotal = totalGrossIncTax - totalDiscountIncTax - globalDiscountIncTax;
+    final netTotal =
+        totalGrossIncTax - totalDiscountIncTax - globalDiscountIncTax;
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -173,7 +175,7 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Invoice #${delivery?.id ?? ''}',
+                      l10n.invoiceNumber(delivery?.id.toString() ?? ''),
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -200,17 +202,23 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
                   const SizedBox(height: 4),
                   Text(state.customerName!, style: theme.textTheme.bodyMedium),
                 ],
-                if (paymentModeName != null) ...[
+                                if (state.paymentEntries.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Text(
-                    'Payment Mode',
+                    l10n.paymentMode,
                     style: theme.textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(paymentModeName, style: theme.textTheme.bodyMedium),
-                ],
+                  ...state.paymentEntries.map((e) => Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      '${e.paymentModeName ?? 'Cash'} - Rs. ${e.amount.toStringAsFixed(2)}',
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                  )),
+                ], 
               ],
             ),
           ),
@@ -302,7 +310,7 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Product Discount',
+                        l10n.productDiscount,
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: theme.colorScheme.error,
                         ),
@@ -381,34 +389,6 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
             ),
           ),
         ),
-        if (state.paidAmount > 0) ...[
-          const SizedBox(height: 8),
-          Card(
-            color: theme.colorScheme.secondaryContainer,
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Paid Amount',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.onSecondaryContainer,
-                    ),
-                  ),
-                  Text(
-                    'Rs. ${state.paidAmount.toStringAsFixed(2)}',
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.onSecondaryContainer,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
       ],
     );
   }
@@ -448,7 +428,7 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: state.categories.length + 1,
-            separatorBuilder: (_, __) => const SizedBox(width: 8),
+            separatorBuilder: (_, _) => const SizedBox(width: 8),
             itemBuilder: (context, index) {
               if (index == 0) {
                 final isSelected = state.selectedCategory == null;
@@ -609,9 +589,9 @@ class _DeliveryScreenState extends ConsumerState<DeliveryScreen> {
                       ? CachedNetworkImage(
                           imageUrl: product.firstImageUrl!,
                           fit: BoxFit.cover,
-                          placeholder: (_, __) =>
+                          placeholder: (_, _) =>
                               _buildShimmerPlaceholder(theme),
-                          errorWidget: (_, __, ___) =>
+                          errorWidget: (_, _, _) =>
                               _buildPlaceholderIcon(theme),
                         )
                       : _buildPlaceholderIcon(theme),

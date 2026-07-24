@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../provider/estimate_provider.dart';
 
 class EstimateItemTile extends StatefulWidget {
@@ -28,6 +29,7 @@ class _EstimateItemTileState extends State<EstimateItemTile> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     _controller ??= TextEditingController();
 
     return Card(
@@ -59,7 +61,7 @@ class _EstimateItemTileState extends State<EstimateItemTile> {
             Row(
               children: [
                 Text(
-                  'Qty: ',
+                  '${l10n.qty} ',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -70,8 +72,8 @@ class _EstimateItemTileState extends State<EstimateItemTile> {
                     controller: _controller,
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
-                    decoration: const InputDecoration(
-                      hintText: 'Qty',
+                    decoration: InputDecoration(
+                      hintText: l10n.qty,
                       isDense: true,
                       contentPadding: EdgeInsets.symmetric(
                         horizontal: 12,
@@ -89,7 +91,7 @@ class _EstimateItemTileState extends State<EstimateItemTile> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      'Line Total',
+                      l10n.lineTotal,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),

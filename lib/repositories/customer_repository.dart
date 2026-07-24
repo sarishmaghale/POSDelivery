@@ -18,10 +18,9 @@ class CustomerRepository {
   final Database _db;
 
   CustomerRepository({
-    required ApiService apiService,
+    required this._apiService,
     required Database db,
-  })  : _apiService = apiService,
-        _db = db;
+  })  : _db = db;
 
   static String _getField(Map<String, dynamic> json, List<String> keys) {
     for (final key in keys) {
@@ -46,6 +45,13 @@ class CustomerRepository {
   Future<List<Customer>> getCachedCustomers() async {
     final maps = await _db.query('customer');
     return maps.map((map) => Customer.fromMap(map)).toList();
+  }
+
+  Future<Customer?> getCustomerById(String serverId) async {
+    final maps = await _db.query('customer',
+        where: 'server_id = ?', whereArgs: [serverId]);
+    if (maps.isEmpty) return null;
+    return Customer.fromMap(maps.first);
   }
 
   Future<List<Customer>> _fetchAndCacheCustomers() async {

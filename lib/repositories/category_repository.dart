@@ -18,10 +18,9 @@ class CategoryRepository {
   final Database _db;
 
   CategoryRepository({
-    required ApiService apiService,
+    required this._apiService,
     required Database db,
-  })  : _apiService = apiService,
-        _db = db;
+  })  : _db = db;
 
   Future<List<Category>> getCategories({
     required String customerId,

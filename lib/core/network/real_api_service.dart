@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 
 import '../../dto/sales_invoice_request.dart';
 import '../../dto/sales_invoice_response.dart';
+import '../../dto/sales_return_request.dart';
 import 'api_config.dart';
 import 'api_service.dart';
 
@@ -19,6 +20,20 @@ class RealApiService implements ApiService {
         'Accept': 'application/json',
       },
     ));
+  }
+
+  void addInterceptor(Interceptor interceptor) {
+    _dio.interceptors.add(interceptor);
+  }
+
+  @override
+  void updateConfig({String? baseUrl, String? token}) {
+    if (baseUrl != null) {
+      _dio.options.baseUrl = baseUrl;
+    }
+    if (token != null) {
+      _dio.options.headers['Authorization'] = 'Bearer $token';
+    }
   }
 
   Future<List<Map<String, dynamic>>> _fetchList(String endpoint) async {
@@ -77,7 +92,7 @@ class RealApiService implements ApiService {
     return _fetchList(ApiConfig.paymodeEndpoint);
   }
 
-@override
+  @override
   Future<List<Map<String, dynamic>>> fetchAllProducts() async {
     final url = '${_dio.options.baseUrl}${ApiConfig.allProductsEndpoint}';
     print('[API] Calling AllProducts: $url');
@@ -91,7 +106,7 @@ class RealApiService implements ApiService {
       }
       final data = body['Data'];
       if (data is List) {
-        print('[API] AllProducts got ${data.length} products');
+        print('[API] AllProducts got ${data} products');
         return data.cast<Map<String, dynamic>>();
       }
       return [];
@@ -107,11 +122,38 @@ class RealApiService implements ApiService {
       data: request.toJson(),
     );
     final body = response.data as Map<String, dynamic>;
-    return SalesInvoiceResponse.fromJson(body);
+    final result = SalesInvoiceResponse.fromJson(body);
+    if (!result.success) {
+      print('[API] createSalesInvoice FAILED. Response: ${response.data}');
+    }
+    return result;
   }
 
   @override
   Future<bool> createSalesReturn(Map<String, dynamic> data) async {
-    throw UnimplementedError('createSalesReturn not implemented on real API');
+    final response = await _dio.post(
+      ApiConfig.salesInvoiceAddEndpoint,
+      data: data,
+    );
+    final body = response.data as Map<String, dynamic>;
+    final status = body['Status'] == true || body['status'] == true;
+    if (!status) {
+      print('[API] createSalesReturn FAILED. Response: ${response.data}');
+    }
+    return status;
+  }
+
+  @override
+  Future<bool> createSalesReturnV2(SalesReturnRequest request) async {
+    final response = await _dio.post(
+      ApiConfig.salesInvoiceAddEndpoint,
+      data: request.toJson(),
+    );
+    final body = response.data as Map<String, dynamic>;
+    final status = body['Status'] == true || body['status'] == true;
+    if (!status) {
+      print('[API] SalesReturnV2 FAILED. Response: ${response.data}');
+    }
+    return status;
   }
 }

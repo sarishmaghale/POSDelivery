@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/database/providers.dart';
 import '../../../core/network/api_config.dart';
+import '../../../core/network/providers.dart';
 import '../../../core/services/image_prefetch_service.dart';
 import '../../../models/sync_queue.dart';
 import '../../../repositories/category_repository.dart';
@@ -8,6 +10,7 @@ import '../../../repositories/customer_repository.dart';
 import '../../../repositories/payment_mode_repository.dart';
 import '../../../repositories/product_repository.dart';
 import '../../../repositories/sync_repository.dart';
+import '../../auth/provider/auth_provider.dart';
 
 class SyncStatus {
   final String label;
@@ -42,8 +45,16 @@ class SyncState {
 }
 
 final syncProvider = StateNotifierProvider<SyncNotifier, SyncState>((ref) {
+  final outletId = ref.read(authProvider).outletId ?? ApiConfig.emptyGuid;
+  final syncRepo = SyncRepository(
+    apiService: ref.read(apiServiceProvider),
+    db: ref.read(databaseServiceProvider).db,
+    networkChecker: ref.read(networkCheckerProvider),
+    outletId: outletId,
+  );
   return SyncNotifier(
-    syncRepo: ref.read(syncRepositoryProvider),
+    ref: ref,
+    syncRepo: syncRepo,
     categoryRepo: ref.read(categoryRepositoryProvider),
     productRepo: ref.read(productRepositoryProvider),
     customerRepo: ref.read(customerRepositoryProvider),
@@ -52,6 +63,7 @@ final syncProvider = StateNotifierProvider<SyncNotifier, SyncState>((ref) {
 });
 
 class SyncNotifier extends StateNotifier<SyncState> {
+  final Ref _ref;
   final SyncRepository _syncRepo;
   final CategoryRepository _categoryRepo;
   final ProductRepository _productRepo;
@@ -59,16 +71,13 @@ class SyncNotifier extends StateNotifier<SyncState> {
   final PaymentModeRepository _paymentModeRepo;
 
   SyncNotifier({
-    required SyncRepository syncRepo,
+    required this._ref,
+    required this._syncRepo,
     required CategoryRepository categoryRepo,
-    required ProductRepository productRepo,
-    required CustomerRepository customerRepo,
-    required PaymentModeRepository paymentModeRepo,
-  })  : _syncRepo = syncRepo,
-        _categoryRepo = categoryRepo,
-        _productRepo = productRepo,
-        _customerRepo = customerRepo,
-        _paymentModeRepo = paymentModeRepo,
+    required this._productRepo,
+    required this._customerRepo,
+    required this._paymentModeRepo,
+  })  : _categoryRepo = categoryRepo,
         super(SyncState()) {
     refresh();
   }
@@ -91,7 +100,7 @@ class SyncNotifier extends StateNotifier<SyncState> {
       syncedCount: state.syncedCount,
       lastSyncTime: state.lastSyncTime,
       isSyncing: true,
-incomingStatus: {
+      incomingStatus: {
         'categories': const SyncStatus(label: 'Categories', success: null),
         'assignedProducts': const SyncStatus(label: 'Assigned Products', success: null),
         'allProducts': const SyncStatus(label: 'All Products', success: null),
@@ -99,6 +108,11 @@ incomingStatus: {
         'paymentModes': const SyncStatus(label: 'Payment Modes', success: null),
       },
     );
+
+     try {
+      _syncRepo.updateOutletId(_ref.read(authProvider).outletId ?? ApiConfig.emptyGuid);
+      await _syncRepo.syncAll();
+    } catch (_) {}
 
     final results = await _syncFromServer();
     final allOk = results.entries.where((e) => e.key.endsWith('_error')).isEmpty &&
@@ -121,9 +135,7 @@ incomingStatus: {
       );
     }
 
-    try {
-      await _syncRepo.syncAll();
-    } catch (_) {}
+   
 
     await refresh();
 
@@ -154,16 +166,41 @@ incomingStatus: {
     return allOk;
   }
 
+  /// Downloads master data from server (categories, products, customers, payment modes)
+  /// without pushing local queue. Called automatically on login.
+  Future<bool> syncFromServerOnly() async {
+    final results = await _syncFromServer();
+
+    final allOk = results.entries.where((e) => e.key.endsWith('_error')).isEmpty &&
+        results['categories'] == true &&
+        results['assignedProducts'] == true &&
+        results['allProducts'] == true &&
+        results['customers'] == true &&
+        results['paymentModes'] == true;
+
+    if (!allOk) {
+      print('[AutoSync] Some master data failed to download');
+    } else {
+      print('[AutoSync] Master data downloaded successfully');
+    }
+
+    await refresh();
+
+    return allOk;
+  }
+
   Future<Map<String, dynamic>> _syncFromServer() async {
     final results = <String, dynamic>{};
 
+    final customerId = _ref.read(authProvider).customerId ?? '';
+
     final now = DateTime.now();
     final transactionDate =
-        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')} ';
 
     try {
       final categories = await _categoryRepo.refreshCategories(
-        customerId: ApiConfig.defaultCustomerId,
+        customerId: customerId,
         transactionDate: transactionDate,
       );
       results['categories'] = true;
@@ -181,7 +218,7 @@ incomingStatus: {
 
     try {
       final products = await _productRepo.refreshProducts(
-        customerId: ApiConfig.defaultCustomerId,
+        customerId: customerId,
         transactionDate: transactionDate,
       );
       results['assignedProducts'] = true;

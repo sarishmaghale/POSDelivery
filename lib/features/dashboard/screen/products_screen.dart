@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../../../models/product.dart';
 import '../../../repositories/product_repository.dart';
 
@@ -40,13 +41,13 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: Text('Products')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.products)),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _products.isEmpty
               ? Center(
                   child: Text(
-                    'No products available',
+                    AppLocalizations.of(context)!.noProductsAvailable,
                     style: theme.textTheme.bodyLarge?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -57,7 +58,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                   child: ListView.separated(
                     padding: const EdgeInsets.all(16),
                     itemCount: _products.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    separatorBuilder: (_, _) => const SizedBox(height: 8),
                     itemBuilder: (context, index) {
                       final product = _products[index];
                       final langCode = Localizations.localeOf(context).languageCode;
@@ -72,7 +73,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                                       width: 40,
                                       height: 40,
                                       fit: BoxFit.cover,
-                                      placeholder: (_, __) => const SizedBox(
+                                      placeholder: (_, _) => const SizedBox(
                                         width: 16,
                                         height: 16,
                                         child: CircularProgressIndicator(strokeWidth: 2),
@@ -98,7 +99,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                           ),
                           title: Text(product.localizedName(langCode)),
                           subtitle: Text(
-                            'Rs. ${product.unitPrice.toStringAsFixed(2)} · Stock: ${product.stock.toStringAsFixed(0)}',
+                            '${AppLocalizations.of(context)!.stock}: ${product.stock.toStringAsFixed(0)}',
                           ),
                         ),
                       );

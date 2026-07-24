@@ -9,7 +9,6 @@ import 'services/location_sync_service.dart';
 import 'services/location_api_service.dart';
 import 'package:dio/dio.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import '../../core/network/api_config.dart';
 
 @pragma('vm:entry-point')
 void startLocationTrackingCallback() {
@@ -31,15 +30,18 @@ class LocationTrackingTaskHandler extends TaskHandler {
   Future<void> _initAsync() async {
     try {
       final data = await FlutterForegroundTask.getData<String>(key: 'driverId');
-      _driverId = data ?? 'C3C7C7AA-7F7D-4EE2-8440-122DF4E6CB54';
+      _driverId = data ?? '';
+
+      final baseUrl = await FlutterForegroundTask.getData<String>(key: 'baseUrl');
+      final token = await FlutterForegroundTask.getData<String>(key: 'token');
 
       final dio = Dio(BaseOptions(
-        baseUrl: ApiConfig.baseUrl,
+        baseUrl: baseUrl ?? '',
         connectTimeout: const Duration(seconds: 60),
         receiveTimeout: const Duration(seconds: 60),
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer ${ApiConfig.staticBearerToken}',
+          'Authorization': 'Bearer ${token ?? ''}',
         },
       ));
       final apiService = LocationApiService(dio);
@@ -47,18 +49,7 @@ class LocationTrackingTaskHandler extends TaskHandler {
 
       _syncService!.startPeriodicSync();
 
-      _positionStream = Geolocator.getPositionStream(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          distanceFilter: 10,
-          timeLimit: Duration(seconds: 30),
-        ),
-      ).listen(
-        (pos) => _handlePosition(pos),
-        onError: (e) {
-          if (kDebugMode) print('Foreground position error: $e');
-        },
-      );
+      _startPositionStream();
 
       _periodicTimer = Timer.periodic(
         const Duration(seconds: 30),
@@ -68,9 +59,7 @@ class LocationTrackingTaskHandler extends TaskHandler {
               desiredAccuracy: LocationAccuracy.high,
             );
             _handlePosition(pos);
-          } catch (e) {
-            if (kDebugMode) print('Foreground periodic position error: $e');
-          }
+          } catch (_) {}
         },
       );
 
@@ -78,6 +67,22 @@ class LocationTrackingTaskHandler extends TaskHandler {
     } catch (e) {
       if (kDebugMode) print('Foreground init error: $e');
     }
+  }
+
+  Future<void> _startPositionStream() async {
+    await _positionStream?.cancel();
+    _positionStream = Geolocator.getPositionStream(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 10,
+      ),
+    ).listen(
+      (pos) => _handlePosition(pos),
+      onError: (_) {
+        Future.delayed(const Duration(seconds: 5), _startPositionStream);
+      },
+      cancelOnError: false,
+    );
   }
 
   Future<void> _handlePosition(Position pos) async {

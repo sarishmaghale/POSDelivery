@@ -48,7 +48,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
           : _categories.isEmpty
               ? Center(
                   child: Text(
-                    'No categories available',
+                    l10n.noCategoriesAvailable,
                     style: theme.textTheme.bodyLarge?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -59,7 +59,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                   child: ListView.separated(
                     padding: const EdgeInsets.all(16),
                     itemCount: _categories.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    separatorBuilder: (_, _) => const SizedBox(height: 8),
                     itemBuilder: (context, index) {
                       final cat = _categories[index];
                       final langCode = Localizations.localeOf(context).languageCode;
@@ -74,7 +74,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                                       width: 40,
                                       height: 40,
                                       fit: BoxFit.cover,
-                                      placeholder: (_, __) => const SizedBox(
+                                      placeholder: (_, _) => const SizedBox(
                                         width: 16,
                                         height: 16,
                                         child: CircularProgressIndicator(strokeWidth: 2),

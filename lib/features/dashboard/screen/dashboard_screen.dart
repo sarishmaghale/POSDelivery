@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../auth/provider/auth_provider.dart';
 import '../provider/dashboard_provider.dart';
 import '../widgets/quick_action_card.dart';
 import '../widgets/stat_card.dart';
@@ -28,6 +29,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(dashboardProvider);
     final locationState = ref.watch(locationStateProvider);
+    final authState = ref.watch(authProvider);
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
 
@@ -55,7 +57,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            _buildDriverHeader(state, theme, l10n),
+            _buildDriverHeader(state, authState, theme, l10n),
             const SizedBox(height: 16),
             _buildLocationTrackingSection(locationState, theme, l10n),
             const SizedBox(height: 20),
@@ -77,9 +79,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   Widget _buildDriverHeader(
     DashboardState state,
+    AuthState authState,
     ThemeData theme,
     AppLocalizations l10n,
   ) {
+    final displayName = authState.userName ?? state.driverName;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -89,8 +93,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               radius: 28,
               backgroundColor: theme.colorScheme.primaryContainer,
               child: Text(
-                state.driverName.isNotEmpty
-                    ? state.driverName[0].toUpperCase()
+                displayName.isNotEmpty
+                    ? displayName[0].toUpperCase()
                     : 'R',
                 style: theme.textTheme.titleLarge?.copyWith(
                   color: theme.colorScheme.onPrimaryContainer,
@@ -110,7 +114,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     ),
                   ),
                   Text(
-                    state.driverName,
+                    displayName,
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -129,6 +133,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     ThemeData theme,
     AppLocalizations l10n,
   ) {
+    final isDark = theme.brightness == Brightness.dark;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -140,13 +145,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
                 color: locationState.isTracking
-                    ? Colors.green.shade50
-                    : Colors.grey.shade100,
+                    ? (isDark ? Colors.green.shade900.withValues(alpha: 0.3) : Colors.green.shade50)
+                    : theme.colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
                   color: locationState.isTracking
-                      ? Colors.green.shade200
-                      : Colors.grey.shade300,
+                      ? (isDark ? Colors.green.shade700 : Colors.green.shade200)
+                      : theme.colorScheme.outlineVariant,
                 ),
               ),
               child: Row(
@@ -157,7 +162,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         : Icons.location_off,
                     color: locationState.isTracking
                         ? Colors.green
-                        : Colors.grey,
+                        : theme.colorScheme.onSurfaceVariant,
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -168,8 +173,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       style: TextStyle(
                         fontWeight: FontWeight.w500,
                         color: locationState.isTracking
-                            ? Colors.green.shade700
-                            : Colors.grey.shade700,
+                            ? (isDark ? Colors.green.shade200 : Colors.green.shade700)
+                            : theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ),
@@ -181,7 +186,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.orange.shade100,
+                        color: isDark ? Colors.orange.shade900.withValues(alpha: 0.3) : Colors.orange.shade100,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
@@ -189,7 +194,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           locationState.pendingSyncCount.toString(),
                         ),
                         style: TextStyle(
-                          color: Colors.orange.shade700,
+                          color: isDark ? Colors.orange.shade200 : Colors.orange.shade700,
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
                         ),
@@ -264,13 +269,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.red.shade50,
+                  color: isDark ? Colors.red.shade900.withValues(alpha: 0.3) : Colors.red.shade50,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.red.shade200),
+                  border: Border.all(color: isDark ? Colors.red.shade700 : Colors.red.shade200),
                 ),
                 child: Text(
                   locationState.error!,
-                  style: TextStyle(color: Colors.red.shade800, fontSize: 13),
+                  style: TextStyle(
+                    color: isDark ? Colors.red.shade200 : Colors.red.shade800,
+                    fontSize: 13,
+                  ),
                 ),
               ),
             ],
@@ -298,12 +306,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ),
             ),
             const SizedBox(width: 12),
-            Expanded(
+Expanded(
               child: StatCard(
                 title: l10n.salesReturns,
                 value: state.todaysSalesReturns.toString(),
                 icon: Icons.assignment_return,
-                onTap: () {},
+                onTap: () => context.push('/sales-return-history'),
               ),
             ),
             const SizedBox(width: 12),
@@ -331,7 +339,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             const SizedBox(width: 12),
             Expanded(
               child: StatCard(
-                title: 'Products',
+                title: l10n.products,
                 value: state.assignedProductsCount.toString(),
                 icon: Icons.inventory_2,
                 onTap: () => context.push('/products'),

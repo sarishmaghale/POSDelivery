@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../../models/payment_entry.dart';
+import '../../../models/payment_mode.dart';
 import '../../delivery/provider/delivery_provider.dart';
 import '../../sync/provider/sync_provider.dart';
 import '../provider/estimate_provider.dart';
@@ -138,7 +140,7 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
                   ref.read(estimateProvider.notifier).reset();
                   context.pop();
                 },
-                child: Text(l10n.backToDashboard),
+                child: Text(l10n.backToDelivery),
               ),
             ],
           ),
@@ -195,7 +197,7 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
                     onPressed: () => ref
                         .read(estimateProvider.notifier)
                         .selectCustomer(null),
-                    child: const Text('Change'),
+                    child: Text(l10n.change),
                   ),
                 ],
               ),
@@ -215,7 +217,7 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
                       Icon(Icons.person, color: theme.colorScheme.primary),
                       const SizedBox(width: 8),
                       Text(
-                        'Select Customer',
+                        l10n.selectCustomer,
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w600,
                         ),
@@ -225,7 +227,7 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
                   const SizedBox(height: 12),
                   TextField(
                     decoration: InputDecoration(
-                      hintText: 'Search customer...',
+                      hintText: l10n.searchCustomer,
                       prefixIcon: const Icon(Icons.search),
                       suffixIcon: state.customerSearchQuery.isNotEmpty
                           ? IconButton(
@@ -270,7 +272,7 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
                       Padding(
                         padding: const EdgeInsets.only(top: 8),
                         child: Text(
-                          'No customers found',
+                          l10n.noCustomersFound,
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
@@ -320,7 +322,7 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
                         if (item.discountAmount > 0) ...[
                           const SizedBox(height: 2),
                           Text(
-                            'Discount: -Rs. ${item.discountAmount.toStringAsFixed(2)}',
+                        'Discount: -Rs. ${item.discountAmount.toStringAsFixed(2)}',
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: theme.colorScheme.error,
                             ),
@@ -443,7 +445,7 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Product Discount',
+                        l10n.productDiscount,
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: theme.colorScheme.error,
                         ),
@@ -523,8 +525,22 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
           ),
         ),
         const SizedBox(height: 24),
+        ElevatedButton.icon(
+          onPressed: () => _showPaymentModal(context),
+          icon: const Icon(Icons.payment, size: 20),
+          label: Text(l10n.makePayment),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: theme.colorScheme.secondaryContainer,
+            foregroundColor: theme.colorScheme.onSecondaryContainer,
+            minimumSize: const Size(double.infinity, 48),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
         Text(
-          l10n.paymentDetails,
+          l10n.remarksOptional,
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w600,
           ),
@@ -533,62 +549,18 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
         Card(
           child: Padding(
             padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                DropdownButtonFormField<String>(
-                  initialValue: state.paymentMode?.isNotEmpty == true
-                      ? state.paymentMode
-                      : null,
-                  decoration: InputDecoration(
-                    labelText: l10n.paymentMode,
-                    border: const OutlineInputBorder(),
-                  ),
-                  items: state.paymentModes.map((mode) {
-                    return DropdownMenuItem(
-                      value: mode.serverId,
-                      child: Text(mode.name),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    ref.read(estimateProvider.notifier).setPaymentMode(value);
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _paidAmountController,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(
-                      RegExp(r'^\d+\.?\d{0,2}'),
-                    ),
-                  ],
-                  decoration: InputDecoration(
-                    labelText: l10n.paidAmount,
-                    prefixText: 'Rs. ',
-                    border: const OutlineInputBorder(),
-                  ),
-                  onChanged: (value) {
-                    final amount = double.tryParse(value) ?? 0;
-                    ref.read(estimateProvider.notifier).setPaidAmount(amount);
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _remarksController,
-                  maxLines: 2,
-                  decoration: InputDecoration(
-                    labelText: l10n.remarksOptional,
-                    border: const OutlineInputBorder(),
-                  ),
-                  onChanged: (value) {
-                    ref
-                        .read(estimateProvider.notifier)
-                        .setRemarks(value.isEmpty ? null : value);
-                  },
-                ),
-              ],
+            child: TextField(
+              controller: _remarksController,
+              maxLines: 2,
+              decoration: InputDecoration(
+                labelText: l10n.remarksOptional,
+                border: const OutlineInputBorder(),
+              ),
+              onChanged: (value) {
+                ref
+                    .read(estimateProvider.notifier)
+                    .setRemarks(value.isEmpty ? null : value);
+              },
             ),
           ),
         ),
@@ -612,12 +584,59 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
   }
 
   Future<void> _saveInvoice(BuildContext context) async {
+    
+  final state = ref.read(estimateProvider);
+  if (state.remainingAmount > 0) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(AppLocalizations.of(context)!.pleaseMakeFullPayment),
+        backgroundColor: Theme.of(context).colorScheme.error,
+      ),
+    );
+    _showPaymentModal(context);
+    return;
+  }
+
+  if(state.customer == null)
+  {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(AppLocalizations.of(context)!.selectCustomer),
+        backgroundColor: Theme.of(context).colorScheme.error,
+      ),
+    );
+    return;
+  }
+
+   if(state.items.isEmpty)
+  {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(AppLocalizations.of(context)!.pleaseSelectItems),
+        backgroundColor: Theme.of(context).colorScheme.error,
+      ),
+    );
+    return;
+  }
+
+  final hasUnsetPaymode=state.paymentEntries.any((e)=>e.paymentModeId == null || e.paymentModeId!.isEmpty);
+              if (hasUnsetPaymode) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                    content: Text('Please select paymode'),
+                    backgroundColor: Theme.of(context).colorScheme.error,
+                  ),
+                );
+                return;
+               } 
+    
     final success = await ref.read(estimateProvider.notifier).saveInvoice();
 
     if (!context.mounted) return;
 
     if (success) {
       ref.read(deliveryFormProvider.notifier).resetForm();
+      ref.read(deliveryFormProvider.notifier).refreshProducts(); 
       ref.read(syncProvider.notifier).refresh();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -626,6 +645,16 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
         ),
       );
     } else {
+  //     final state = ref.read(estimateProvider);
+  // if (state.paymentEntries.isEmpty) {
+  //   ScaffoldMessenger.of(context).showSnackBar(
+  //     SnackBar(
+  //       content: Text('Please add a payment mode before saving'),
+  //       backgroundColor: Theme.of(context).colorScheme.error,
+  //     ),
+  //   );
+  //   _showPaymentModal(context);
+  //  } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(AppLocalizations.of(context)!.failedToSaveInvoice),
@@ -633,5 +662,291 @@ class _EstimateScreenState extends ConsumerState<EstimateScreen> {
         ),
       );
     }
+  //  }
+  }
+
+  void _showPaymentModal(BuildContext context) {
+  final s = ref.read(estimateProvider);
+  if (s.paymentEntries.isEmpty && s.remainingAmount > 0) {
+    ref.read(estimateProvider.notifier).addPaymentEntry();
+  }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => _PaymentModalSheet(),
+    );
+  }
+}
+
+class _PaymentEntryRow extends ConsumerStatefulWidget {
+  final int index;
+  final PaymentEntry payment;
+  final List<PaymentMode> paymentModes;
+  final AppLocalizations l10n;
+
+  const _PaymentEntryRow({
+    required this.index,
+    required this.payment,
+    required this.paymentModes,
+    required this.l10n,
+    super.key,
+  });
+
+  @override
+  ConsumerState<_PaymentEntryRow> createState() => _PaymentEntryRowState();
+}
+
+class _PaymentEntryRowState extends ConsumerState<_PaymentEntryRow> {
+  late final TextEditingController _amountController;
+  late final FocusNode _amountFocusNode;
+  bool _isTyping = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _amountController = TextEditingController(
+      text: widget.payment.amount > 0 ? widget.payment.amount.toStringAsFixed(2) : '',
+    );
+    _amountFocusNode = FocusNode();
+    _amountFocusNode.addListener(() {
+      if (!_amountFocusNode.hasFocus) {
+        _isTyping = false;
+        final current = double.tryParse(_amountController.text) ?? 0;
+        if (current > 0) {
+          final maxAllowed = widget.payment.amount + ref.read(estimateProvider).remainingAmount;
+          final clamped = current > maxAllowed ? maxAllowed : current;
+          _amountController.text = clamped.toStringAsFixed(2);
+          ref.read(estimateProvider.notifier)
+              .updatePaymentEntryAmount(widget.index, clamped);
+        }
+      } else {
+        _isTyping = true;
+      }
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant _PaymentEntryRow oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!_isTyping && widget.payment.amount != oldWidget.payment.amount) {
+      final newText = widget.payment.amount > 0 ? widget.payment.amount.toStringAsFixed(2) : '';
+      if (_amountController.text != newText) {
+        _amountController.text = newText;
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    _amountFocusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children:[
+ 
+            DropdownButtonFormField<String>(
+              isExpanded: true,
+              initialValue: widget.payment.paymentModeId,
+              decoration: InputDecoration(
+                labelText: widget.l10n.paymentMode,
+                border: const OutlineInputBorder(),
+                isDense: true,
+              ),
+              items: widget.paymentModes.map((mode) {
+                return DropdownMenuItem(
+                  value: mode.serverId,
+                  child: Text(mode.name),
+                );
+              }).toList(),
+              onChanged: (value) {
+                final mode = widget.paymentModes
+                    .where((m) => m.serverId == value)
+                    .firstOrNull;
+                ref.read(estimateProvider.notifier)
+                    .updatePaymentEntryMode(widget.index, value, mode?.name);
+              },
+            ),
+          
+       
+        
+        
+          const SizedBox(height: 8),
+          Row(
+            children: [
+           Expanded(
+            flex: 2,
+            child: TextField(
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              focusNode: _amountFocusNode,
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
+              ],
+              decoration: InputDecoration(
+                labelText: widget.l10n.amount,
+                prefixText: 'Rs. ',
+                border: const OutlineInputBorder(),
+                isDense: true,
+              ),
+              controller: _amountController,
+              onChanged: (value) {
+                final parsed = double.tryParse(value);
+                if (parsed == null) {
+                  ref.read(estimateProvider.notifier)
+                      .updatePaymentEntryAmount(widget.index, 0);
+                  return;
+                }
+                final maxAllowed = widget.payment.amount +
+                    ref.read(estimateProvider).remainingAmount;
+                final clamped = parsed > maxAllowed ? maxAllowed : parsed;
+                ref.read(estimateProvider.notifier)
+                    .updatePaymentEntryAmount(widget.index, clamped);
+              },
+            ),
+          ),
+          const SizedBox(width: 8),
+            IconButton(
+              icon: Icon(Icons.remove_circle_outline, color: theme.colorScheme.error),
+              onPressed: () {
+                ref.read(estimateProvider.notifier).removePaymentEntry(widget.index);
+              },
+            ),
+          ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PaymentModalSheet extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(estimateProvider);
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: 16,
+          right: 16,
+          top: 16,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+        ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    l10n.paymentDetails,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+            const Divider(),
+            const SizedBox(height: 8),
+            ...state.paymentEntries.asMap().entries.map((entry) {
+              final index = entry.key;
+              final payment = entry.value;
+              return _PaymentEntryRow(
+                key: ValueKey(index),
+                index: index,
+                payment: payment,
+                paymentModes: state.paymentModes,
+                l10n: l10n,
+              );
+            }),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: state.remainingAmount > 0
+                  ? () => ref.read(estimateProvider.notifier).addPaymentEntry()
+                  : null,
+              icon: const Icon(Icons.add, size: 18),
+              label: Text(l10n.addPayment),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('${l10n.total}:', style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+                      Text('Rs. ${state.netTotal.toStringAsFixed(2)}', style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('${l10n.paid}:', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.w600)),
+                      Text('Rs. ${state.totalPaidAmount.toStringAsFixed(2)}', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('${l10n.remaining}:', style: theme.textTheme.bodyMedium?.copyWith(
+                        color: state.remainingAmount > 0 ? theme.colorScheme.error : theme.colorScheme.primary,
+                        fontWeight: FontWeight.w600,
+                      )),
+                      Text('Rs. ${state.remainingAmount.toStringAsFixed(2)}', style: theme.textTheme.bodyMedium?.copyWith(
+                        color: state.remainingAmount > 0 ? theme.colorScheme.error : theme.colorScheme.primary,
+                        fontWeight: FontWeight.w600,
+                      )),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: () {
+                final s = ref.read(estimateProvider);
+                final hasUnsetPaymode=s.paymentEntries.any((e)=>e.paymentModeId == null || e.paymentModeId!.isEmpty);
+                if (hasUnsetPaymode) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                    content: Text('Please select paymode'),
+                    backgroundColor: Theme.of(context).colorScheme.error,
+                  ),
+               );
+               } else {
+                  Navigator.of(context).pop();
+               }
+              },
+              child: Text(l10n.done),
+            ),
+          ],
+        ),
+      ),
+      ),
+    );
   }
 }

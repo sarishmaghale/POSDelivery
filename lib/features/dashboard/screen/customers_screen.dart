@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../l10n/app_localizations.dart';
+
 import '../../../models/customer.dart';
 import '../../../repositories/customer_repository.dart';
 
@@ -48,7 +49,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
           : _customers.isEmpty
               ? Center(
                   child: Text(
-                    'No customers available',
+                    l10n.noCustomersAvailable,
                     style: theme.textTheme.bodyLarge?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -59,7 +60,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
                   child: ListView.separated(
                     padding: const EdgeInsets.all(16),
                     itemCount: _customers.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    separatorBuilder: (_, _) => const SizedBox(height: 8),
                     itemBuilder: (context, index) {
                       final customer = _customers[index];
                       return Card(

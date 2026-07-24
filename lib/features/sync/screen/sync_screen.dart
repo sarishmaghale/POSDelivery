@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/utils/extensions.dart';
 import '../../../l10n/app_localizations.dart';
 import '../provider/sync_provider.dart';
 import '../widgets/sync_status_tile.dart';
@@ -53,7 +52,7 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '${state.pendingQueue.length} bill(s) pending sync',
+                          l10n.billsPendingSync(state.pendingQueue.length.toString()),
                           style: theme.textTheme.titleSmall?.copyWith(
                             fontWeight: FontWeight.w700,
                             color: theme.colorScheme.onErrorContainer,
@@ -61,7 +60,7 @@ class _SyncScreenState extends ConsumerState<SyncScreen> {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Offline invoices waiting to be pushed to server.',
+                          l10n.offlineInvoicesWaiting,
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onErrorContainer,
                           ),

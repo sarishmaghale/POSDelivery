@@ -5,8 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/providers/locale_provider.dart';
 import '../../../l10n/app_localizations.dart';
-import '../../../models/payment_entry.dart';
-import '../../../models/payment_mode.dart';
+
 import '../../../models/sales_return.dart';
 import '../provider/sales_return_provider.dart';
 import '../widgets/product_dropdown.dart';
@@ -86,7 +85,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: [
+        children : [
           Icon(
             Icons.check_circle,
             size: 72,
@@ -145,7 +144,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
         ),
         const SizedBox(height: 24),
         Text(
-          'Products',
+          l10n.products,
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w600,
           ),
@@ -176,7 +175,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
                           FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
                         ],
                         decoration: InputDecoration(
-                          labelText: 'Qty',
+                          labelText: l10n.qty,
                           border: const OutlineInputBorder(),
                           isDense: true,
                         ),
@@ -192,7 +191,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
                       child: TextField(
                         controller: _unitController,
                         decoration: InputDecoration(
-                          labelText: 'Unit',
+                          labelText: l10n.unit,
                           border: const OutlineInputBorder(),
                           isDense: true,
                         ),
@@ -218,7 +217,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
                           FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
                         ],
                         decoration: InputDecoration(
-                          labelText: 'Rate',
+                          labelText: l10n.rate,
                           border: const OutlineInputBorder(),
                           isDense: true,
                         ),
@@ -235,7 +234,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
                       ),
                     ),
                     const SizedBox(width: 16),
-                    FilledButton.tonalIcon(
+                    FilledButton.icon(
                       onPressed: state.pendingProduct == null
                           ? null
                           : () {
@@ -246,7 +245,11 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
                               _rateController.clear();
                             },
                       icon: const Icon(Icons.add, size: 20),
-                      label: const Text('Add'),
+                      label: Text(l10n.add),
+                      style: FilledButton.styleFrom(
+                      backgroundColor: theme.colorScheme.primary,
+                      foregroundColor: theme.colorScheme.onPrimary,
+                      ),
                     ),
                   ],
                 ),
@@ -275,7 +278,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
               children: [
                 TextField(
                   decoration: InputDecoration(
-                    labelText: l10n.reasonOptional,
+                    labelText: l10n.reason,
                     border: const OutlineInputBorder(),
                   ),
                   onChanged: (value) {
@@ -319,7 +322,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
           padding: const EdgeInsets.all(24),
           child: Center(
             child: Text(
-              'No products added',
+              l10n.noProductsAdded,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -333,7 +336,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          'Added Products (${state.items.length})',
+          l10n.addedProducts(state.items.length.toString()),
           style: theme.textTheme.titleSmall?.copyWith(
             fontWeight: FontWeight.w600,
             color: theme.colorScheme.onSurfaceVariant,
@@ -346,7 +349,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: state.items.length,
-            separatorBuilder: (_, __) => const Divider(height: 1),
+            separatorBuilder: (_, _) => const Divider(height: 1),
             itemBuilder: (context, index) {
               final item = state.items[index];
               return ListTile(
@@ -376,7 +379,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
                     ),
                     IconButton(
                       icon: const Icon(Icons.visibility_outlined),
-                      tooltip: 'View details',
+                      tooltip: l10n.viewDetails,
                       onPressed: () {
                         _showItemDetails(context, index, item);
                       },
@@ -406,12 +409,42 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            _totalRow('Gross Total', state.grossTotal, theme, null),
-            _totalRow('Item Discount', -state.totalItemDiscount, theme, theme.colorScheme.error),
-            _totalRow('Volume Discount', -state.discountAmount, theme, theme.colorScheme.error),
+            _totalRow(l10n.grossAmount, state.totalGrossAmountIncTax, theme, null),
+            if (state.totalProductDiscountIncTax > 0) ...[
+              const SizedBox(height: 4),
+              _totalRow(
+                l10n.productDiscount,
+                -state.totalProductDiscountIncTax,
+                theme,
+                theme.colorScheme.error,
+              ),
+            ],
+            if (state.discountAmount > 0) ...[
+              const SizedBox(height: 4),
+              _totalRow(
+                l10n.discount,
+                -state.discountAmount,
+                theme,
+                theme.colorScheme.error,
+              ),
+            ],
+            if (state.totalTaxAmount > 0) ...[
+              const SizedBox(height: 4),
+              _totalRow(
+                l10n.tax,
+                state.totalTaxAmount,
+                theme,
+                theme.colorScheme.onSurfaceVariant,
+              ),
+            ],
             const Divider(),
-            _totalRow('Net Total', state.netTotal, theme,
-                theme.colorScheme.primary, bold: true),
+            _totalRow(
+              l10n.totalAmount,
+              state.netTotalIncTax,
+              theme,
+              theme.colorScheme.primary,
+              bold: true,
+            ),
             const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
@@ -420,8 +453,8 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
                 icon: const Icon(Icons.payment, size: 20),
                 label: Text(l10n.makePayment),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: theme.colorScheme.primary,
-                  foregroundColor: theme.colorScheme.onPrimary,
+                  backgroundColor: theme.colorScheme.secondaryContainer,
+                  foregroundColor: theme.colorScheme.onSecondaryContainer,
                   minimumSize: const Size(double.infinity, 48),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -468,7 +501,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Volume Discount',
+              l10n.volumeDiscount,
               style: theme.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w600,
                 color: theme.colorScheme.onSurfaceVariant,
@@ -486,7 +519,7 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
                       FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
                     ],
                     decoration: InputDecoration(
-                      labelText: 'Value',
+                      labelText: l10n.value,
                       hintText: '0',
                       border: const OutlineInputBorder(),
                       isDense: true,
@@ -503,14 +536,15 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
                   child:                   DropdownButtonFormField<String?>(
                     isExpanded: true,
                     initialValue: state.discountType,
-                    decoration: const InputDecoration(
-                      labelText: 'Type',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n.discountType,
+                      border: const OutlineInputBorder(),
                       isDense: true,
                     ),
-                    items: const [
-                      DropdownMenuItem(value: 'amount', child: Text('Amount (Rs.)')),
-                      DropdownMenuItem(value: 'percent', child: Text('Percent (%)')),
+                    items: [
+                      DropdownMenuItem(value: null, child: Text(l10n.none)),
+                      DropdownMenuItem(value: 'amount', child: Text(l10n.amountRs)),
+                      DropdownMenuItem(value: 'percent', child: Text(l10n.percent)),
                     ],
                     onChanged: (value) {
                       ref.read(salesReturnProvider.notifier).setDiscountType(value);
@@ -537,8 +571,20 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
   }
 
   Future<void> _saveSalesReturn(BuildContext context) async {
+    final state = ref.read(salesReturnProvider);
+    if (state.remainingAmountIncTax > 0) {
+    ScaffoldMessenger.of(context).showSnackBar(
+     SnackBar(
+      content: Text(AppLocalizations.of(context)!.pleaseMakeFullPayment),
+      backgroundColor: Theme.of(context).colorScheme.error,
+     ),
+    );
+  _showPaymentModal(context);
+  return;
+}
+    final l10n = AppLocalizations.of(context)!;
     final notifier = ref.read(salesReturnProvider.notifier);
-    final success = await notifier.saveSalesReturn();
+    final success = await notifier.saveSalesReturn(l10n);
 
     if (!context.mounted) return;
 
@@ -554,154 +600,198 @@ class _SalesReturnScreenState extends ConsumerState<SalesReturnScreen> {
     }
   }
 }
+// class _PaymentModalSheet extends ConsumerWidget {
+//   @override
+//   Widget build(BuildContext context, WidgetRef ref) {
+//     final state = ref.watch(salesReturnProvider);
+//     final theme = Theme.of(context);
+//     final l10n = AppLocalizations.of(context)!;
+    
+//     final paymentEntry = state.paymentEntries.isNotEmpty ? state.paymentEntries.first : null;
+//     final paymentModeId = paymentEntry?.paymentModeId ?? '';
+//     final paymentAmount = paymentEntry?.amount ?? state.netTotalIncTax;
 
-class _PaymentEntryRow extends ConsumerStatefulWidget {
-  final int index;
-  final PaymentEntry payment;
-  final List<PaymentMode> paymentModes;
-  final AppLocalizations l10n;
-
-  const _PaymentEntryRow({
-    required this.index,
-    required this.payment,
-    required this.paymentModes,
-    required this.l10n,
-    super.key,
-  });
-
+//     return SafeArea(
+//       child: Padding(
+//         padding: EdgeInsets.only(
+//           left: 16,
+//           right: 16,
+//           top: 16,
+//           bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+//         ),
+//         child: Column(
+//           mainAxisSize: MainAxisSize.min,
+//           crossAxisAlignment: CrossAxisAlignment.stretch,
+//           children: [
+//             Row(
+//               children: [
+//                 Expanded(
+//                   child: Text(
+//                     l10n.paymentDetails,
+//                     style: theme.textTheme.titleMedium?.copyWith(
+//                       fontWeight: FontWeight.w600,
+//                     ),
+//                   ),
+//                 ),
+//                 IconButton(
+//                   icon: const Icon(Icons.close),
+//                   onPressed: () => Navigator.of(context).pop(),
+//                 ),
+//               ],
+//             ),
+//             const Divider(),
+//             const SizedBox(height: 16),
+//             DropdownButtonFormField<String>(
+//               initialValue: paymentModeId.isNotEmpty ? paymentModeId : null,
+//               decoration: InputDecoration(
+//                 labelText: l10n.paymentMode,
+//                 border: const OutlineInputBorder(),
+//                 isDense: true,
+//               ),
+//               menuMaxHeight: 200,
+//               items: state.paymentModes.map((mode) {
+//                 return DropdownMenuItem(
+//                   value: mode.serverId,
+//                   child: Text(mode.name),
+//                 );
+//               }).toList(),
+//               onChanged: (value) {
+//                 final mode = state.paymentModes
+//                     .where((m) => m.serverId == value)
+//                     .firstOrNull;
+//                 if (state.paymentEntries.isEmpty) {
+//                   ref.read(salesReturnProvider.notifier).addPaymentEntry();
+//                 }
+//                 ref.read(salesReturnProvider.notifier)
+//                     .updatePaymentEntryMode(0, value, mode?.name);
+//               },
+//             ),
+//             const SizedBox(height: 12),
+//             TextField(
+//               keyboardType: const TextInputType.numberWithOptions(decimal: true),
+//               inputFormatters: [
+//                 FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
+//               ],
+//               decoration: InputDecoration(
+//                 labelText: l10n.amount,
+//                 prefixText: 'Rs. ',
+//                 border: const OutlineInputBorder(),
+//                 isDense: true,
+//               ),
+//               onChanged: (value) {
+//                 final parsed = double.tryParse(value);
+//                 if (parsed == null) {
+//                   if (state.paymentEntries.isNotEmpty) {
+//                     ref.read(salesReturnProvider.notifier)
+//                         .updatePaymentEntryAmount(0, 0);
+//                   }
+//                   return;
+//                 }
+//                 final maxAllowed = state.netTotalIncTax;
+//                 final clamped = parsed > maxAllowed ? maxAllowed : parsed;
+//                 if (state.paymentEntries.isEmpty) {
+//                   ref.read(salesReturnProvider.notifier).addPaymentEntry();
+//                 }
+//                 ref.read(salesReturnProvider.notifier)
+//                     .updatePaymentEntryAmount(0, clamped);
+//               },
+//               controller: TextEditingController(
+//                 text: paymentAmount > 0 ? paymentAmount.toStringAsFixed(2) : '',
+//               ),
+//             ),
+//             const SizedBox(height: 16),
+//             Container(
+//               padding: const EdgeInsets.all(12),
+//               decoration: BoxDecoration(
+//                 color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+//                 borderRadius: BorderRadius.circular(8),
+//               ),
+//               child: Column(
+//                 children: [
+//                   Row(
+//                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//                     children: [
+//                       Text('${l10n.total}:', style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+//                       Text('Rs. ${state.netTotalIncTax.toStringAsFixed(2)}', style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+//                     ],
+//                   ),
+//                   const SizedBox(height: 4),
+//                   Row(
+//                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//                     children: [
+//                       Text('${l10n.paid}:', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.w600)),
+//                       Text('Rs. ${state.totalPaidAmount.toStringAsFixed(2)}', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.w600)),
+//                     ],
+//                   ),
+//                   const SizedBox(height: 4),
+//                   Row(
+//                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//                     children: [
+//                       Text('${l10n.remaining}:', style: theme.textTheme.bodyMedium?.copyWith(
+//                         color: state.remainingAmountIncTax > 0 ? theme.colorScheme.error : theme.colorScheme.primary,
+//                         fontWeight: FontWeight.w600,
+//                       )),
+//                       Text('Rs. ${state.remainingAmountIncTax.toStringAsFixed(2)}', style: theme.textTheme.bodyMedium?.copyWith(
+//                         color: state.remainingAmountIncTax > 0 ? theme.colorScheme.error : theme.colorScheme.primary,
+//                         fontWeight: FontWeight.w600,
+//                       )),
+//                     ],
+//                   ),
+//                 ],
+//               ),
+//             ),
+//             const SizedBox(height: 16),
+//             FilledButton(
+//               onPressed: () => Navigator.of(context).pop(),
+//               child: Text(l10n.done),
+//             ),
+//           ],
+//         ),
+//       ),
+//     );
+//   }
+// }
+class _PaymentModalSheet extends ConsumerStatefulWidget {
   @override
-  ConsumerState<_PaymentEntryRow> createState() => _PaymentEntryRowState();
+  ConsumerState<_PaymentModalSheet> createState() => _PaymentModalSheetState();
 }
 
-class _PaymentEntryRowState extends ConsumerState<_PaymentEntryRow> {
+class _PaymentModalSheetState extends ConsumerState<_PaymentModalSheet> {
   late final TextEditingController _amountController;
-  late final FocusNode _amountFocusNode;
-  bool _isTyping = false;
 
   @override
   void initState() {
     super.initState();
+    final state = ref.read(salesReturnProvider);
+    final paymentEntry = state.paymentEntries.isNotEmpty ? state.paymentEntries.first : null;
+    final paymentAmount = paymentEntry?.amount ?? state.netTotalIncTax;
     _amountController = TextEditingController(
-      text: widget.payment.amount > 0 ? widget.payment.amount.toStringAsFixed(2) : '',
+      text: paymentAmount > 0 ? paymentAmount.toStringAsFixed(2) : '',
     );
-    _amountFocusNode = FocusNode();
-    _amountFocusNode.addListener(() {
-      if (!_amountFocusNode.hasFocus) {
-        _isTyping = false;
-        final current = double.tryParse(_amountController.text) ?? 0;
-        if (current > 0) {
-          final maxAllowed = widget.payment.amount + ref.read(salesReturnProvider).remainingAmount;
-          final clamped = current > maxAllowed ? maxAllowed : current;
-          _amountController.text = clamped.toStringAsFixed(2);
-          ref.read(salesReturnProvider.notifier)
-              .updatePaymentEntryAmount(widget.index, clamped);
-        }
-      } else {
-        _isTyping = true;
-      }
-    });
-  }
-
-  @override
-  void didUpdateWidget(covariant _PaymentEntryRow oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (!_isTyping && widget.payment.amount != oldWidget.payment.amount) {
-      final newText = widget.payment.amount > 0 ? widget.payment.amount.toStringAsFixed(2) : '';
-      if (_amountController.text != newText) {
-        _amountController.text = newText;
-      }
-    }
   }
 
   @override
   void dispose() {
     _amountController.dispose();
-    _amountFocusNode.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        children: [
-          Expanded(
-            flex: 3,
-            child: DropdownButtonFormField<String>(
-              isExpanded: true,
-              initialValue: widget.payment.paymentModeId,
-              decoration: InputDecoration(
-                labelText: widget.l10n.paymentMode,
-                border: const OutlineInputBorder(),
-                isDense: true,
-              ),
-              items: widget.paymentModes.map((mode) {
-                return DropdownMenuItem(
-                  value: mode.serverId,
-                  child: Text(mode.name),
-                );
-              }).toList(),
-              onChanged: (value) {
-                final mode = widget.paymentModes
-                    .where((m) => m.serverId == value)
-                    .firstOrNull;
-                ref.read(salesReturnProvider.notifier)
-                    .updatePaymentEntryMode(widget.index, value, mode?.name);
-              },
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            flex: 2,
-            child: TextField(
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              focusNode: _amountFocusNode,
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
-              ],
-              decoration: InputDecoration(
-                labelText: widget.l10n.amount,
-                prefixText: 'Rs. ',
-                border: const OutlineInputBorder(),
-                isDense: true,
-              ),
-              controller: _amountController,
-              onChanged: (value) {
-                final parsed = double.tryParse(value);
-                if (parsed == null) {
-                  ref.read(salesReturnProvider.notifier)
-                      .updatePaymentEntryAmount(widget.index, 0);
-                  return;
-                }
-                final maxAllowed = widget.payment.amount +
-                    ref.read(salesReturnProvider).remainingAmount;
-                final clamped = parsed > maxAllowed ? maxAllowed : parsed;
-                ref.read(salesReturnProvider.notifier)
-                    .updatePaymentEntryAmount(widget.index, clamped);
-              },
-            ),
-          ),
-          const SizedBox(width: 8),
-          IconButton(
-            icon: Icon(Icons.remove_circle_outline, color: theme.colorScheme.error),
-            onPressed: () {
-              ref.read(salesReturnProvider.notifier).removePaymentEntry(widget.index);
-            },
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PaymentModalSheet extends ConsumerWidget {
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(salesReturnProvider);
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
+    
+    final paymentEntry = state.paymentEntries.isNotEmpty ? state.paymentEntries.first : null;
+    final paymentModeId = paymentEntry?.paymentModeId ?? '';
+    final paymentAmount = paymentEntry?.amount ?? state.netTotalIncTax;
+
+    // Update controller text only when paymentAmount changes from external source
+    final currentText = _amountController.text;
+    final expectedText = paymentAmount > 0 ? paymentAmount.toStringAsFixed(2) : '';
+    if (currentText != expectedText && !_amountController.selection.isValid) {
+      _amountController.text = expectedText;
+    }
 
     return SafeArea(
       child: Padding(
@@ -732,31 +822,68 @@ class _PaymentModalSheet extends ConsumerWidget {
               ],
             ),
             const Divider(),
-            const SizedBox(height: 8),
-            ...state.paymentEntries.asMap().entries.map((entry) {
-              final index = entry.key;
-              final payment = entry.value;
-              return _PaymentEntryRow(
-                key: ValueKey(index),
-                index: index,
-                payment: payment,
-                paymentModes: state.paymentModes,
-                l10n: l10n,
-              );
-            }),
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
-              onPressed: state.remainingAmount > 0
-                  ? () => ref.read(salesReturnProvider.notifier).addPaymentEntry()
-                  : null,
-              icon: const Icon(Icons.add, size: 18),
-              label: Text(l10n.addPayment),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              initialValue: paymentModeId.isNotEmpty ? paymentModeId : null,
+              decoration: InputDecoration(
+                labelText: l10n.paymentMode,
+                border: const OutlineInputBorder(),
+                isDense: true,
+              ),
+              menuMaxHeight: 200,
+              items: state.paymentModes.map((mode) {
+                return DropdownMenuItem(
+                  value: mode.serverId,
+                  child: Text(mode.name),
+                );
+              }).toList(),
+              onChanged: (value) {
+                final mode = state.paymentModes
+                    .where((m) => m.serverId == value)
+                    .firstOrNull;
+                if (state.paymentEntries.isEmpty) {
+                  ref.read(salesReturnProvider.notifier).addPaymentEntry();
+                }
+                ref.read(salesReturnProvider.notifier)
+                    .updatePaymentEntryMode(0, value, mode?.name);
+              },
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
+              ],
+              decoration: InputDecoration(
+                labelText: l10n.amount,
+                prefixText: 'Rs. ',
+                border: const OutlineInputBorder(),
+                isDense: true,
+              ),
+              controller: _amountController,
+              onChanged: (value) {
+                final parsed = double.tryParse(value);
+                if (parsed == null) {
+                  if (state.paymentEntries.isNotEmpty) {
+                    ref.read(salesReturnProvider.notifier)
+                        .updatePaymentEntryAmount(0, 0);
+                  }
+                  return;
+                }
+                final maxAllowed = state.netTotalIncTax;
+                final clamped = parsed > maxAllowed ? maxAllowed : parsed;
+                if (state.paymentEntries.isEmpty) {
+                  ref.read(salesReturnProvider.notifier).addPaymentEntry();
+                }
+                ref.read(salesReturnProvider.notifier)
+                    .updatePaymentEntryAmount(0, clamped);
+              },
             ),
             const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
+                color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Column(
@@ -765,7 +892,7 @@ class _PaymentModalSheet extends ConsumerWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text('${l10n.total}:', style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
-                      Text('Rs. ${state.netTotal.toStringAsFixed(2)}', style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+                      Text('Rs. ${state.netTotalIncTax.toStringAsFixed(2)}', style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
                     ],
                   ),
                   const SizedBox(height: 4),
@@ -781,11 +908,11 @@ class _PaymentModalSheet extends ConsumerWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text('${l10n.remaining}:', style: theme.textTheme.bodyMedium?.copyWith(
-                        color: state.remainingAmount > 0 ? theme.colorScheme.error : theme.colorScheme.primary,
+                        color: state.remainingAmountIncTax > 0 ? theme.colorScheme.error : theme.colorScheme.primary,
                         fontWeight: FontWeight.w600,
                       )),
-                      Text('Rs. ${state.remainingAmount.toStringAsFixed(2)}', style: theme.textTheme.bodyMedium?.copyWith(
-                        color: state.remainingAmount > 0 ? theme.colorScheme.error : theme.colorScheme.primary,
+                      Text('Rs. ${state.remainingAmountIncTax.toStringAsFixed(2)}', style: theme.textTheme.bodyMedium?.copyWith(
+                        color: state.remainingAmountIncTax > 0 ? theme.colorScheme.error : theme.colorScheme.primary,
                         fontWeight: FontWeight.w600,
                       )),
                     ],
@@ -796,7 +923,7 @@ class _PaymentModalSheet extends ConsumerWidget {
             const SizedBox(height: 16),
             FilledButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Done'),
+              child: Text(l10n.done),
             ),
           ],
         ),
@@ -840,6 +967,7 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final state = ref.watch(salesReturnProvider);
     if (widget.index >= state.items.length) {
       return const SizedBox.shrink();
@@ -880,7 +1008,7 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
             const SizedBox(height: 8),
             Row(
               children: [
-                Text('Quantity', style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600)),
+                Text(l10n.quantity, style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600)),
                 const SizedBox(width: 12),
                 IconButton(
                   icon: Icon(Icons.remove_circle_outline, color: theme.colorScheme.error),
@@ -901,9 +1029,9 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
                     controller: _rateCtrl,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
-                    decoration: const InputDecoration(
-                      labelText: 'Rate',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n.rate,
+                      border: const OutlineInputBorder(),
                       isDense: true,
                     ),
                     onChanged: (v) => notifier.setItemRate(widget.index, double.tryParse(v) ?? 0),
@@ -915,7 +1043,7 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
             if (item.unit != null && item.unit!.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
-                child: Text('Unit: ${item.unit}', style: theme.textTheme.bodyMedium),
+                child: Text('${l10n.unit}: ${item.unit}', style: theme.textTheme.bodyMedium),
               ),
             Row(
               children: [
@@ -924,10 +1052,10 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
                     controller: _discCtrl,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
-                    decoration: const InputDecoration(
-                      labelText: 'Discount Value',
+                    decoration: InputDecoration(
+                      labelText: l10n.discountValue,
                       hintText: '0',
-                      border: OutlineInputBorder(),
+                      border: const OutlineInputBorder(),
                       isDense: true,
                     ),
                     onChanged: (v) => notifier.setItemDiscount(
@@ -940,15 +1068,15 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
                   child: DropdownButtonFormField<String?>(
                     isExpanded: true,
                     initialValue: _selectedType,
-                    decoration: const InputDecoration(
-                      labelText: 'Discount Type',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n.discountType,
+                      border: const OutlineInputBorder(),
                       isDense: true,
                     ),
-                    items: const [
-                      DropdownMenuItem(value: null, child: Text('None')),
-                      DropdownMenuItem(value: 'amount', child: Text('Amount (Rs.)')),
-                      DropdownMenuItem(value: 'percent', child: Text('Percent (%)')),
+                    items: [
+                      DropdownMenuItem(value: null, child: Text(l10n.none)),
+                      DropdownMenuItem(value: 'amount', child: Text(l10n.amountRs)),
+                      DropdownMenuItem(value: 'percent', child: Text(l10n.percent)),
                     ],
                     onChanged: (v) {
                       setState(() => _selectedType = v);
@@ -972,14 +1100,14 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
                     notifier.removeItem(widget.index);
                     Navigator.of(context).pop();
                   },
-                  child: const Text('Remove'),
+                  child: Text(l10n.remove),
                 ),
               ],
             ),
             const SizedBox(height: 8),
             FilledButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Done'),
+              child: Text(l10n.done),
             ),
           ],
         ),

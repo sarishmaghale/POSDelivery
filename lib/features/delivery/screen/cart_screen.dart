@@ -390,7 +390,7 @@ class _CartItemCardState extends State<_CartItemCard> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       isDense: true,
-                      labelText: 'Discount',
+                      labelText: l10n.discount,
                       prefixText: 'Rs. ',
                     ),
                     style: theme.textTheme.bodySmall?.copyWith(

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -8,30 +10,29 @@ import '../core/network/network_checker.dart';
 import '../core/network/providers.dart';
 import '../core/utils/tax_calculator.dart';
 import '../dto/sales_invoice_request.dart';
+import '../dto/sales_return_request.dart';
 import '../models/estimate.dart';
 import '../models/sales_return.dart';
 import '../models/sync_queue.dart';
-
-final syncRepositoryProvider = Provider<SyncRepository>((ref) {
-  return SyncRepository(
-    apiService: ref.read(apiServiceProvider),
-    db: ref.read(databaseServiceProvider).db,
-    networkChecker: ref.read(networkCheckerProvider),
-  );
-});
+import '../models/payment_entry.dart';
 
 class SyncRepository {
   final ApiService _apiService;
   final Database _db;
   final NetworkChecker _networkChecker;
+  String _outletId;
 
   SyncRepository({
-    required ApiService apiService,
+    required this._apiService,
     required Database db,
-    required NetworkChecker networkChecker,
-  })  : _apiService = apiService,
-        _db = db,
-        _networkChecker = networkChecker;
+    required this._networkChecker,
+    required String outletId,
+  })  : _db = db,
+        _outletId = outletId;
+
+    void updateOutletId(String outletId) {
+     _outletId = outletId;
+    }
 
   Future<List<SyncQueue>> getPendingQueue() async {
     final maps = await _db.rawQuery(
@@ -158,6 +159,17 @@ class SyncRepository {
               orElse: () => null,
             )?['name'] as String? ?? 'Cash')
         : 'Cash';
+    
+    List<PaymentEntry> paymentEntries = estimate.paymentEntries;
+    if (paymentEntries.isEmpty && estimate.paymentMode != null && estimate.paidAmount > 0) {
+      paymentEntries = [
+        PaymentEntry(
+          paymentModeId: estimate.paymentMode,
+          paymentModeName: payModeName,
+          amount: estimate.paidAmount,
+        ),
+      ];
+    }
 
     final now = estimate.createdDate;
     final transactionDate =
@@ -177,6 +189,7 @@ class SyncRepository {
         taxableType: (product?['taxable'] as num?)?.toInt() ?? 0,
       );
 
+
       return SalesInvoiceItemRequest(
         refNo: item.productId,
         chalanNumber: product?['chalan_number'] as String? ?? '',
@@ -185,7 +198,7 @@ class SyncRepository {
         quantity: item.quantity,
         unitId: item.unitId ?? product?['unit_id'] as String? ?? '',
         unitName: item.unitName ?? product?['unit'] as String? ?? '',
-        categoryId: product?['category_id'] as String? ?? '',
+        categoryId: product?['category_id'] as String? ?? ApiConfig.emptyGuid,
         rate: tax.rateExTax,
         rateIncludingTax: tax.rateIncTax,
         grossAmount: tax.grossAmount,
@@ -233,11 +246,24 @@ class SyncRepository {
         ? (productsMap[items.first.productId]?['chalan_number'] as String? ?? '')
         : '';
 
+    
+      String customerName = '';
+    final customerMaps = await _db.query(
+      'customer',
+      where: 'server_id = ?',
+      whereArgs: [customerId],
+      limit: 1,
+    );
+    if (customerMaps.isNotEmpty) {
+      customerName = customerMaps.first['name'] as String? ?? '';
+    }
+
     final request = SalesInvoiceRequest(
       chalanNumber: chalanNumber,
       transactionDate: transactionDate,
       customerId: customerId,
-      outletId: ApiConfig.emptyGuid,
+      customerName: customerName,
+      outletId: _outletId,
       totalQuantity: totalQty,
       totalGrossAmount: totalGrossAmountExcTax,
       totalGrossAmountIncludingTax: totalGrossAmountIncTax,
@@ -248,19 +274,28 @@ class SyncRepository {
       totalTax: totalItemTax,
       totalNetAmount: totalNetAmount,
       totalPayableAmount: totalNetAmount,
-      payMode: payModeName,
+      payMode: paymentEntries.length == 1
+          ? (paymentEntries.first.paymentModeName ?? 'Cash')
+          : 'Mix',
       tenderAmount: totalNetAmount,
       salesInvoiceTax: [
         SalesInvoiceTaxRequest(taxAmount: totalItemTax),
       ],
       salesInvoiceItem: salesInvoiceItems,
-      salesInvoicePayment: [
+      // salesInvoicePayment: [
+      //   SalesInvoicePaymentRequest(
+      //     payMode: payModeName,
+      //     paymentId: estimate.paymentMode ?? ApiConfig.emptyGuid,
+      //     amount: estimate.paidAmount > 0 ? estimate.paidAmount : totalNetAmount,
+      //   ),
+      // ],
+      salesInvoicePayment: paymentEntries.map((entry) =>
         SalesInvoicePaymentRequest(
-          payMode: payModeName,
-          paymentId: estimate.paymentMode ?? ApiConfig.emptyGuid,
-          amount: estimate.paidAmount > 0 ? estimate.paidAmount : totalNetAmount,
+          payMode: entry.paymentModeName ?? 'Cash',
+          paymentId: entry.paymentModeId ?? ApiConfig.emptyGuid,
+          amount: entry.amount,
         ),
-      ],
+      ).toList(),
       currencyId: ApiConfig.defaultCurrencyId,
     );
 
@@ -313,26 +348,201 @@ class SyncRepository {
         where: 'sales_return_id = ?', whereArgs: [sr.id]);
     sr.items = itemMaps.map((m) => SalesReturnItem.fromMap(m)).toList();
 
-    final payload = {
-      ...sr.toMap(),
-      'items': sr.items.map((item) => item.toMap()).toList(),
+    // Look up product details from product table
+    final productMaps = await _db.query('all_product');
+    final productsMap = <String, Map<String, dynamic>>{
+      for (final p in productMaps) (p['server_id'] as String): p,
     };
-    final response = await _apiService.createSalesReturn(payload);
 
-    if (response) {
-      await _db.update(
-        'sales_return',
-        {'is_synced': 1},
-        where: 'id = ?',
-        whereArgs: [sr.id],
+    // Calculate tax breakdown for each item
+    final salesInvoiceItems = <SalesInvoiceItemRequest>[];
+    double totalQty = 0;
+    double totalGrossAmount = 0;
+    double totalGrossAmountIncTax = 0;
+    double totalDiscountExcTax = 0;
+    double totalDiscountIncTax = 0;
+    double totalTaxableAmount = 0;
+    double totalNonTaxableAmount = 0;
+    double totalTaxAmount = 0;
+    double totalNetAmount = 0;
+
+    for (final item in sr.items) {
+      final product = productsMap[item.productId];
+      final taxableType = item.taxable;
+
+      final tax = computeItemTax(
+        rate: item.rate,
+        quantity: item.quantity,
+        discount: item.discountAmount,
+        taxableType: taxableType,
+        taxPercent: kDefaultTaxPercent,
       );
-      await _db.update(
-        'sync_queue',
-        {'status': 'Synced'},
-        where: 'id = ?',
-        whereArgs: [entry.id],
+
+      final itemRequest = SalesInvoiceItemRequest(
+        sku: product?['code'] as String?,
+        hasSerialNumber: false,
+        serialNumber: '',
+        refNo: item.productId,
+        chalanNumber: product?['chalan_number'] as String? ?? '',
+        lotNo: '',
+        productId: item.productId,
+        name: item.productName,
+        quantity: item.quantity,
+        unitId: item.unitId ?? product?['unit_id'] as String? ?? '',
+        unitName: item.unit ?? product?['unit'] as String? ?? '',
+        categoryId: product?['category_id'] as String? ?? ApiConfig.emptyGuid,
+        groupId: product?['category_id'] as String? ?? ApiConfig.emptyGuid,
+        rate: tax.rateExTax,
+        rateIncludingTax: tax.rateIncTax,
+        grossAmount: tax.grossAmount,
+        grossAmountIncludingTax: tax.grossAmountIncTax,
+        discountPercent: 0,
+        discount: tax.discountExcTax,
+        discountIncludingTax: tax.discountIncludingTax,
+        discountType: 'Product',
+        offerId: '',
+        isCombo: false,
+        isMaintainBatchLotNo: false,
+        isNonConversableUnit: false,
+        taxable: tax.taxableAmount,
+        nonTaxable: tax.nonTaxableAmount,
+        taxPercent: kDefaultTaxPercent,
+        taxAmount: tax.taxAmount,
+        netAmount: tax.netAmount,
+        salesInvoiceItemTax: [
+          SalesInvoiceItemTaxRequest(
+            taxOrder: 1,
+            name: 'VAT SALES',
+            taxType: 'Percent',
+            tax: kDefaultTaxPercent,
+            taxableAmount: tax.taxableAmount,
+            taxAmount: tax.taxAmount,
+            netAmount: tax.netAmount,
+          ),
+        ],
+        barcode: '',
+        hsCode: '',
+        attribute1: '',
+        attribute2: '',
       );
-    } else {
+
+      salesInvoiceItems.add(itemRequest);
+
+      totalQty += item.quantity;
+      totalGrossAmount += tax.grossAmount;
+      totalGrossAmountIncTax += tax.grossAmountIncTax;
+      totalDiscountExcTax += tax.discountExcTax;
+      totalDiscountIncTax += tax.discountIncludingTax;
+      totalTaxableAmount += tax.taxableAmount;
+      totalNonTaxableAmount += tax.nonTaxableAmount;
+      totalTaxAmount += tax.taxAmount;
+      totalNetAmount += tax.netAmount;
+    }
+
+    // Add header discount to totals
+    totalDiscountExcTax += sr.discountAmount;
+    totalDiscountIncTax += sr.discountAmount;
+    totalNetAmount -= sr.discountAmount;
+
+    // Build payment entries
+    final salesInvoicePayments = <SalesInvoicePaymentRequest>[];
+    for (final entry in sr.paymentEntries) {
+      final payModeName = entry.paymentModeName ?? 'Cash';
+      final payModeId = entry.paymentModeId ?? ApiConfig.emptyGuid;
+      salesInvoicePayments.add(SalesInvoicePaymentRequest(
+        payMode: payModeName,
+        paymentId: payModeId,
+        amount: entry.amount,
+      ));
+    }
+
+    // Build transaction date from createdDate
+    final now = sr.createdDate;
+    final transactionDate =
+        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')} '
+        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
+
+    // Look up customer name from customer table
+    String customerName = '';
+    final customerMaps = await _db.query(
+      'customer',
+      where: 'server_id = ?',
+      whereArgs: [sr.customerId],
+      limit: 1,
+    );
+    if (customerMaps.isNotEmpty) {
+      customerName = customerMaps.first['name'] as String? ?? '';
+    }
+
+    // Build the request
+    final request = SalesReturnRequest(
+      transactionDate: transactionDate,
+      transactionDateBS: '',
+      type: 'Return',
+      isReturn: true,
+      isSettled: true,
+      customerId: sr.customerId,
+      customerName: customerName,
+      remarks: sr.reason ?? sr.remarks ?? '',
+      outletId: _outletId,
+      totalQuantity: totalQty,
+      totalGrossAmount: totalGrossAmount,
+      totalGrossAmountIncludingTax: totalGrossAmountIncTax,
+      totalDiscount: totalDiscountExcTax,
+      totalDiscountIncludingTax: totalDiscountIncTax,
+      totalTaxableAmount: totalTaxableAmount,
+      totalNonTaxableAmount: totalNonTaxableAmount,
+      totalTax: totalTaxAmount,
+      totalNetAmount: totalNetAmount,
+      totalPayableAmount: totalNetAmount,
+      currencyName: 'NRs',
+      payMode: sr.paymentMode ?? 'Cash',
+      tenderAmount: totalNetAmount,
+      changeAmount: 0,
+      salesInvoiceTax: [
+        SalesInvoiceTaxRequest(
+          taxOrder: 1,
+          name: 'VAT SALES',
+          taxAmount: totalTaxAmount,
+        ),
+      ],
+      salesInvoiceItem: salesInvoiceItems,
+      salesInvoicePayment: salesInvoicePayments,
+      currencyId: ApiConfig.defaultCurrencyId,
+      volumeDiscount: sr.discountAmount,
+    );
+
+    try {
+      final json = request.toJson();
+      print('[Sync] OutletId=${json['OutletId']} CustomerId=${json['CustomerId']} CustomerName=[${json['CustomerName']}] CurrencyId=${json['CurrencyId']} PayMode=${json['PayMode']}');
+      print('[Sync] Item[0]=${jsonEncode(json['SalesInvoiceItem']?.first)}');
+      print('[Sync] Payment=${jsonEncode(json['SalesInvoicePayment'])}');
+      final response = await _apiService.createSalesReturnV2(request);
+      print('[Sync] SalesReturnV2 response: $response');
+      if (response) {
+        await _db.update(
+          'sales_return',
+          {'is_synced': 1},
+          where: 'id = ?',
+          whereArgs: [sr.id],
+        );
+        await _db.update(
+          'sync_queue',
+          {'status': 'Synced'},
+          where: 'id = ?',
+          whereArgs: [entry.id],
+        );
+      } else {
+        print('[Sync] SalesReturnV2 FAILED - server returned Status: false');
+        await _db.update(
+          'sync_queue',
+          {'status': 'Failed'},
+          where: 'id = ?',
+          whereArgs: [entry.id],
+        );
+      }
+    } catch (e) {
+      print('[Sync] SalesReturnV2 ERROR: $e');
       await _db.update(
         'sync_queue',
         {'status': 'Failed'},

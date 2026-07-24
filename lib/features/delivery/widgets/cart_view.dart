@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../models/cart_item.dart';
 
 class CartView extends StatelessWidget {
@@ -22,6 +23,7 @@ class CartView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     if (items.isEmpty) {
       return Card(
@@ -29,7 +31,7 @@ class CartView extends StatelessWidget {
           padding: const EdgeInsets.all(24),
           child: Center(
             child: Text(
-              'Cart is empty. Add products from the list above.',
+              l10n.cartIsEmptyMessage,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -46,7 +48,7 @@ class CartView extends StatelessWidget {
         Row(
           children: [
             Text(
-              'Cart (${items.length} items)',
+              l10n.cartItemCount(items.length.toString()),
               style: theme.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
@@ -55,7 +57,7 @@ class CartView extends StatelessWidget {
             TextButton.icon(
               onPressed: onClear,
               icon: const Icon(Icons.delete_sweep, size: 18),
-              label: const Text('Clear'),
+              label: Text(l10n.clear),
             ),
           ],
         ),
@@ -146,13 +148,14 @@ class CartView extends StatelessWidget {
   }
 
   void _showPriceEditor(BuildContext context, ThemeData theme, CartItem item) {
+    final l10n = AppLocalizations.of(context)!;
     final controller =
         TextEditingController(text: item.unitPrice.toStringAsFixed(2));
 
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Edit Price: ${item.productName}'),
+        title: Text('${l10n.editPrice}: ${item.productName}'),
         content: TextField(
           controller: controller,
           keyboardType:
@@ -160,8 +163,8 @@ class CartView extends StatelessWidget {
           inputFormatters: [
             FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
           ],
-          decoration: const InputDecoration(
-            labelText: 'Unit Price',
+          decoration: InputDecoration(
+            labelText: l10n.unitPrice,
             prefixText: 'Rs. ',
             border: OutlineInputBorder(),
           ),
@@ -170,7 +173,7 @@ class CartView extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () {
@@ -180,7 +183,7 @@ class CartView extends StatelessWidget {
               }
               Navigator.pop(ctx);
             },
-            child: const Text('Save'),
+            child: Text(l10n.save),
           ),
         ],
       ),

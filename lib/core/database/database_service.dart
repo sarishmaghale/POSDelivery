@@ -24,7 +24,7 @@ class DatabaseService {
 
       _database = await openDatabase(
         path,
-        version: 16,
+        version: 19,
         onCreate: _createTables,
         onUpgrade: _onUpgrade,
       );
@@ -241,6 +241,27 @@ class DatabaseService {
         );
       } catch (_) {}
     }
+    if (oldVersion < 17) {
+      try {
+        await db.execute(
+          'ALTER TABLE sales_return_item ADD COLUMN taxable INTEGER DEFAULT 0',
+        );
+      } catch (_) {}
+    }
+    if (oldVersion < 18) {
+      try {
+        await db.execute(
+          'ALTER TABLE all_product ADD COLUMN taxable INTEGER DEFAULT 0',
+        );
+      } catch (_) {}
+    }
+    if (oldVersion < 19) {
+    try {
+      await db.execute(
+        'ALTER TABLE estimate ADD COLUMN payment_entries TEXT',
+      );
+    } catch (_) {}
+  }
   }
 
   Future<void> _createTables(Database db, int version) async {
@@ -346,7 +367,8 @@ class DatabaseService {
         paid_amount REAL DEFAULT 0,
         remarks TEXT,
         created_date TEXT NOT NULL,
-        is_synced INTEGER DEFAULT 0
+        is_synced INTEGER DEFAULT 0,
+        payment_entries TEXT
       )
     ''');
 
@@ -393,7 +415,8 @@ class DatabaseService {
         unit TEXT,
         discount_type TEXT,
         discount_value REAL DEFAULT 0,
-        discount_amount REAL DEFAULT 0
+        discount_amount REAL DEFAULT 0,
+        taxable INTEGER DEFAULT 0
       )
     ''');
 
@@ -428,7 +451,8 @@ class DatabaseService {
         unit TEXT,
         unit_price REAL DEFAULT 0,
         image_url TEXT,
-        units_json TEXT
+        units_json TEXT,
+        taxable INTEGER DEFAULT 0
       )
     ''');
   }

@@ -35,6 +35,7 @@ class SalesInvoiceRequest {
   final double volumeDiscount;
   final dynamic orderDate;
   final String currencyId;
+  final String remarks;
 
   SalesInvoiceRequest({
     required this.transactionDate,
@@ -73,6 +74,7 @@ class SalesInvoiceRequest {
     this.volumeDiscount = 0,
     this.orderDate,
     required this.currencyId,
+    this.remarks='',
   });
 
   Map<String, dynamic> toJson() {
@@ -115,6 +117,7 @@ class SalesInvoiceRequest {
       'VolumeDiscount': volumeDiscount,
       'OrderDate': orderDate,
       'CurrencyId': currencyId,
+      'Remarks':remarks,
     };
   }
 }

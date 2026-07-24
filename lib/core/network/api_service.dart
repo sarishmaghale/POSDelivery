@@ -1,8 +1,10 @@
 import '../../dto/sales_invoice_request.dart';
 import '../../dto/sales_invoice_response.dart';
+import '../../dto/sales_return_request.dart';
 
 abstract class ApiService {
-   Future<List<Map<String, dynamic>>> fetchAllProducts();
+  void updateConfig({String? baseUrl, String? token});
+  Future<List<Map<String, dynamic>>> fetchAllProducts();
   Future<List<Map<String, dynamic>>> fetchCustomers();
   Future<List<Map<String, dynamic>>> fetchCategories({
     required String customerId,
@@ -16,4 +18,5 @@ abstract class ApiService {
 
   Future<SalesInvoiceResponse> createSalesInvoice(SalesInvoiceRequest request);
   Future<bool> createSalesReturn(Map<String, dynamic> data);
+  Future<bool> createSalesReturnV2(SalesReturnRequest request);
 }

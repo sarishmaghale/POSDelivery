@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/auth/provider/auth_provider.dart';
+import '../../features/auth/screen/login_screen.dart';
 import '../../features/dashboard/screen/categories_screen.dart';
 import '../../features/dashboard/screen/customers_screen.dart';
 import '../../features/dashboard/screen/dashboard_screen.dart';
@@ -10,6 +13,8 @@ import '../../features/delivery/screen/delivery_screen.dart';
 import '../../features/estimate/screen/estimate_history_screen.dart';
 import '../../features/estimate/screen/estimate_screen.dart';
 import '../../features/profile/screen/profile_screen.dart';
+import '../../features/sales_return/screen/sales_return_detail_screen.dart';
+import '../../features/sales_return/screen/sales_return_history_screen.dart';
 import '../../features/sales_return/screen/sales_return_screen.dart';
 import '../../features/sync/screen/sync_screen.dart';
 import '../../l10n/app_localizations.dart';
@@ -17,20 +22,42 @@ import '../../l10n/app_localizations.dart';
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
 
-final appRouterProvider = GoRouter(
-  navigatorKey: _rootNavigatorKey,
-  initialLocation: '/dashboard',
-  routes: [
-    ShellRoute(
-      navigatorKey: _shellNavigatorKey,
-      builder: (context, state, child) => AppShell(child: child),
-      routes: [
-        GoRoute(
-          path: '/dashboard',
-          pageBuilder: (context, state) => const NoTransitionPage(
-            child: DashboardScreen(),
+final appRouterProvider = Provider<GoRouter>((ref) {
+  final authState = ref.watch(authProvider);
+
+  return GoRouter(
+    navigatorKey: _rootNavigatorKey,
+    initialLocation: '/login',
+    redirect: (context, state) {
+      if (authState.status == AuthStatus.uninitialized) return '/splash';
+      final isAuthenticated = authState.status == AuthStatus.authenticated;
+      final isLoginRoute = state.matchedLocation == '/login';
+      if (!isAuthenticated && !isLoginRoute) return '/login';
+      if (isAuthenticated && isLoginRoute) return '/dashboard';
+      return null;
+    },
+    routes: [
+      GoRoute(
+      path: '/splash',
+      builder: (context, state) => const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+       ),
+      ),
+      GoRoute(
+        path: '/login',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const LoginScreen(),
+      ),
+      ShellRoute(
+        navigatorKey: _shellNavigatorKey,
+        builder: (context, state, child) => AppShell(child: child),
+        routes: [
+          GoRoute(
+            path: '/dashboard',
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: DashboardScreen(),
+            ),
           ),
-        ),
         GoRoute(
           path: '/delivery',
           pageBuilder: (context, state) {
@@ -59,6 +86,12 @@ final appRouterProvider = GoRouter(
             child: DeliveryHistoryScreen(),
           ),
         ),
+        GoRoute(
+          path: '/sales-return-history',
+          pageBuilder: (context, state) => const NoTransitionPage(
+            child: SalesReturnHistoryScreen(),
+          ),
+        ),
       ],
     ),
     GoRoute(
@@ -68,6 +101,15 @@ final appRouterProvider = GoRouter(
         final deliveryId = int.tryParse(
             state.pathParameters['id'] ?? '');
         return DeliveryScreen(deliveryId: deliveryId);
+      },
+    ),
+    GoRoute(
+      path: '/sales-return-detail/:id',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) {
+        final salesReturnId = int.tryParse(
+            state.pathParameters['id'] ?? '');
+        return SalesReturnDetailScreen(salesReturnId: salesReturnId!);
       },
     ),
     GoRoute(
@@ -105,7 +147,8 @@ final appRouterProvider = GoRouter(
       builder: (context, state) => const CustomersScreen(),
     ),
   ],
-);
+  );
+});
 
 class AppShell extends StatelessWidget {
   final Widget child;

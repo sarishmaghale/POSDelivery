@@ -12,6 +12,7 @@ class SalesReturnItem {
   String? discountType;
   double discountValue = 0;
   double discountAmount = 0;
+  int taxable = 0;
 
   SalesReturnItem();
 
@@ -30,6 +31,7 @@ class SalesReturnItem {
       if (discountType != null) 'discount_type': discountType,
       'discount_value': discountValue,
       'discount_amount': discountAmount,
+      'taxable': taxable,
     };
   }
 
@@ -46,6 +48,7 @@ class SalesReturnItem {
     item.discountType = map['discount_type'] as String?;
     item.discountValue = (map['discount_value'] as num?)?.toDouble() ?? 0;
     item.discountAmount = (map['discount_amount'] as num?)?.toDouble() ?? 0;
+    item.taxable = (map['taxable'] as int?) ?? 0;
     return item;
   }
 }

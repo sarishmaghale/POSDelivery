@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../../../models/product.dart';
 
 class ProductDropdown extends StatelessWidget {
@@ -103,6 +104,7 @@ class _SearchProductFieldState extends State<SearchProductField> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final langCode = Localizations.localeOf(context).languageCode;
+    final l10n = AppLocalizations.of(context)!;
 
     return TapRegion(
       onTapOutside: (_) {
@@ -119,8 +121,8 @@ class _SearchProductFieldState extends State<SearchProductField> {
             controller: _searchController,
             focusNode: _focusNode,
             decoration: InputDecoration(
-              labelText: widget.selectedProduct?.name ?? 'Search Product',
-              hintText: widget.selectedProduct != null ? '' : 'Type to search...',
+              labelText: widget.selectedProduct?.name ?? l10n.searchProduct,
+              hintText: widget.selectedProduct != null ? '' : l10n.typeToSearch,
               prefixIcon: const Icon(Icons.inventory_2),
               suffixIcon: widget.selectedProduct != null
                   ? IconButton(
@@ -144,7 +146,7 @@ class _SearchProductFieldState extends State<SearchProductField> {
             Padding(
               padding: const EdgeInsets.only(top: 4),
               child: Text(
-                'No products found',
+                l10n.noProductsFound,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -163,7 +165,7 @@ class _SearchProductFieldState extends State<SearchProductField> {
               constraints: const BoxConstraints(maxHeight: 280),
               child: ListView.builder(
                 shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
+                physics: const AlwaysScrollableScrollPhysics(),
                 itemCount: _results.length,
                 itemBuilder: (context, index) {
                   final product = _results[index];

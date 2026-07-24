@@ -8,6 +8,7 @@ import 'dart:io' show Platform;
 import 'core/database/database_service.dart';
 import 'core/database/providers.dart';
 import 'core/providers/locale_provider.dart';
+import 'core/providers/theme_provider.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'features/sync/provider/sync_provider.dart';
@@ -21,8 +22,8 @@ void main() async {
       channelId: 'location_tracking',
       channelName: 'Location Tracking',
       channelDescription: 'Tracking your location during duty',
-      channelImportance: NotificationChannelImportance.LOW,
-      priority: NotificationPriority.LOW,
+      channelImportance: NotificationChannelImportance.DEFAULT,
+      priority: NotificationPriority.DEFAULT,
     ),
     iosNotificationOptions: const IOSNotificationOptions(
       showNotification: true,
@@ -44,12 +45,14 @@ void main() async {
   await databaseService.initialize();
 
   final savedLocale = await loadSavedLocale();
+  final savedThemeMode = await loadSavedThemeMode();
 
   runApp(
     ProviderScope(
       overrides: [
         databaseServiceProvider.overrideWithValue(databaseService),
         localeProvider.overrideWithProvider(StateProvider<Locale>((ref) => savedLocale)),
+        themeModeProvider.overrideWithProvider(StateProvider<ThemeMode>((ref) => savedThemeMode)),
       ],
       child: const PosDeliveryApp(),
     ),
@@ -75,10 +78,15 @@ class _PosDeliveryAppState extends ConsumerState<PosDeliveryApp> {
   @override
   Widget build(BuildContext context) {
     final locale = ref.watch(localeProvider);
+    final themeMode = ref.watch(themeModeProvider);
+    final router = ref.watch(appRouterProvider);
+    const double textScale = 1.15;
     return MaterialApp.router(
       title: 'POS Delivery',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      themeMode: themeMode,
       locale: locale,
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: const [
@@ -87,7 +95,13 @@ class _PosDeliveryAppState extends ConsumerState<PosDeliveryApp> {
         GlobalCupertinoLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
       ],
-      routerConfig: appRouterProvider,
+      routerConfig: router,
+       builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(
+          textScaleFactor: MediaQuery.of(context).textScaleFactor * textScale,
+        ),
+        child: child ?? const SizedBox.shrink(),
+      ),
     );
   }
 }
